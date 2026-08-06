@@ -8,7 +8,7 @@ import {
   Matches,
   MinLength,
 } from 'class-validator';
-import { UserRole, PHONE_REGEX } from '@ellixr/shared';
+import { UserRole, PHONE_REGEX } from '@campusgo/shared';
 import { EmptyToUndefined } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';

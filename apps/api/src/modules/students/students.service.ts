@@ -8,9 +8,9 @@ import {
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma } from '@ellixr/database';
-import type { PrismaClient } from '@ellixr/database';
-import type { Prisma as PrismaTypes } from '@ellixr/database';
+import { Prisma } from '@campusgo/database';
+import type { PrismaClient } from '@campusgo/database';
+import type { Prisma as PrismaTypes } from '@campusgo/database';
 
 // A student's "details" are complete when 10th, 12th and a degree % are on record.
 const DETAILS_COMPLETE_WHERE: PrismaTypes.StudentWhereInput = {
@@ -40,7 +40,7 @@ import {
   UpdateStudentDto,
   VerifyStudentDto,
 } from './dto';
-import { computeProfileCompletion, type StepCompletion } from '@ellixr/shared';
+import { computeProfileCompletion, type StepCompletion } from '@campusgo/shared';
 
 // Every student is created with this shared default password so officers can
 // hand it out in bulk (students change it later from their profile). Demo/V1

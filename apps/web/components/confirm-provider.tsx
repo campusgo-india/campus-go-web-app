@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { Button } from '@ellixr/ui';
+import { Button } from '@campusgo/ui';
 
 export interface ConfirmOptions {
   title: string;

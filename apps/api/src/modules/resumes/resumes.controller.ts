@@ -11,8 +11,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UserRole } from '@ellixr/shared';
-import type { JwtPayload } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
+import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Public, Roles } from '../../common/decorators';
 import { ResumesService } from './resumes.service';
 import { UpdateResumeDto } from './dto';

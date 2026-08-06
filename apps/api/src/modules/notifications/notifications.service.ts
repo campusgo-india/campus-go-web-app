@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import type { NotificationType, PrismaClient } from '@ellixr/database';
+import type { NotificationType, PrismaClient } from '@campusgo/database';
 
 export interface NotifyParams {
   userId: string;

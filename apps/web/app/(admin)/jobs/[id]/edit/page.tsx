@@ -3,7 +3,7 @@
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import {
   getJob,
   updateJob,

@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma, ApplicationStage } from '@ellixr/database';
-import type { PrismaClient } from '@ellixr/database';
+import { Prisma, ApplicationStage } from '@campusgo/database';
+import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
 

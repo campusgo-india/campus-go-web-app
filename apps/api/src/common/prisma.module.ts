@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { prisma } from '@ellixr/database';
+import { prisma } from '@campusgo/database';
 
 export const PRISMA = 'PRISMA';
 

@@ -16,7 +16,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { JobType, WorkMode } from '@ellixr/database';
+import { JobType, WorkMode } from '@campusgo/database';
 
 // A single custom application question attached to a job.
 export class ApplicationFieldDto {

@@ -1,6 +1,6 @@
 {
-  "name": "Ellixr",
-  "short_name": "Ellixr",
+  "name": "CampusGO",
+  "short_name": "CampusGO",
   "description": "Placement Intelligence & Career Success Platform",
   "start_url": "/me",
   "display": "standalone",

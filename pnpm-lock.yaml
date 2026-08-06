@@ -23,13 +23,13 @@ importers:
 
   apps/api:
     dependencies:
-      '@ellixr/auth':
+      '@campusgo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@ellixr/database':
+      '@campusgo/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@ellixr/shared':
+      '@campusgo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@nestjs/common':
@@ -108,13 +108,13 @@ importers:
 
   apps/web:
     dependencies:
-      '@ellixr/auth':
+      '@campusgo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@ellixr/shared':
+      '@campusgo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@ellixr/ui':
+      '@campusgo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
@@ -160,7 +160,7 @@ importers:
 
   packages/auth:
     dependencies:
-      '@ellixr/shared':
+      '@campusgo/shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:

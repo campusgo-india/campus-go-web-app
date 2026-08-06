@@ -12,7 +12,7 @@ const API_PROXY_TARGET = process.env.API_PROXY_TARGET ?? 'http://localhost:4000'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@ellixr/ui', '@ellixr/shared', '@ellixr/auth'],
+  transpilePackages: ['@campusgo/ui', '@campusgo/shared', '@campusgo/auth'],
   // Same-origin BFF: the browser only ever talks to the web origin, so the
   // refresh cookie is first-party and CORS is sidestepped. /api/v1/* is proxied
   // to the NestJS API server-side.

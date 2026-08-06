@@ -1,4 +1,4 @@
-/** Standard API response envelope used by all @ellixr/api endpoints. */
+/** Standard API response envelope used by all @campusgo/api endpoints. */
 
 export interface ApiMeta {
   page?: number;

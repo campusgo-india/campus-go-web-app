@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { forgotPassword } from '../../../lib/auth-actions';
 
 export default function ForgotPasswordPage() {

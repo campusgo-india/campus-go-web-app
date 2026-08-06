@@ -2,7 +2,7 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { PdfModal } from '../../../../components/pdf-modal';
 import { useRouter } from 'next/navigation';
 import {

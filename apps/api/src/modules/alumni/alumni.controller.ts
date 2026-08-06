@@ -9,8 +9,8 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { UserRole } from '@ellixr/shared';
-import type { JwtPayload } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
+import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Public, Roles } from '../../common/decorators';
 import { AlumniService } from './alumni.service';
 import { CreateAlumniDto, ListAlumniQuery, SelfRegisterAlumniDto, UpdateAlumniDto } from './dto';

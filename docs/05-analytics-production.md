@@ -4,7 +4,7 @@
 
 ## Goal
 
-Make Ellixr deployable to real colleges: analytics dashboards, exportable reports, audit logging,
+Make CampusGO deployable to real colleges: analytics dashboards, exportable reports, audit logging,
 monitoring, the cron scheduler (powering Phase 4's birthday/reminder jobs), and full deployment to
 Vercel + Render + Supabase + Vercel Blob.
 
@@ -150,7 +150,7 @@ Scheduler (Railway cron or `@nestjs/schedule`):
 ### Final repository structure
 
 ```text
-ellixr/
+campusgo/
 ├── apps/
 │   ├── web/        (Vercel)
 │   └── api/        (Railway)

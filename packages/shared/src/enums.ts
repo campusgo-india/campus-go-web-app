@@ -1,6 +1,6 @@
 /**
  * Shared enums mirrored across the API (NestJS) and web (Next.js) apps.
- * These MUST stay in sync with the Prisma schema in @ellixr/database.
+ * These MUST stay in sync with the Prisma schema in @campusgo/database.
  */
 
 export const UserRole = {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Card, SectionCard } from '@ellixr/ui';
+import { Button, Card, SectionCard } from '@campusgo/ui';
 import {
   downloadReport,
   getReportCatalog,

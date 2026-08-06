@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button, Card } from '@ellixr/ui';
-import { isValidEmail, isValidPhone, toTitleCase } from '@ellixr/shared';
+import { Badge, Button, Card } from '@campusgo/ui';
+import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
 import { useSession } from '../../../lib/session';
 import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { CopyButton } from '../../../components/copy-button';

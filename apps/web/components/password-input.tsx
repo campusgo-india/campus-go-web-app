@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@ellixr/ui';
+import { cn } from '@campusgo/ui';
 
 /**
  * Text input that masks its value with a show/hide eye toggle. Forwards all

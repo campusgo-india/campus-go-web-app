@@ -1,8 +1,8 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { Button, Card } from '@ellixr/ui';
-import { isValidEmail, isValidPhone } from '@ellixr/shared';
+import { Button, Card } from '@campusgo/ui';
+import { isValidEmail, isValidPhone } from '@campusgo/shared';
 import {
   getPublicCollege,
   selfRegisterAlumni,
@@ -119,7 +119,7 @@ function RegisterForm({
     <Card className="space-y-4 p-6">
       <div className="text-center">
         <span className="bg-gradient-primary bg-clip-text text-xl font-bold text-transparent">
-          Ellixr
+          CampusGO
         </span>
         <h1 className="mt-2 text-lg font-semibold text-strong">
           Alumni registration{collegeName ? ` · ${collegeName}` : ''}

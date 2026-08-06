@@ -1,4 +1,4 @@
-# Ellixr — Role → Module Map
+# CampusGO — Role → Module Map
 
 [← Overview](./00-overview.md) | [Design System](./design-system.md)
 

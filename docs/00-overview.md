@@ -1,12 +1,12 @@
-# Ellixr — Project Overview & Build Plan
+# CampusGO — Project Overview & Build Plan
 
-> Planning index for the Ellixr Placement Intelligence & Career Success Platform.
+> Planning index for the CampusGO Placement Intelligence & Career Success Platform.
 > Read this first, then follow the phase docs in order: [01](./01-foundation-auth.md) → [02](./02-student-lifecycle.md) → [03](./03-companies-jobs-ats.md) → [04](./04-notifications-alumni.md) → [05](./05-analytics-production.md).
 > Design tokens, theme, and the mobile/web platform split live in [design-system.md](./design-system.md).
 
 ## 1. Product Vision
 
-Ellixr is a multi-tenant Placement Intelligence & Career Success Platform for colleges and
+CampusGO is a multi-tenant Placement Intelligence & Career Success Platform for colleges and
 universities. It helps placement teams manage students, recruiters, jobs, applications,
 interview rounds, communication, analytics, reports, and alumni engagement from a single system.
 
@@ -14,7 +14,7 @@ interview rounds, communication, analytics, reports, and alumni engagement from 
 
 | Role                  | Scope                          | Key Capabilities                                                                                 |
 | --------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **Platform Admin**    | Global (Ellixr team)           | Create/manage colleges, manage subscriptions, global oversight, no tenant data access by default |
+| **Platform Admin**    | Global (CampusGO team)           | Create/manage colleges, manage subscriptions, global oversight, no tenant data access by default |
 | **College Admin**     | Single college                 | Oversee placement operations, manage Placement Officer accounts, college settings, alumni        |
 | **Placement Officer** | Single college                 | Manage students, companies, jobs, applications/ATS, notifications, alumni                        |
 | **Student**           | Single college (self)          | Maintain own profile, upload resume, browse/apply jobs, track application status                 |
@@ -57,7 +57,7 @@ one auth/session, one coral theme, and one `packages/ui` component library.
 ## 5. Repository Structure
 
 ```text
-ellixr/
+campusgo/
 ├── apps/
 │   ├── web/                  Next.js 15 app (App Router), Tailwind, Shadcn UI
 │   └── api/                  NestJS REST API

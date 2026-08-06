@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, Card } from '@ellixr/ui';
+import { Badge, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { ApplicationTimeline } from '../../../../components/application-timeline';
 import { ListSkeleton } from '../../../../components/page-skeleton';

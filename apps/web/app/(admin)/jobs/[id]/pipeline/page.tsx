@@ -2,7 +2,7 @@
 
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../../components/confirm-provider';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
 import { formatLpa, getJob, uploadOfferLetter, type Job } from '../../../../../lib/jobs';

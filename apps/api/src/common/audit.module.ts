@@ -1,7 +1,7 @@
 import { Global, Inject, Injectable, Module } from '@nestjs/common';
 import { PRISMA } from './prisma.module';
-import type { PrismaClient } from '@ellixr/database';
-import type { JwtPayload } from '@ellixr/shared';
+import type { PrismaClient } from '@campusgo/database';
+import type { JwtPayload } from '@campusgo/shared';
 
 export interface AuditEntry {
   action: string;

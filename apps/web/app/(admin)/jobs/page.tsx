@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { listJobs, publishManyJobs, type Job } from '../../../lib/jobs';
 import { JobCard } from '../../../components/job-card';
 import { ListSkeleton } from '../../../components/page-skeleton';

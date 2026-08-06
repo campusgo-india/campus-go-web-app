@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { resetPassword } from '../../../../lib/auth-actions';
 import { PasswordInput } from '../../../../components/password-input';
 

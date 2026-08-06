@@ -1,12 +1,12 @@
-# Ellixr — Agent Guide
+# CampusGO — Agent Guide
 
-This file is for AI coding agents working on the Ellixr Placement Intelligence & Career Success Platform. It assumes you know nothing about the repo. Use it alongside the planning docs in [`docs/`](./docs) and the root [`README.md`](./README.md).
+This file is for AI coding agents working on the CampusGO Placement Intelligence & Career Success Platform. It assumes you know nothing about the repo. Use it alongside the planning docs in [`docs/`](./docs) and the root [`README.md`](./README.md).
 
 ---
 
 ## 1. Project Overview
 
-Ellixr is a multi-tenant SaaS platform for colleges and universities to manage placements, recruiters, jobs, student applications, interviews, alumni, analytics, and reports.
+CampusGO is a multi-tenant SaaS platform for colleges and universities to manage placements, recruiters, jobs, student applications, interviews, alumni, analytics, and reports.
 
 - **Students** use a mobile-first / PWA shell (`/me/*`).
 - **Placement Officers, College Admins, and Platform Admins** use a desktop web shell (`/dashboard`, `/students`, `/jobs`, `/platform/*`, etc.).
@@ -77,15 +77,15 @@ Ellixr is a multi-tenant SaaS platform for colleges and universities to manage p
 
 ### How packages are consumed
 
-All `packages/*` export TypeScript source directly from `src/index.ts` (no build step). The NestJS API bundles `@ellixr/*` workspace packages into its webpack output via a custom config (`apps/api/webpack.config.js`). Next.js transpiles the packages listed in `transpilePackages` in `apps/web/next.config.mjs`.
+All `packages/*` export TypeScript source directly from `src/index.ts` (no build step). The NestJS API bundles `@campusgo/*` workspace packages into its webpack output via a custom config (`apps/api/webpack.config.js`). Next.js transpiles the packages listed in `transpilePackages` in `apps/web/next.config.mjs`.
 
 | Package            | `apps/api`                         | `apps/web`                       |
 | ------------------ | ---------------------------------- | -------------------------------- |
-| `@ellixr/auth`     | guards, decorators, auth module    | login redirect, middleware       |
-| `@ellixr/database` | services/controllers/Prisma client | —                                |
-| `@ellixr/shared`   | DTOs, roles, validation, types     | forms, validation, resume, roles |
-| `@ellixr/ui`       | —                                  | components + Tailwind preset     |
-| `@ellixr/storage`  | —                                  | — (dormant)                      |
+| `@campusgo/auth`     | guards, decorators, auth module    | login redirect, middleware       |
+| `@campusgo/database` | services/controllers/Prisma client | —                                |
+| `@campusgo/shared`   | DTOs, roles, validation, types     | forms, validation, resume, roles |
+| `@campusgo/ui`       | —                                  | components + Tailwind preset     |
+| `@campusgo/storage`  | —                                  | — (dormant)                      |
 
 ### API module organization
 
@@ -169,7 +169,7 @@ pnpm format
 - The project uses `prisma db push` in practice; migration files do not currently exist under `packages/database/prisma/migrations`.
 - pnpm is configured with `node-linker=hoisted` (see `.npmrc`) so the bundled API and Prisma client resolve correctly on deploy.
 - The Prisma Client generator in `packages/database/prisma/schema.prisma` pins `output = "../../../node_modules/.prisma/client"` so the generated client always lands in the monorepo root. If you move the schema file, update that relative path.
-- The NestJS build uses a custom webpack config (`apps/api/webpack.config.js`) that bundles `@ellixr/*` workspace packages but keeps all other dependencies external.
+- The NestJS build uses a custom webpack config (`apps/api/webpack.config.js`) that bundles `@campusgo/*` workspace packages but keeps all other dependencies external.
 - There are no automated tests in the repository (see Section 6).
 
 ---
@@ -241,7 +241,7 @@ If you add tests, follow the existing package structure and add the correspondin
 ### Authentication flow
 
 - **Access token**: JWT, 15-minute TTL (`ACCESS_TOKEN_TTL = 15 * 60`), signed with `JWT_ACCESS_SECRET`. Payload: `{ sub, collegeId, role }`. Sent in `Authorization: Bearer` header and held in browser memory only (never `localStorage`).
-- **Refresh token**: opaque random token (48 bytes hex), SHA-256 hashed at rest, single-use and rotated on every refresh, 30-day TTL, delivered as `httpOnly`, `Secure` (when `COOKIE_SECURE=true`), `SameSite=Strict` cookie named `ellixr_rt`. Reuse of a rotated token outside a short grace window revokes the whole session family (theft containment).
+- **Refresh token**: opaque random token (48 bytes hex), SHA-256 hashed at rest, single-use and rotated on every refresh, 30-day TTL, delivered as `httpOnly`, `Secure` (when `COOKIE_SECURE=true`), `SameSite=Strict` cookie named `campusgo_rt`. Reuse of a rotated token outside a short grace window revokes the whole session family (theft containment).
 - **Password reset tokens** are single-use, expiring (1 hour), and SHA-256 hashed.
 - **Sessions are revoked** on logout, password change/reset, user deactivation, and college suspension.
 
@@ -265,7 +265,7 @@ Roles (from `packages/shared/src/enums.ts`):
 Enforcement:
 
 - API: global `JwtAuthGuard` (registered in `AppModule` via `APP_GUARD`) → `IdentityThrottlerGuard` → `RolesGuard` + `@Roles(...)` + `@Public()`.
-- Web: `apps/web/middleware.ts` checks a routing-only `ellixr_role` cookie and redirects unauthenticated or wrong-shell users.
+- Web: `apps/web/middleware.ts` checks a routing-only `campusgo_role` cookie and redirects unauthenticated or wrong-shell users.
 
 ---
 
@@ -308,7 +308,7 @@ Read [`SECURITY.md`](./SECURITY.md) before any production deployment.
 ### Gaps to be aware of
 
 - Email delivery is deferred; treat password/temp-password sharing as a manual, sensitive step.
-- The `ellixr_role` cookie used by Next.js middleware is client-readable and used for routing only; real authorization is re-checked API-side.
+- The `campusgo_role` cookie used by Next.js middleware is client-readable and used for routing only; real authorization is re-checked API-side.
 - No CI/CD, dependency scanning, or automated security scanning is currently configured.
 - `@nestjs/throttler` stores counters in memory, so per-identity limits are per server instance. If you horizontally scale the API, move to a shared Redis store.
 
@@ -327,7 +327,7 @@ The free deployment stack is documented in [`DEPLOYMENT.md`](./DEPLOYMENT.md).
 ### Render build/start (from `render.yaml`)
 
 ```bash
-NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @ellixr/database generate && pnpm --filter @ellixr/api build
+NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @campusgo/database generate && pnpm --filter @campusgo/api build
 node apps/api/dist/main.js
 ```
 
@@ -335,7 +335,7 @@ node apps/api/dist/main.js
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm --filter @ellixr/web build
+pnpm --filter @campusgo/web build
 ```
 
 ### BFF proxy

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@ellixr/ui';
+import { cn } from '@campusgo/ui';
 
 const items = [
   { href: '/me', label: 'Home', icon: HomeIcon },

@@ -1,4 +1,4 @@
-# Ellixr
+# CampusGO
 
 Multi-tenant **Placement Intelligence & Career Success Platform** for colleges and universities.
 

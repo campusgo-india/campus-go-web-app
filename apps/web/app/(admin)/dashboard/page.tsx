@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Card, SectionCard, StatTile } from '@ellixr/ui';
+import { Card, SectionCard, StatTile } from '@campusgo/ui';
 import { useSession } from '../../../lib/session';
 import {
   getJobMetrics,
@@ -126,7 +126,7 @@ export default function DashboardPage() {
         <StatTile label="Median package" value={lpa(placement?.medianPackage ?? null)} />
       </div>
 
-      <SectionCard title="Welcome to Ellixr" subtitle="Your placement command center">
+      <SectionCard title="Welcome to CampusGO" subtitle="Your placement command center">
         <p className="text-sm text-body">
           Manage students, companies, jobs, the ATS pipeline, alumni, and reports from the left
           navigation. Head to <span className="font-medium text-strong">Reports</span> for the full

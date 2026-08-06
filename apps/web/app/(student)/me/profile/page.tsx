@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Card } from '@ellixr/ui';
+import { Card } from '@campusgo/ui';
 import { getOwnStudent, type Student } from '../../../../lib/students';
 import { useSession } from '../../../../lib/session';
 import { InlineSkeleton } from '../../../../components/page-skeleton';

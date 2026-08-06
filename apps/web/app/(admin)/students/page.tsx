@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { useConfirm } from '../../../components/confirm-provider';
 import { BatchCards } from '../../../components/batch-cards';

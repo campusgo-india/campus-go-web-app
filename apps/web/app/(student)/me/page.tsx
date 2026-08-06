@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge, Card } from '@ellixr/ui';
+import { Badge, Card } from '@campusgo/ui';
 import { getOwnStudent, type Student } from '../../../lib/students';
 import { listMyApplications, type Application } from '../../../lib/applications';
 import { NotificationBell } from '../../../components/notification-bell';

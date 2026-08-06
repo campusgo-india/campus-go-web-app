@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../components/page-skeleton';
 import {
   createMyInternship,
@@ -13,7 +13,7 @@ import {
   type Internship,
   type InternshipInput,
 } from '../../../../lib/internships';
-import { isValidPhone, normalizePhoneDigits } from '@ellixr/shared';
+import { isValidPhone, normalizePhoneDigits } from '@campusgo/shared';
 import { mutate, useApi } from '../../../../lib/use-api';
 
 const MAX_INTERNSHIPS = 3;

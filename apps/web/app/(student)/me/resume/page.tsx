@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { PageSkeleton } from '../../../../components/page-skeleton';
 import {

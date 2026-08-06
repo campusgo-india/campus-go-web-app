@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Ellixr — Placement Intelligence',
+  title: 'CampusGO — Placement Intelligence',
   description: 'Placement Intelligence & Career Success Platform',
   manifest: '/manifest.webmanifest',
 };

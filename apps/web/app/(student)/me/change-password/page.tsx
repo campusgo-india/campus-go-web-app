@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { changePassword } from '../../../../lib/auth-actions';
 import { useSession } from '../../../../lib/session';
 import { PasswordInput } from '../../../../components/password-input';

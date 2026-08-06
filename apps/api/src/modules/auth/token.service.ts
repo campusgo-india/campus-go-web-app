@@ -2,10 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes, createHash } from 'crypto';
-import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from '@ellixr/auth';
-import type { JwtPayload } from '@ellixr/shared';
+import { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL } from '@campusgo/auth';
+import type { JwtPayload } from '@campusgo/shared';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 
 // A just-rotated token may legitimately be presented once more within this window
 // (e.g. two browser tabs refreshing at once). Replays older than this indicate

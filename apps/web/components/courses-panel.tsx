@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button } from '@ellixr/ui';
+import { Button } from '@campusgo/ui';
 import {
   createCollegeCourse,
   deleteCollegeCourse,

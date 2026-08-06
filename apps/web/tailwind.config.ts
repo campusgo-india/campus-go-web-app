@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import preset from '@ellixr/ui/tailwind-preset';
+import preset from '@campusgo/ui/tailwind-preset';
 
 const config: Config = {
   presets: [preset as Config],

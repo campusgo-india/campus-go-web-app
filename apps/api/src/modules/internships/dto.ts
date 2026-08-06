@@ -11,8 +11,8 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { EmploymentType } from '@ellixr/database';
-import { PHONE_REGEX } from '@ellixr/shared';
+import { EmploymentType } from '@campusgo/database';
+import { PHONE_REGEX } from '@campusgo/shared';
 import { EmptyToUndefined } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';

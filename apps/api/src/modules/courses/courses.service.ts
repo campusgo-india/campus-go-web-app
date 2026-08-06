@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 import { CreateCourseDto, UpdateCourseDto } from './dto';
 
 const cleanList = (xs: string[] = []): string[] => {

@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import {
   addInterview,
   changeStage,

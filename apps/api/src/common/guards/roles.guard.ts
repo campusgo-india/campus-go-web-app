@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '@ellixr/auth';
-import type { UserRole, JwtPayload } from '@ellixr/shared';
+import { ROLES_KEY } from '@campusgo/auth';
+import type { UserRole, JwtPayload } from '@campusgo/shared';
 
 /** Enforces @Roles(...) metadata against the authenticated user's role. */
 @Injectable()

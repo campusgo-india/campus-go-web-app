@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@ellixr/ui';
-import { UserRole } from '@ellixr/shared';
+import { cn } from '@campusgo/ui';
+import { UserRole } from '@campusgo/shared';
 import { useSession } from '../lib/session';
 
 interface NavItem {
@@ -53,7 +53,7 @@ export function AdminSidebar() {
     <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-white px-4 py-6 md:flex">
       <div className="px-3 pb-8">
         <span className="bg-gradient-primary bg-clip-text text-2xl font-bold text-transparent">
-          Ellixr
+          CampusGO
         </span>
       </div>
       <nav className="flex flex-col gap-1">

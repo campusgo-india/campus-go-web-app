@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { listCompanies, type Company } from '../../../../lib/companies';
 import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
 import {

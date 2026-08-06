@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Card } from '@ellixr/ui';
+import { Badge, Card } from '@campusgo/ui';
 import { applyToJob, getJobFeed, type Job } from '../../../../lib/jobs';
 import { mutate } from '../../../../lib/use-api';
 import { PdfModal } from '../../../../components/pdf-modal';

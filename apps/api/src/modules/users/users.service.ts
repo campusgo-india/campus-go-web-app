@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, NotFoundException } from '@nes
 import bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 import { CreateUserDto, UpdateUserDto } from './dto';
 
 /**

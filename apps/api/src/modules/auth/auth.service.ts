@@ -2,10 +2,10 @@ import { BadRequestException, Inject, Injectable, UnauthorizedException } from '
 import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { PASSWORD_RESET_TTL } from '@ellixr/auth';
-import type { JwtPayload } from '@ellixr/shared';
+import { PASSWORD_RESET_TTL } from '@campusgo/auth';
+import type { JwtPayload } from '@campusgo/shared';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 import { TokenService } from './token.service';
 
 @Injectable()

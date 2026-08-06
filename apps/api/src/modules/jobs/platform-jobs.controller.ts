@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { UserRole } from '@ellixr/shared';
-import type { JwtPayload } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
+import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { JobsService } from './jobs.service';
 import { CreatePlatformJobDto, ListJobsQuery, UpdatePlatformJobDto } from './dto';

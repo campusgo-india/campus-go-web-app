@@ -2,7 +2,7 @@
 
 import { api, setAccessToken } from './api';
 import { mutate } from './use-api';
-import type { UserRole } from '@ellixr/shared';
+import type { UserRole } from '@campusgo/shared';
 
 interface SessionUser {
   id: string;
@@ -19,7 +19,7 @@ interface LoginResult {
 }
 
 /**
- * Logs in and sets the readable `ellixr_role` cookie used by middleware for
+ * Logs in and sets the readable `campusgo_role` cookie used by middleware for
  * shell routing. The httpOnly refresh cookie is managed by the API.
  */
 export async function login(email: string, password: string): Promise<SessionUser> {
@@ -29,7 +29,7 @@ export async function login(email: string, password: string): Promise<SessionUse
     body: JSON.stringify({ email, password }),
   });
   setAccessToken(result.accessToken);
-  document.cookie = `ellixr_role=${result.user.role}; path=/; samesite=lax`;
+  document.cookie = `campusgo_role=${result.user.role}; path=/; samesite=lax`;
   // Prevent the previous user's cached data from flashing on the next screen.
   await mutate(() => true, undefined, { revalidate: false });
   return result.user;
@@ -40,7 +40,7 @@ export async function logout(): Promise<void> {
     await api('/auth/logout', { method: 'POST' });
   } finally {
     setAccessToken(null);
-    document.cookie = 'ellixr_role=; path=/; max-age=0';
+    document.cookie = 'campusgo_role=; path=/; max-age=0';
     await mutate(() => true, undefined, { revalidate: false });
   }
 }

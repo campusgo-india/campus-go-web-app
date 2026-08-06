@@ -1,4 +1,4 @@
-# Ellixr — Deployment (Free Stack)
+# CampusGO — Deployment (Free Stack)
 
 Host the whole app for **$0/month**. Three pieces, tied together by the same-origin
 BFF proxy (the browser only ever talks to the web origin; Next.js forwards
@@ -39,15 +39,15 @@ Pre-flight requirements live in [`SECURITY.md`](SECURITY.md).
 
 ## Step 2 — API → Render
 
-1. Render Dashboard → **New → Blueprint** → select this repo. It reads [`render.yaml`](render.yaml) and creates the `ellixr-api` web service (free plan, Singapore region — closest to the Mumbai DB).
+1. Render Dashboard → **New → Blueprint** → select this repo. It reads [`render.yaml`](render.yaml) and creates the `campusgo-api` web service (free plan, Singapore region — closest to the Mumbai DB).
 2. The blueprint **generates** `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` for you. Set the two `sync:false` vars in the dashboard:
    - `DATABASE_URL` → the production Supabase Postgres URI
    - `WEB_ORIGIN` → leave blank for now; fill in after Step 3
-3. Deploy. Note the API URL, e.g. `https://ellixr-api.onrender.com`. Confirm `https://ellixr-api.onrender.com/api/v1/health` returns `{ "data": ... }`.
+3. Deploy. Note the API URL, e.g. `https://campusgo-api.onrender.com`. Confirm `https://campusgo-api.onrender.com/api/v1/health` returns `{ "data": ... }`.
 
 Build/start (already in the blueprint):
 
-- Build: `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @ellixr/database generate && pnpm --filter @ellixr/api build`
+- Build: `corepack enable && pnpm install --frozen-lockfile && pnpm --filter @campusgo/database generate && pnpm --filter @campusgo/api build`
 - Start: `node apps/api/dist/main.js`
 
 ## Step 3 — Web → Vercel
@@ -57,7 +57,7 @@ Build/start (already in the blueprint):
 3. Environment variables:
    - `API_PROXY_TARGET` → the Render API URL from Step 2 (the proxy + résumé page forward here)
    - `NEXT_PUBLIC_API_URL` → `/api/v1`
-4. Deploy. Note the URL, e.g. `https://ellixr.vercel.app`.
+4. Deploy. Note the URL, e.g. `https://campus-go-web-app.vercel.app`.
 
 ## Step 4 — Tie them together
 

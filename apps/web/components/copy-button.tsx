@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { cn } from '@ellixr/ui';
+import { cn } from '@campusgo/ui';
 
 /** Copies `value` to the clipboard with brief "Copied" feedback. */
 export function CopyButton({ value, className }: { value: string; className?: string }) {

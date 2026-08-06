@@ -1,9 +1,9 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
-import { UserRole } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 import { CreateCollegeDto, UpdateCollegeDto } from './dto';
 
 @Injectable()

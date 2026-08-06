@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { del, put } from '@vercel/blob';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 import { PRISMA } from '../../common/prisma.module';
 import { UpdateResumeDto } from './dto';
 

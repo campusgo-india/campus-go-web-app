@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma } from '@ellixr/database';
-import type { PrismaClient } from '@ellixr/database';
+import { Prisma } from '@campusgo/database';
+import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRoundDto, PlaceApplicantDto, UpdateRoundDto } from './rounds-dto';
 

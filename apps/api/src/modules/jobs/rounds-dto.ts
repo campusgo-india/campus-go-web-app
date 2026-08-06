@@ -10,7 +10,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { RoundType } from '@ellixr/database';
+import { RoundType } from '@campusgo/database';
 import { EmptyToUndefined } from '../../common/transforms';
 
 export class CreateRoundDto {

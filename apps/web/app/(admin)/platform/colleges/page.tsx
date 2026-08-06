@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
-import { Badge, Button, Card } from '@ellixr/ui';
-import { isValidEmail, isValidPhone, toTitleCase } from '@ellixr/shared';
+import { Badge, Button, Card } from '@campusgo/ui';
+import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
 import { PasswordInput } from '../../../../components/password-input';
 import { CopyButton } from '../../../../components/copy-button';
 import { CoursesPanel } from '../../../../components/courses-panel';

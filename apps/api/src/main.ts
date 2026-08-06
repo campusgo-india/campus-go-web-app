@@ -38,7 +38,7 @@ async function bootstrap() {
   const port = Number(config.get('PORT')) || 4000;
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`Ellixr API listening on http://localhost:${port}/api/v1`);
+  console.log(`CampusGO API listening on http://localhost:${port}/api/v1`);
 }
 
 bootstrap();

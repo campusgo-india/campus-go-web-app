@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma } from '@ellixr/database';
-import type { PrismaClient, Student, ApplicationStage } from '@ellixr/database';
+import { Prisma } from '@campusgo/database';
+import type { PrismaClient, Student, ApplicationStage } from '@campusgo/database';
 import {
   CreateJobDto,
   CreatePlatformJobDto,

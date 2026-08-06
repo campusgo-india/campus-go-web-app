@@ -1,10 +1,10 @@
-# Render Blueprint for the Ellixr API (NestJS).
+# Render Blueprint for the CampusGO API (NestJS).
 # Deploy: Render Dashboard → New → Blueprint → pick this repo.
 # Free plan (sleeps after ~15 min idle). DATABASE_URL + WEB_ORIGIN are set in the
 # dashboard (sync:false); the JWT secrets are generated for you.
 services:
   - type: web
-    name: ellixr-api
+    name: campusgo-api
     runtime: node
     plan: free
     region: singapore # pick the Render region closest to your Supabase project
@@ -12,7 +12,7 @@ services:
     # Render already provides pnpm (detected from packageManager); no corepack.
     # Install with NODE_ENV=development so devDependencies (prisma, nest CLI) are
     # installed for the build — they're skipped under NODE_ENV=production.
-    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @ellixr/database generate && pnpm --filter @ellixr/api build
+    buildCommand: NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @campusgo/database generate && pnpm --filter @campusgo/api build
     startCommand: node apps/api/dist/main.js
     healthCheckPath: /api/v1/health
     envVars:
@@ -30,4 +30,4 @@ services:
       - key: DATABASE_URL
         sync: false # paste the Supabase Postgres connection string in the dashboard
       - key: WEB_ORIGIN
-        sync: false # set to your Vercel URL, e.g. https://ellixr.vercel.app
+        sync: false # set to your Vercel URL, e.g. https://campus-go-web-app.vercel.app

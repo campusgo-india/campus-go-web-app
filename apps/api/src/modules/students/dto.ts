@@ -16,8 +16,8 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { VerificationStatus } from '@ellixr/database';
-import { PHONE_REGEX } from '@ellixr/shared';
+import { VerificationStatus } from '@campusgo/database';
+import { PHONE_REGEX } from '@campusgo/shared';
 import { EmptyToUndefined } from '../../common/transforms';
 
 const CURRENT_YEAR = new Date().getFullYear();

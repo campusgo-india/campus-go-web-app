@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma } from '@ellixr/database';
-import type { Internship, PrismaClient } from '@ellixr/database';
+import { Prisma } from '@campusgo/database';
+import type { Internship, PrismaClient } from '@campusgo/database';
 import { CreateInternshipDto, UpdateInternshipDto } from './dto';
 
 const MAX_INTERNSHIPS_PER_STUDENT = 3;

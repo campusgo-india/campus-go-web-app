@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
 import {

@@ -1,5 +1,5 @@
 {
-  "name": "ellixr",
+  "name": "campusgo",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.12.0",
@@ -12,12 +12,12 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "db:generate": "pnpm --filter @ellixr/database generate",
-    "db:push": "dotenv -e .env -- pnpm --filter @ellixr/database push",
-    "db:migrate": "dotenv -e .env -- pnpm --filter @ellixr/database migrate",
-    "db:migrate:deploy": "dotenv -e .env -- pnpm --filter @ellixr/database migrate:deploy",
-    "db:seed": "dotenv -e .env -- pnpm --filter @ellixr/database seed",
-    "db:studio": "dotenv -e .env -- pnpm --filter @ellixr/database studio"
+    "db:generate": "pnpm --filter @campusgo/database generate",
+    "db:push": "dotenv -e .env -- pnpm --filter @campusgo/database push",
+    "db:migrate": "dotenv -e .env -- pnpm --filter @campusgo/database migrate",
+    "db:migrate:deploy": "dotenv -e .env -- pnpm --filter @campusgo/database migrate:deploy",
+    "db:seed": "dotenv -e .env -- pnpm --filter @campusgo/database seed",
+    "db:studio": "dotenv -e .env -- pnpm --filter @campusgo/database studio"
   },
   "devDependencies": {
     "dotenv-cli": "^7.4.2",

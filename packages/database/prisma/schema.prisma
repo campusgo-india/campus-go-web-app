@@ -1,4 +1,4 @@
-// Ellixr — Prisma schema
+// CampusGO — Prisma schema
 // Phase 1: multi-tenant foundation, users, auth tokens.
 // Models map to snake_case tables. Later phases extend this file.
 

@@ -1,4 +1,4 @@
-# Ellixr — Security Notes & Production Hardening Checklist
+# CampusGO — Security Notes & Production Hardening Checklist
 
 This documents the security model and the **must-do steps before any non-local
 deployment**. The biggest real-world risk is misconfiguration, not the code.
@@ -52,7 +52,7 @@ scoped by JWT `collegeId`, every `:id` mutation is guarded before a bare
 ## Known gaps / roadmap (track these)
 
 - **Email delivery deferred** — credentials/reset links are shown once in the UI and shared out-of-band. Until per-college email sending lands, treat temp-password sharing as a manual, sensitive step.
-- **`ellixr_role` routing cookie is client-readable** — used by the Next.js middleware for routing only; all authorization is re-checked server-side. Hardening: move auth behind the BFF proxy so role is never client-trusted.
+- **`campusgo_role` routing cookie is client-readable** — used by the Next.js middleware for routing only; all authorization is re-checked server-side. Hardening: move auth behind the BFF proxy so role is never client-trusted.
 - **Dependency scanning** — add `npm audit` / Dependabot (or equivalent) to CI to catch vulnerable transitive deps.
 - **Audit-log coverage** — currently logs the highest-value events (PII exports, user/role management, student verification, college lifecycle). Extend to more reads as compliance needs grow.
 - Production observability (Sentry) and a cron scheduler are Phase 5.

@@ -8,7 +8,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { ApplicationStage, InterviewResult } from '@ellixr/database';
+import { ApplicationStage, InterviewResult } from '@campusgo/database';
 
 export class ChangeStageDto {
   @IsEnum(ApplicationStage) stage!: ApplicationStage;

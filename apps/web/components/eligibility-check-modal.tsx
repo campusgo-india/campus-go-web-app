@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import { type Job } from '../lib/jobs';
 import { getOwnStudent, updateOwnProfile, type Student } from '../lib/students';
 import { uploadMyResume } from '../lib/resume';

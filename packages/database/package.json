@@ -1,5 +1,5 @@
 {
-  "name": "@ellixr/database",
+  "name": "@campusgo/database",
   "version": "0.1.0",
   "private": true,
   "main": "./src/index.ts",

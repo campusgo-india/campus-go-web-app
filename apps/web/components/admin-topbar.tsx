@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@ellixr/ui';
+import { Button } from '@campusgo/ui';
 import { useSession } from '../lib/session';
 import { NotificationBell } from './notification-bell';
 

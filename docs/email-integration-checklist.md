@@ -1,6 +1,6 @@
 # Email Integration Checklist — Google Workspace (Business Suite)
 
-Use this checklist when talking to the college IT / placement officer. The goal is to enable automated email notifications from the Ellixr placement platform using the college's existing Google Workspace account.
+Use this checklist when talking to the college IT / placement officer. The goal is to enable automated email notifications from the CampusGO placement platform using the college's existing Google Workspace account.
 
 ---
 

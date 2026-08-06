@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@ellixr/ui';
+import { Card } from '@campusgo/ui';
 
 export interface BatchCardItem {
   key: string;

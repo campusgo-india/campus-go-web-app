@@ -1,6 +1,6 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { REFRESH_COOKIE_NAME } from '@ellixr/auth';
+import { REFRESH_COOKIE_NAME } from '@campusgo/auth';
 
 /**
  * Rate-limit per identity, not per IP.

@@ -3,8 +3,8 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
-import { homePathForRole } from '@ellixr/auth';
+import { Button, Card } from '@campusgo/ui';
+import { homePathForRole } from '@campusgo/auth';
 import { login } from '../../../lib/auth-actions';
 import { PasswordInput } from '../../../components/password-input';
 
@@ -47,7 +47,7 @@ function LoginForm() {
     <Card className="space-y-6">
       <div className="space-y-1 text-center">
         <h1 className="bg-gradient-primary bg-clip-text text-3xl font-bold text-transparent">
-          Ellixr
+          CampusGO
         </h1>
         <p className="text-sm text-subtle">Sign in to your account</p>
       </div>

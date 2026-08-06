@@ -1,6 +1,6 @@
 import { SetMetadata, createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { ROLES_KEY, IS_PUBLIC_KEY } from '@ellixr/auth';
-import type { UserRole, JwtPayload } from '@ellixr/shared';
+import { ROLES_KEY, IS_PUBLIC_KEY } from '@campusgo/auth';
+import type { UserRole, JwtPayload } from '@campusgo/shared';
 
 /** Marks a route as publicly accessible (bypasses the global JwtAuthGuard). */
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);

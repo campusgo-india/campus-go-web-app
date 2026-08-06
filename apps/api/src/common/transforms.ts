@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { toTitleCase } from '@ellixr/shared';
+import { toTitleCase } from '@campusgo/shared';
 
 /**
  * Coerce a blank string to `undefined` so `@IsOptional()` treats an empty

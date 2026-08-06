@@ -1,5 +1,5 @@
 import { Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
-import type { JwtPayload } from '@ellixr/shared';
+import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser } from '../../common/decorators';
 import { NotificationsService } from './notifications.service';
 

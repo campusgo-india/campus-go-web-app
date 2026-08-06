@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
-import type { PrismaClient } from '@ellixr/database';
+import type { PrismaClient } from '@campusgo/database';
 
 // Application stages that count as a secured placement / a released offer.
 const PLACING_STAGES = ['OFFER_ACCEPTED', 'JOINED'] as const;

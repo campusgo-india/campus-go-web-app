@@ -1,5 +1,5 @@
 {
-  "name": "@ellixr/web",
+  "name": "@campusgo/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ellixr/auth": "workspace:*",
-    "@ellixr/shared": "workspace:*",
-    "@ellixr/ui": "workspace:*",
+    "@campusgo/auth": "workspace:*",
+    "@campusgo/shared": "workspace:*",
+    "@campusgo/ui": "workspace:*",
     "next": "^15.0.0",
     "pdfjs-dist": "3.11.174",
     "react": "^18.3.1",

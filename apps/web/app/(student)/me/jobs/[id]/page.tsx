@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Badge, Card } from '@ellixr/ui';
+import { Badge, Card } from '@campusgo/ui';
 import { applyToJob, formatCtc, formatLpa, getJob, type Job } from '../../../../../lib/jobs';
 import { listMyApplications, type Application } from '../../../../../lib/applications';
 import { PdfModal } from '../../../../../components/pdf-modal';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ProgressBar, SectionCard, StatTile } from '@ellixr/ui';
+import { ProgressBar, SectionCard, StatTile } from '@campusgo/ui';
 import { useSession } from '../../../../lib/session';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
 import { getPlatformOverview, type PlatformOverview } from '../../../../lib/platform-analytics';

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserRole, isAdminRole } from '@ellixr/shared';
+import { UserRole, isAdminRole } from '@campusgo/shared';
 
 /**
  * Deny-by-default route protection.
@@ -9,7 +9,7 @@ import { UserRole, isAdminRole } from '@ellixr/shared';
  *   STUDENT        → mobile shell  (/me, /jobs, ...)
  *   admin roles    → desktop shell (/dashboard, /platform/*, /settings/*)
  *
- * NOTE (scaffold): the readable `ellixr_role` cookie is used only for routing.
+ * NOTE (scaffold): the readable `campusgo_role` cookie is used only for routing.
  * Real authorization is enforced server-side by the API (verified JWT). A
  * production hardening step is to move auth behind a same-origin BFF proxy.
  */
@@ -48,7 +48,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const role = req.cookies.get('ellixr_role')?.value as UserRole | undefined;
+  const role = req.cookies.get('campusgo_role')?.value as UserRole | undefined;
 
   if (isPublic(pathname)) {
     // Already signed in → bounce to the role's home.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Card } from '@ellixr/ui';
+import { Card } from '@campusgo/ui';
 import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { BatchCards } from '../../../components/batch-cards';
 import { ListSkeleton } from '../../../components/page-skeleton';

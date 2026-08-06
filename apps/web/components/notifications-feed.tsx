@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from '@ellixr/ui';
+import { Card } from '@campusgo/ui';
 import { ListSkeleton } from './page-skeleton';
 import {
   listNotifications,

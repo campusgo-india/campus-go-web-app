@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button, Card, SectionCard } from '@ellixr/ui';
-import { isValidEmail, isValidPhone } from '@ellixr/shared';
+import { Button, Card, SectionCard } from '@campusgo/ui';
+import { isValidEmail, isValidPhone } from '@campusgo/shared';
 import { useSession } from '../../../lib/session';
 import { InlineSkeleton } from '../../../components/page-skeleton';
 import {

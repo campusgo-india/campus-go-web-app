@@ -40,7 +40,7 @@ export function toCsv(dataset: ReportDataset): Buffer {
 /** Serialize a dataset to an XLSX workbook buffer with a styled header row. */
 export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Ellixr';
+  wb.creator = 'CampusGO';
   wb.created = new Date();
   // Sheet names are capped at 31 chars and forbid : \ / ? * [ ].
   const sheet = wb.addWorksheet(dataset.title.slice(0, 31).replace(/[:\\/?*[\]]/g, ' '));

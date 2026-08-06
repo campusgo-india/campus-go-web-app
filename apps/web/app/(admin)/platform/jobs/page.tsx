@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, Button, Card } from '@ellixr/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { listColleges, type College } from '../../../../lib/colleges';
 import { JobCard } from '../../../../components/job-card';
 import { ListSkeleton } from '../../../../components/page-skeleton';

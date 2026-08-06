@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { UserRole } from '@ellixr/shared';
+import type { UserRole } from '@campusgo/shared';
 import { api, getAccessToken, setAccessToken, tryRefresh } from './api';
 import { mutate } from './use-api';
 
@@ -28,7 +28,7 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 const clearRoleCookie = () => {
-  document.cookie = 'ellixr_role=; path=/; max-age=0';
+  document.cookie = 'campusgo_role=; path=/; max-age=0';
 };
 
 /**

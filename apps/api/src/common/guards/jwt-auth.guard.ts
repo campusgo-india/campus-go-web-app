@@ -2,8 +2,8 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { IS_PUBLIC_KEY } from '@ellixr/auth';
-import type { JwtPayload } from '@ellixr/shared';
+import { IS_PUBLIC_KEY } from '@campusgo/auth';
+import type { JwtPayload } from '@campusgo/shared';
 
 /**
  * Global guard: every request requires a valid access token unless the route is

@@ -10,8 +10,8 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { UserRole } from '@ellixr/shared';
-import type { JwtPayload } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
+import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AuditService } from '../../common/audit.module';
 import { ReportsService, REPORT_TYPES, type ReportType } from './reports.service';

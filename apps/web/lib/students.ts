@@ -1,6 +1,6 @@
 'use client';
 
-import type { StepCompletion } from '@ellixr/shared';
+import type { StepCompletion } from '@campusgo/shared';
 import { api, apiList } from './api';
 
 export interface StudentUser {

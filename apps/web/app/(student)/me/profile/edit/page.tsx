@@ -3,13 +3,13 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Button, Card } from '@ellixr/ui';
+import { Button, Card } from '@campusgo/ui';
 import {
   PROFILE_STEPS,
   computeProfileCompletion,
   isProfileFieldFilled,
   normalizePhoneDigits,
-} from '@ellixr/shared';
+} from '@campusgo/shared';
 import { useSession } from '../../../../../lib/session';
 import { PageSkeleton } from '../../../../../components/page-skeleton';
 import { getMyResume } from '../../../../../lib/resume';

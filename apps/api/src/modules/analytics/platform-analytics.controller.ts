@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { UserRole } from '@ellixr/shared';
+import { UserRole } from '@campusgo/shared';
 import { Roles } from '../../common/decorators';
 import { AnalyticsService } from './analytics.service';
 

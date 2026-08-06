@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SectionCard, StatTile } from '@ellixr/ui';
+import { SectionCard, StatTile } from '@campusgo/ui';
 import {
   getBreakdowns,
   getFunnel,
