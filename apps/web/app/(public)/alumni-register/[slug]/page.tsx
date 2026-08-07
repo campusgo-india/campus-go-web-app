@@ -118,8 +118,9 @@ function RegisterForm({
   return (
     <Card className="space-y-4 p-6">
       <div className="text-center">
-        <span className="bg-gradient-primary bg-clip-text text-xl font-bold text-transparent">
-          CampusGO
+        <span className="text-xl font-bold">
+          <span className="text-primary-700">Campus</span>
+          <span className="text-primary-400">GO</span>
         </span>
         <h1 className="mt-2 text-lg font-semibold text-strong">
           Alumni registration{collegeName ? ` · ${collegeName}` : ''}

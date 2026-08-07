@@ -52,8 +52,9 @@ export function AdminSidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-white px-4 py-6 md:flex">
       <div className="px-3 pb-8">
-        <span className="bg-gradient-primary bg-clip-text text-2xl font-bold text-transparent">
-          CampusGO
+        <span className="text-2xl font-bold">
+          <span className="text-primary-700">Campus</span>
+          <span className="text-primary-400">GO</span>
         </span>
       </div>
       <nav className="flex flex-col gap-1">

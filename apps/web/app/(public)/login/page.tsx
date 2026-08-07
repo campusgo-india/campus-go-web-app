@@ -46,8 +46,9 @@ function LoginForm() {
   return (
     <Card className="space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="bg-gradient-primary bg-clip-text text-3xl font-bold text-transparent">
-          CampusGO
+        <h1 className="text-3xl font-bold">
+          <span className="text-primary-700">Campus</span>
+          <span className="text-primary-400">GO</span>
         </h1>
         <p className="text-sm text-subtle">Sign in to your account</p>
       </div>
