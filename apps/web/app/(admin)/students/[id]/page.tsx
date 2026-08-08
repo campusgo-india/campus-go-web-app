@@ -229,11 +229,23 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
       <Card className="space-y-4 p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-strong">Details</h2>
-          {!editing && (
-            <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-              Edit
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {student.resumeComplete ? (
+              <Link
+                href={`/students/${id}/resume`}
+                className="text-sm text-primary-600 hover:underline"
+              >
+                View résumé
+              </Link>
+            ) : (
+              <span className="text-sm text-subtle">No résumé uploaded</span>
+            )}
+            {!editing && (
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                Edit
+              </Button>
+            )}
+          </div>
         </div>
 
         {editing ? (
@@ -288,6 +300,88 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
               }
             />
             <Detail label="Profile complete" value={`${student.profileCompletion}%`} />
+          </div>
+        )}
+
+        {!editing && (
+          <div className="space-y-5 border-t border-line pt-4">
+            <DetailSection title="Personal">
+              <Detail label="Gender" value={student.gender ?? '—'} />
+              <Detail label="Nationality" value={student.nationality ?? '—'} />
+              <Detail label="PAN number" value={student.panNumber ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Address">
+              <Detail label="Current address" value={student.currentAddress ?? '—'} />
+              <Detail label="Permanent address" value={student.permanentAddress ?? '—'} />
+              <Detail label="City" value={student.city ?? '—'} />
+              <Detail label="State" value={student.state ?? '—'} />
+              <Detail label="Pin code" value={student.pinCode ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Family">
+              <Detail label="Father's name" value={student.fatherName ?? '—'} />
+              <Detail label="Father's occupation" value={student.fatherOccupation ?? '—'} />
+              <Detail label="Father's phone" value={student.fatherPhone ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Academics — program">
+              <Detail label="Department" value={student.department ?? '—'} />
+              <Detail label="Specialization" value={student.specialization ?? '—'} />
+              <Detail label="Admission year" value={student.admissionYear?.toString() ?? '—'} />
+              <Detail label="Current semester" value={student.currentSemester?.toString() ?? '—'} />
+              <Detail label="Arrear history" value={yesNo(student.hasArrearHistory)} />
+            </DetailSection>
+
+            <DetailSection title="Academics — 10th">
+              <Detail label="Board" value={student.tenthBoard ?? '—'} />
+              <Detail label="School" value={student.tenthSchool ?? '—'} />
+              <Detail label="Passing year" value={student.tenthPassingYear?.toString() ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Academics — 12th">
+              <Detail label="Board" value={student.twelfthBoard ?? '—'} />
+              <Detail label="School" value={student.twelfthSchool ?? '—'} />
+              <Detail label="Stream" value={student.twelfthStream ?? '—'} />
+              <Detail label="Passing year" value={student.twelfthPassingYear?.toString() ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Academics — UG">
+              <Detail label="College" value={student.ugCollege ?? '—'} />
+              <Detail label="Degree" value={student.ugDegree ?? '—'} />
+              <Detail label="Specialization" value={student.ugSpecialization ?? '—'} />
+            </DetailSection>
+
+            <DetailSection title="Other">
+              <Detail label="Languages known" value={student.languagesKnown ?? '—'} />
+              <Detail
+                label="Communication rating"
+                value={
+                  student.communicationSkillRating != null
+                    ? `${student.communicationSkillRating}/5`
+                    : '—'
+                }
+              />
+              <Detail label="Higher studies planned" value={yesNo(student.higherStudiesPlanned)} />
+              <Detail
+                label="Entrepreneurship interest"
+                value={yesNo(student.entrepreneurshipInterest)}
+              />
+            </DetailSection>
+
+            {student.semesterMarks && student.semesterMarks.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase text-subtle">Semester marks</h3>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {student.semesterMarks.map((m, i) => (
+                    <div key={i} className="rounded-md bg-app px-3 py-2">
+                      <p className="text-xs text-subtle">{m.label}</p>
+                      <p className="text-sm font-medium text-strong">{m.score}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -454,4 +548,18 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="text-sm font-medium text-strong">{value}</p>
     </div>
   );
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="text-xs font-semibold uppercase text-subtle">{title}</h3>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{children}</div>
+    </div>
+  );
+}
+
+function yesNo(value: boolean | null | undefined): string {
+  if (value == null) return '—';
+  return value ? 'Yes' : 'No';
 }

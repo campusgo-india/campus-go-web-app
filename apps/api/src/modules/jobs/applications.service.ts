@@ -5,11 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
+import type { ReportDataset } from '../reports/report-serializers';
+
+/** Strip characters that are unsafe in a downloaded filename. */
+function sanitizeFilenamePart(s: string): string {
+  return s.replace(/[^\w.-]+/g, '_');
+}
 
 // Allowed officer-driven stage transitions. WITHDRAWN is reachable only via the
 // student withdraw endpoint, so it is not an officer target here.
@@ -35,6 +42,7 @@ export class ApplicationsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
 
   // ─────────────── Student-facing ───────────────
@@ -116,10 +124,17 @@ export class ApplicationsService {
   }
 
   // Applicant contact + resume export for an officer to share with an HR outside
-  // the app. Resume slug only if published (so the link actually resolves).
-  async exportApplicants(collegeId: string, jobId: string) {
-    const job = await this.prisma.job.findFirst({ where: { id: jobId, collegeId } });
+  // the app. Resume link only if published (so the link actually resolves).
+  async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
+    const [job, college] = await Promise.all([
+      this.prisma.job.findFirst({
+        where: { id: jobId, collegeId },
+        include: { company: { select: { name: true } } },
+      }),
+      this.prisma.college.findUnique({ where: { id: collegeId }, select: { name: true } }),
+    ]);
     if (!job) throw new NotFoundException('Job not found');
+
     const apps = await this.prisma.application.findMany({
       where: { collegeId, jobId },
       include: {
@@ -134,16 +149,41 @@ export class ApplicationsService {
       },
       orderBy: { appliedAt: 'asc' },
     });
-    return apps.map((a) => ({
+
+    const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+    const rows = apps.map((a) => ({
       rollNumber: a.student.rollNumber,
       fullName: a.student.user.fullName,
       email: a.student.user.email,
-      phone: a.student.user.phone,
-      dateOfBirth: a.student.dateOfBirth,
-      resumeSlug: a.student.resume?.isPublished ? a.student.resume.publicSlug : null,
+      phone: a.student.user.phone ?? '',
+      dateOfBirth: a.student.dateOfBirth ? a.student.dateOfBirth.toISOString().slice(0, 10) : '',
+      resumeLink: a.student.resume?.isPublished
+        ? `${webOrigin}/r/${a.student.resume.publicSlug}`
+        : '',
       stage: a.stage,
-      appliedAt: a.appliedAt,
+      appliedAt: a.appliedAt.toISOString().slice(0, 10),
     }));
+
+    const companyName = job.company?.name ?? job.companyName ?? 'Company';
+    const collegeName = college?.name ?? 'College';
+    const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `${sanitizeFilenamePart(companyName)}-${sanitizeFilenamePart(collegeName)}-applicants-${stamp}`;
+
+    return {
+      filename,
+      title: `${job.title} applicants`,
+      columns: [
+        { key: 'rollNumber', label: 'Reg No' },
+        { key: 'fullName', label: 'Name' },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Mobile' },
+        { key: 'dateOfBirth', label: 'DOB' },
+        { key: 'resumeLink', label: 'Resume link' },
+        { key: 'stage', label: 'Stage' },
+        { key: 'appliedAt', label: 'Applied on' },
+      ],
+      rows,
+    };
   }
 
   async findOne(collegeId: string, applicationId: string) {

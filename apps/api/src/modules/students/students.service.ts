@@ -407,7 +407,7 @@ export class StudentsService {
   async findOne(collegeId: string, id: string) {
     const student = await this.prisma.student.findFirst({
       where: { id, collegeId },
-      include: { user: true },
+      include: { user: true, resume: { select: { fileUrl: true } } },
     });
     if (!student) throw new NotFoundException('Student not found');
     return this.publicStudent(student);

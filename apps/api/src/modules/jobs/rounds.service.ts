@@ -49,6 +49,8 @@ export class RoundsService {
         title: true,
         companyName: true,
         applicationDeadline: true,
+        status: true,
+        scope: true,
         company: { select: { name: true } },
       },
     });
@@ -125,12 +127,6 @@ export class RoundsService {
   async createRound(collegeId: string, jobId: string, createdById: string, dto: CreateRoundDto) {
     const job = await this.resolveJob(collegeId, jobId);
 
-    if (job.applicationDeadline && job.applicationDeadline.getTime() > Date.now()) {
-      throw new BadRequestException(
-        `Applications are still open until ${job.applicationDeadline.toLocaleString()}. Close the deadline before adding rounds.`,
-      );
-    }
-
     const last = await this.prisma.jobRound.findFirst({
       where: { jobId, collegeId },
       orderBy: { seq: 'desc' },
@@ -155,6 +151,34 @@ export class RoundsService {
         createdById,
       },
     });
+
+    // Starting a round means the job has moved past accepting new applications.
+    // Platform-broadcast jobs are excluded: each college runs its own round
+    // numbering on a shared job (see resolveJob above), so Job.status is a single
+    // global column that must not be flipped by one college's pipeline progress.
+    if (job.status === 'PUBLISHED' && job.scope !== 'PLATFORM') {
+      await this.prisma.job.update({
+        where: { id: jobId },
+        data: { status: 'CLOSED', closedAt: new Date() },
+      });
+
+      const nonApplicants = await this.prisma.student.findMany({
+        where: { collegeId, isActive: true, applications: { none: { jobId } } },
+        select: { userId: true },
+      });
+      if (nonApplicants.length > 0) {
+        await this.notifications.notifyMany(
+          nonApplicants.map((s) => s.userId),
+          collegeId,
+          {
+            type: 'GENERAL',
+            title: `Applications closed — ${job.title}`,
+            body: `${job.title} at ${this.companyName(job)} has moved to interviews; applications are now closed.`,
+            link: `/me/jobs/${jobId}`,
+          },
+        );
+      }
+    }
 
     // Enrol the cohort: Round 1 = everyone still active; later rounds = those who
     // advanced from the previous round.

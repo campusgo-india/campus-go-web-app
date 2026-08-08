@@ -8,10 +8,11 @@ import { useRouter } from 'next/navigation';
 import {
   closeJob,
   deleteJob,
+  downloadJobApplicants,
   getEligibleStudents,
   getJob,
-  getJobApplicants,
   publishJob,
+  type ApplicantExportFormat,
   type EligibleStudent,
   type Job,
 } from '../../../../lib/jobs';
@@ -35,6 +36,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ApplicantExportFormat>('csv');
 
   async function load() {
     try {
@@ -101,44 +103,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setBusy(true);
     setError(null);
     try {
-      const rows = await getJobApplicants(id);
-      if (rows.length === 0) {
-        setError('No applicants to export yet.');
-        return;
-      }
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const header = [
-        'Reg No',
-        'Name',
-        'Email',
-        'Mobile',
-        'DOB',
-        'Resume link',
-        'Stage',
-        'Applied on',
-      ];
-      const csv = [
-        header,
-        ...rows.map((r) => [
-          r.rollNumber,
-          r.fullName,
-          r.email,
-          r.phone ?? '',
-          r.dateOfBirth ? new Date(r.dateOfBirth).toLocaleDateString() : '',
-          r.resumeSlug ? `${origin}/r/${r.resumeSlug}` : '',
-          r.stage,
-          new Date(r.appliedAt).toLocaleDateString(),
-        ]),
-      ]
-        .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `applicants-${job?.title ?? 'job'}.csv`.replace(/[^\w.-]+/g, '_');
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadJobApplicants(id, exportFormat);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
     } finally {
@@ -200,9 +165,27 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </Button>
           )}
           {!isPlatform && job.status !== 'DRAFT' && (
-            <Button variant="outline" size="sm" onClick={exportApplicants} disabled={busy}>
-              Export
-            </Button>
+            <>
+              <div className="flex items-center gap-1 rounded-pill border border-border bg-white p-0.5 shadow-card">
+                {(['csv', 'xlsx'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setExportFormat(f)}
+                    className={
+                      'rounded-pill px-2.5 py-1 text-xs font-medium transition ' +
+                      (exportFormat === f
+                        ? 'bg-gradient-primary text-white'
+                        : 'text-subtle hover:text-strong')
+                    }
+                  >
+                    {f.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={exportApplicants} disabled={busy}>
+                Export
+              </Button>
+            </>
           )}
           {!isPlatform && (
             <JobMenu

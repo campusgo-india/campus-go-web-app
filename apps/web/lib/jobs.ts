@@ -188,19 +188,43 @@ export function deleteJob(id: string): Promise<{ success: boolean }> {
   return api(`/jobs/${id}`, { method: 'DELETE' });
 }
 
-export interface ApplicantRow {
-  rollNumber: string;
-  fullName: string;
-  email: string;
-  phone: string | null;
-  dateOfBirth: string | null;
-  resumeSlug: string | null;
-  stage: string;
-  appliedAt: string;
-}
+export type ApplicantExportFormat = 'csv' | 'xlsx';
 
-export function getJobApplicants(id: string): Promise<ApplicantRow[]> {
-  return api<ApplicantRow[]>(`/jobs/${id}/applicants-export`);
+/**
+ * Fetches the applicant export as a file (server builds CSV/XLSX + filename)
+ * and triggers a browser download. Streams binary, so it can't use the JSON
+ * `api` wrapper; still honours the same bearer-token + one-shot refresh-on-401
+ * flow via `tryRefresh`.
+ */
+export async function downloadJobApplicants(
+  id: string,
+  format: ApplicantExportFormat,
+): Promise<void> {
+  const send = () => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/jobs/${id}/applicants-export?format=${format}`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  };
+  let res = await send();
+  if (res.status === 401 && (await tryRefresh())) res = await send();
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Export failed (${res.status})`);
+  }
+
+  const blob = await res.blob();
+  const match = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? `applicants.${format}`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /** JD PDFs are stored as public Vercel Blob URLs; return the URL unchanged. */

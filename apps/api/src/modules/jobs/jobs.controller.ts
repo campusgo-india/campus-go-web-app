@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Ip,
   NotFoundException,
   Param,
   Patch,
@@ -19,9 +20,16 @@ import { Res } from '@nestjs/common';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
+import { AuditService } from '../../common/audit.module';
 import { JobsService } from './jobs.service';
 import { ApplicationsService } from './applications.service';
 import { ApplyDto, BulkPublishDto, CreateJobDto, ListJobsQuery, UpdateJobDto } from './dto';
+import { toCsv, toXlsx } from '../reports/report-serializers';
+
+const EXPORT_CONTENT_TYPE: Record<'csv' | 'xlsx', string> = {
+  csv: 'text/csv; charset=utf-8',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
 
 // Minimal shape of a multer upload (avoids depending on @types/multer).
 interface UploadedPdf {
@@ -38,6 +46,7 @@ export class JobsController {
   constructor(
     private readonly jobs: JobsService,
     private readonly applications: ApplicationsService,
+    private readonly audit: AuditService,
   ) {}
 
   private collegeId(user: JwtPayload): string {
@@ -172,10 +181,33 @@ export class JobsController {
     return { data: await this.jobs.remove(this.collegeId(user), id) };
   }
 
+  // Raw @Res() bypasses the {data} envelope interceptor — this streams a file
+  // attachment, mirroring reports.controller.ts's export pattern.
   @Get(':id/applicants-export')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
-  async applicantsExport(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.applications.exportApplicants(this.collegeId(user), id) };
+  async applicantsExport(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Query('format') format: string | undefined,
+    @Ip() ip: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
+    const dataset = await this.applications.exportApplicantsDataset(this.collegeId(user), id);
+    const buffer = fmt === 'xlsx' ? await toXlsx(dataset) : toCsv(dataset);
+
+    await this.audit.record(user, {
+      action: 'APPLICANTS_EXPORT',
+      targetType: 'job',
+      targetId: id,
+      metadata: { format: fmt, rows: dataset.rows.length },
+      ip,
+    });
+
+    res.setHeader('Content-Type', EXPORT_CONTENT_TYPE[fmt]);
+    res.setHeader('Content-Disposition', `attachment; filename="${dataset.filename}.${fmt}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 
   @Get(':id/eligible-students')

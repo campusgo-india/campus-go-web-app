@@ -11,6 +11,7 @@ export const ROUND_TYPES = [
   'CODING',
   'HR',
   'GROUP_DISCUSSION',
+  'MANAGERIAL',
   'OTHER',
 ] as const;
 export type RoundType = (typeof ROUND_TYPES)[number];

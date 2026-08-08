@@ -363,6 +363,7 @@ enum RoundType {
   CODING
   HR
   GROUP_DISCUSSION
+  MANAGERIAL
   OTHER
 }
 

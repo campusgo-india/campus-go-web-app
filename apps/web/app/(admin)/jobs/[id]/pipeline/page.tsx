@@ -747,7 +747,13 @@ function AddRoundForm({
     scheduledAt: string;
   }) => void;
 }) {
-  const [title, setTitle] = useState('');
+  const presets = [
+    nextLabel,
+    ...['Managerial Round', 'HR Round', 'Offer Round'].filter((p) => p !== nextLabel),
+  ];
+  const CUSTOM = 'Custom…';
+  const [titlePreset, setTitlePreset] = useState<string>(nextLabel);
+  const [title, setTitle] = useState(nextLabel);
   const [roundType, setRoundType] = useState<RoundType | ''>('');
   const [description, setDescription] = useState('');
   const [when, setWhen] = useState('');
@@ -758,13 +764,32 @@ function AddRoundForm({
       <p className="text-sm font-semibold text-strong">Add {nextLabel}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-subtle">Name (optional)</span>
-          <input
+          <span className="text-xs font-medium text-subtle">Name</span>
+          <select
             className={cls}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={nextLabel}
-          />
+            value={titlePreset}
+            onChange={(e) => {
+              const next = e.target.value;
+              setTitlePreset(next);
+              if (next !== CUSTOM) setTitle(next);
+            }}
+          >
+            {presets.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+            <option value={CUSTOM}>{CUSTOM}</option>
+          </select>
+          {titlePreset === CUSTOM && (
+            <input
+              className={cls}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={nextLabel}
+              autoFocus
+            />
+          )}
         </label>
         <label className="block space-y-1">
           <span className="text-xs font-medium text-subtle">Round type</span>
