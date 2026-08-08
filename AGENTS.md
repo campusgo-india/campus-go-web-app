@@ -19,18 +19,19 @@ CampusGO is a multi-tenant SaaS platform for colleges and universities to manage
 
 ## 2. Technology Stack
 
-| Layer      | Choice                                                                                                                            |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Monorepo   | pnpm 9.12.0 workspaces + Turborepo 2.1.3                                                                                          |
-| Node       | >= 20                                                                                                                             |
-| Frontend   | Next.js 15 (App Router), React 18, TypeScript 5.6, Tailwind CSS 3.4                                                               |
-| Backend    | NestJS 10 modular monolith, REST API under `/api/v1`                                                                              |
-| Database   | Supabase Postgres (`provider = "postgresql"` in Prisma)                                                                           |
-| ORM        | Prisma 5.20                                                                                                                       |
-| Validation | `class-validator` + `class-transformer` DTOs on API; zod schemas in `packages/shared`                                             |
-| Storage    | Vercel Blob (`@vercel/blob`) for PDFs/resumes in current code; Cloudflare R2 stub lives in `packages/storage` but is not wired up |
-| Email      | Deferred in V1; per-college SMTP planned for Phase 4                                                                              |
-| Deployment | Render (API) + Vercel (web), see `render.yaml` and `apps/web/vercel.json`                                                         |
+| Layer      | Choice                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo   | pnpm 9.12.0 workspaces + Turborepo 2.1.3                                                                                           |
+| Node       | >= 20                                                                                                                              |
+| Frontend   | Next.js 15 (App Router), React 18, TypeScript 5.6, Tailwind CSS 3.4, SWR (data fetching), pdfjs-dist 3.11 (in-browser PDF preview) |
+| Backend    | NestJS 10 modular monolith, REST API under `/api/v1`                                                                               |
+| Database   | Supabase Postgres (`provider = "postgresql"` in Prisma)                                                                            |
+| ORM        | Prisma 5.20                                                                                                                        |
+| Validation | `class-validator` + `class-transformer` DTOs on API; zod schemas in `packages/shared`                                              |
+| Reports    | `exceljs` for XLSX + hand-rolled CSV serialization in `apps/api/src/modules/reports/report-serializers.ts`                         |
+| Storage    | Vercel Blob (`@vercel/blob`) for PDFs/resumes in current code; Cloudflare R2 stub lives in `packages/storage` but is not wired up  |
+| Email      | Deferred in V1; per-college SMTP planned for Phase 4                                                                               |
+| Deployment | Render (API) + Vercel (web), see `render.yaml` and `apps/web/vercel.json`                                                          |
 
 ---
 
@@ -43,12 +44,12 @@ CampusGO is a multi-tenant SaaS platform for colleges and universities to manage
 │   └── web/               Next.js 15 app (student + admin shells)
 ├── packages/
 │   ├── auth/              Shared auth constants (roles, TTLs, cookie name, home paths)
-│   ├── database/          Prisma schema, seed, singleton client
+│   ├── database/          Prisma schema, seed, singleton client, one-off data scripts
 │   ├── shared/            Shared enums, zod schemas, API envelope types, validation helpers
 │   ├── storage/           Dormant R2/S3 storage interface stub
 │   └── ui/                Shared Tailwind preset + base React components
 ├── docs/                  Planning documents (overview, design system, role modules, phases 1–5)
-├── scripts/               Utility scripts (currently empty)
+├── scripts/               One-off ops scripts (currently migrate-db.js, a DB-to-DB copy)
 ├── .env.example           Single source of env docs
 ├── turbo.json             Turborepo task graph
 ├── pnpm-workspace.yaml    Workspace definition
@@ -72,28 +73,28 @@ CampusGO is a multi-tenant SaaS platform for colleges and universities to manage
 | Web fetch wrapper             | `apps/web/lib/api.ts`                                                          |
 | Web session provider          | `apps/web/lib/session.tsx`                                                     |
 | Shared auth constants         | `packages/auth/src/index.ts`                                                   |
-| Shared zod schemas            | `packages/shared/src/auth.schemas.ts`, `packages/shared/src/resume.schemas.ts` |
+| Shared zod schemas / types    | `packages/shared/src/auth.schemas.ts`, `profile.ts`, `validation.ts`, `api.ts` |
 | UI preset                     | `packages/ui/tailwind-preset.ts`                                               |
 
 ### How packages are consumed
 
-All `packages/*` export TypeScript source directly from `src/index.ts` (no build step). The NestJS API bundles `@campusgo/*` workspace packages into its webpack output via a custom config (`apps/api/webpack.config.js`). Next.js transpiles the packages listed in `transpilePackages` in `apps/web/next.config.mjs`.
+All `packages/*` export TypeScript source directly from `src/index.ts` (no build step). The NestJS API bundles `@campusgo/*` workspace packages into its webpack output via a custom config (`apps/api/webpack.config.js`). Next.js transpiles the packages listed in `transpilePackages` in `apps/web/next.config.mjs` (`@campusgo/ui`, `@campusgo/shared`, `@campusgo/auth`).
 
-| Package            | `apps/api`                         | `apps/web`                       |
-| ------------------ | ---------------------------------- | -------------------------------- |
-| `@campusgo/auth`     | guards, decorators, auth module    | login redirect, middleware       |
-| `@campusgo/database` | services/controllers/Prisma client | —                                |
-| `@campusgo/shared`   | DTOs, roles, validation, types     | forms, validation, resume, roles |
-| `@campusgo/ui`       | —                                  | components + Tailwind preset     |
-| `@campusgo/storage`  | —                                  | — (dormant)                      |
+| Package              | `apps/api`                         | `apps/web`                   |
+| -------------------- | ---------------------------------- | ---------------------------- |
+| `@campusgo/auth`     | guards, decorators, auth module    | login redirect, middleware   |
+| `@campusgo/database` | services/controllers/Prisma client | —                            |
+| `@campusgo/shared`   | DTOs, roles, validation, types     | forms, validation, roles     |
+| `@campusgo/ui`       | —                                  | components + Tailwind preset |
+| `@campusgo/storage`  | —                                  | — (dormant)                  |
 
 ### API module organization
 
-Feature modules live under `apps/api/src/modules/`:
+Feature modules live under `apps/api/src/modules/` (each typically `{module,controller,service,dto}.ts`):
 
 - `auth` — login, refresh, logout, forgot/reset/change password, `/me`
 - `users` — college staff (placement officers/admins) management
-- `colleges` — platform-admin college lifecycle, subscriptions, reset admin password
+- `colleges` — platform-admin college lifecycle, subscriptions, reset admin password, logo upload
 - `students` — student CRUD, import, verification, graduation, self-service profile
 - `resumes` — student resume builder, public résumé link, officer preview
 - `companies` — recruiter directory, contacts, hiring history
@@ -106,16 +107,21 @@ Feature modules live under `apps/api/src/modules/`:
 - `internships` — student internship reporting
 - `health` — public health check (`/api/v1/health`)
 
-Each module typically contains `{module,controller,service,dto}.ts`.
-
 ### Web route organization
 
 Next.js App Router with three route groups:
 
 - `(public)` — unauthenticated pages: `/login`, `/forgot-password`, `/reset-password/[token]`, `/alumni-register/[slug]`
-- `(student)` — mobile student shell: `/me`, `/me/jobs`, `/me/applications`, `/me/internships`, `/me/notifications`, `/me/profile`, `/me/resume`, etc.
-- `(admin)` — desktop admin/officer shell: `/dashboard`, `/platform/*`, `/students`, `/companies`, `/jobs`, `/applications`, `/analytics`, `/reports`, `/alumni`, `/notifications`, `/settings/team`
+- `(student)` — mobile student shell: `/me`, `/me/jobs`, `/me/applications`, `/me/internships`, `/me/notifications`, `/me/profile`, `/me/resume`, `/me/change-password`
+- `(admin)` — desktop admin/officer shell: `/dashboard`, `/platform/{dashboard,colleges,jobs}`, `/students`, `/companies`, `/jobs`, `/applications`, `/internships`, `/analytics`, `/reports`, `/alumni`, `/notifications`, `/settings/team`
 - `/r/[slug]` — public résumé capability pages, outside all groups
+
+Data fetching lives in `apps/web/lib/` — one module per API resource (`jobs.ts`, `students.ts`, `applications.ts`, …) built on the `api()` wrapper in `lib/api.ts`, with SWR hooks in `lib/swr.tsx` / `lib/use-api.ts`. Reusable UI lives in `apps/web/components/`.
+
+### Utility scripts
+
+- `scripts/migrate-db.js` — one-off copy of all rows from `DATABASE_URL` to `SUPABASE_DB_URL` (FK-ordered `createMany` + `skipDuplicates`, safe to re-run).
+- `packages/database/scripts/` — job-data maintenance scripts run from the repo root with `npx tsx packages/database/scripts/<name>.ts`: `backup-jobs.ts`, `delete-all-jobs.ts` (destructive, needs `--confirm`), `delete-jobs-without-pdf.ts`, `recreate-jobs.ts`, `seed-sample-jobs.ts`.
 
 ---
 
@@ -158,15 +164,16 @@ pnpm format
 
 ### Package-specific scripts
 
-- `apps/api`: `build`, `dev`, `start`, `lint`, `typecheck`
-- `apps/web`: `dev`, `build`, `start`, `lint`, `typecheck`
-- `packages/database`: `generate`, `push`, `migrate`, `migrate:deploy`, `seed`, `studio`, `typecheck`
+- `apps/api`: `build` (nest build + custom webpack), `dev` (nest start --watch), `start`, `lint`, `typecheck`
+- `apps/web`: `dev` (port 3000), `build`, `start`, `lint` (next lint), `typecheck`
+- `packages/database`: `generate`, `push`, `migrate`, `migrate:deploy`, `seed` (tsx), `studio`, `typecheck`
 - `packages/shared`: `lint`, `typecheck`
 - `packages/auth`, `packages/ui`, `packages/storage`: `typecheck`
 
 ### Important notes
 
-- The project uses `prisma db push` in practice; migration files do not currently exist under `packages/database/prisma/migrations`.
+- The project uses `prisma db push` in practice; no migration files exist under `packages/database/prisma/migrations`.
+- All root `db:*` scripts wrap commands in `dotenv-cli` so they read the single root `.env`; the API (`ConfigModule.forRoot({ envFilePath: ['../../.env', '.env'] })`) and the web app (`apps/web/next.config.mjs` calls `dotenv` on the root `.env`) also read that same file.
 - pnpm is configured with `node-linker=hoisted` (see `.npmrc`) so the bundled API and Prisma client resolve correctly on deploy.
 - The Prisma Client generator in `packages/database/prisma/schema.prisma` pins `output = "../../../node_modules/.prisma/client"` so the generated client always lands in the monorepo root. If you move the schema file, update that relative path.
 - The NestJS build uses a custom webpack config (`apps/api/webpack.config.js`) that bundles `@campusgo/*` workspace packages but keeps all other dependencies external.
@@ -210,7 +217,8 @@ Run `pnpm format` to format `**/*.{ts,tsx,md,json}`.
 - Every tenant-scoped table has `collegeId`, `createdAt`, `updatedAt`.
 - Soft-delete via `isActive` rather than hard delete where possible.
 - UUID v4 primary keys throughout.
-- API endpoints return a standard envelope:
+- Shared enums in `packages/shared/src/enums.ts` are plain `as const` objects (not TS `enum`) and **must stay in sync** with the Prisma schema enums.
+- API endpoints return a standard envelope (types in `packages/shared/src/api.ts`, applied globally by `ResponseEnvelopeInterceptor` / `AllExceptionsFilter` in `apps/api/src/common/interceptors.ts`):
   - Success: `{ data: ..., meta: {...} }` (paginated lists include `meta.total`, `meta.page`, `meta.limit`)
   - Error: `{ error: { code, message, details? } }`
 - Controllers handle HTTP concerns; services handle business logic and Prisma queries.
@@ -219,6 +227,7 @@ Run `pnpm format` to format `**/*.{ts,tsx,md,json}`.
 
 - Root: `pnpm lint` runs `turbo run lint`.
 - API: `eslint "src/**/*.ts" --max-warnings 0`
+- Web: `next lint`
 - `packages/shared`: `eslint src --max-warnings 0`
 - There is **no committed ESLint config file** in the repo root or packages; the lint scripts rely on a default or uncommitted config. Running lint may fail in a fresh checkout if ESLint config is missing.
 
@@ -240,7 +249,7 @@ If you add tests, follow the existing package structure and add the correspondin
 
 ### Authentication flow
 
-- **Access token**: JWT, 15-minute TTL (`ACCESS_TOKEN_TTL = 15 * 60`), signed with `JWT_ACCESS_SECRET`. Payload: `{ sub, collegeId, role }`. Sent in `Authorization: Bearer` header and held in browser memory only (never `localStorage`).
+- **Access token**: JWT, 15-minute TTL (`ACCESS_TOKEN_TTL = 15 * 60` in `packages/auth/src/index.ts`), signed with `JWT_ACCESS_SECRET`. Payload: `{ sub, collegeId, role }`. Sent in `Authorization: Bearer` header and held in browser memory only (never `localStorage`).
 - **Refresh token**: opaque random token (48 bytes hex), SHA-256 hashed at rest, single-use and rotated on every refresh, 30-day TTL, delivered as `httpOnly`, `Secure` (when `COOKIE_SECURE=true`), `SameSite=Strict` cookie named `campusgo_rt`. Reuse of a rotated token outside a short grace window revokes the whole session family (theft containment).
 - **Password reset tokens** are single-use, expiring (1 hour), and SHA-256 hashed.
 - **Sessions are revoked** on logout, password change/reset, user deactivation, and college suspension.
@@ -264,8 +273,8 @@ Roles (from `packages/shared/src/enums.ts`):
 
 Enforcement:
 
-- API: global `JwtAuthGuard` (registered in `AppModule` via `APP_GUARD`) → `IdentityThrottlerGuard` → `RolesGuard` + `@Roles(...)` + `@Public()`.
-- Web: `apps/web/middleware.ts` checks a routing-only `campusgo_role` cookie and redirects unauthenticated or wrong-shell users.
+- API: global `JwtAuthGuard` (registered in `AppModule` via `APP_GUARD`) → `IdentityThrottlerGuard` → `RolesGuard` + `@Roles(...)` + `@Public()`. Guard order matters — auth runs first so the throttler can key on identity.
+- Web: `apps/web/middleware.ts` checks a routing-only `campusgo_role` cookie and redirects unauthenticated or wrong-shell users. Public allowlist: `/login`, `/forgot-password`, `/reset-password`, `/alumni-register` (plus `/r/*`, `/api/*`, static assets, which pass through).
 
 ---
 
@@ -291,13 +300,14 @@ Read [`SECURITY.md`](./SECURITY.md) before any production deployment.
 - bcrypt cost factor 12.
 - `helmet` and CORS locked to `WEB_ORIGIN` with credentials.
 - Global `ValidationPipe` with `whitelist: true, forbidNonWhitelisted: true, transform: true`.
+- `trust proxy` is set in `apps/api/src/main.ts` so the rate limiter keys on the real client IP behind Render's proxy.
 - Rate limiting via `@nestjs/throttler`:
   - Default: `THROTTLE_LIMIT=600` requests per `THROTTLE_TTL=60000ms` per identity.
   - Login: 10/min per email.
   - Forgot password: 3/min per email.
   - Reset password: 5/min per email.
   - Identity-aware throttling in `apps/api/src/common/guards/identity-throttler.guard.ts` keys on user id → email → refresh cookie → IP, so a campus NAT does not throttle all students at once.
-- Audit logging for privileged actions and PII exports (`AuditLog` model + `AuditService`).
+- Audit logging for privileged actions and PII exports (`AuditLog` model + `AuditService` in `apps/api/src/common/audit.module.ts`).
 - No `dangerouslySetInnerHTML` or `eval` sinks for user content.
 
 ### Accepted risks (documented, intentionally not changed)
@@ -331,6 +341,8 @@ NODE_ENV=development pnpm install --frozen-lockfile && pnpm --filter @campusgo/d
 node apps/api/dist/main.js
 ```
 
+Render pins `NODE_VERSION=20`, sets `NODE_ENV=production` and `COOKIE_SECURE=true`, auto-generates both JWT secrets, and expects `DATABASE_URL` and `WEB_ORIGIN` to be pasted in the dashboard (`sync: false`). Health check path: `/api/v1/health`.
+
 ### Vercel build (from `apps/web/vercel.json`)
 
 ```bash
@@ -348,7 +360,7 @@ async rewrites() {
 }
 ```
 
-`API_PROXY_TARGET` is server-only; `NEXT_PUBLIC_API_URL` defaults to `/api/v1`.
+`API_PROXY_TARGET` is server-only; `NEXT_PUBLIC_API_URL` defaults to `/api/v1`. The same config also aliases `canvas` to `false` in webpack because `pdfjs-dist` lists it as an optional Node-only dependency.
 
 ---
 
@@ -356,17 +368,19 @@ async rewrites() {
 
 When reading `docs/`, be aware the implementation has diverged in places:
 
-| Topic         | Docs say        | Code does                                                          |
-| ------------- | --------------- | ------------------------------------------------------------------ |
-| Database      | PostgreSQL/Neon | Supabase Postgres (`provider = "postgresql"`)                      |
-| API hosting   | Railway         | Render                                                             |
-| Storage       | Cloudflare R2   | Vercel Blob (`@vercel/blob`); `packages/storage` is a dormant stub |
-| Email         | Resend          | Deferred; per-college SMTP planned                                 |
-| Theme palette | Coral/peach     | Blue/cool-gray (`packages/ui/tailwind-preset.ts`)                  |
-| Border radius | 24px/16px cards | Uniform 10px                                                       |
-| ESLint config | —               | Scripts exist but no committed config file                         |
-| Migrations    | —               | None committed; project uses `prisma db push`                      |
-| Tests         | —               | None exist                                                         |
+| Topic                | Docs say        | Code does                                                                                                                                                                                          |
+| -------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database             | PostgreSQL/Neon | Supabase Postgres (`provider = "postgresql"`)                                                                                                                                                      |
+| API hosting          | Railway         | Render                                                                                                                                                                                             |
+| Storage              | Cloudflare R2   | Vercel Blob (`@vercel/blob`); `packages/storage` is a dormant stub                                                                                                                                 |
+| Email                | Resend          | Deferred; per-college SMTP planned (`RESEND_API_KEY` in `turbo.json` `globalEnv` is vestigial)                                                                                                     |
+| Theme palette        | Coral/peach     | Blue/cool-gray (`packages/ui/tailwind-preset.ts`); README still says "coral"                                                                                                                       |
+| Border radius        | 24px/16px cards | Uniform 10px                                                                                                                                                                                       |
+| Platform admin home  | —               | Defined twice with different values: `/platform/colleges` in `packages/auth/src/index.ts` (`homePathForRole`) vs `/platform/dashboard` in `apps/web/middleware.ts` (`homeFor`). Both routes exist. |
+| Admin route prefixes | —               | `apps/web/middleware.ts` `ADMIN_PREFIXES` omits `/internships`, so that route group is not shell-guarded by role (API authorization still applies).                                                |
+| ESLint config        | —               | Scripts exist but no committed config file                                                                                                                                                         |
+| Migrations           | —               | None committed; project uses `prisma db push`                                                                                                                                                      |
+| Tests                | —               | None exist                                                                                                                                                                                         |
 
 Always trust the actual code, not the planning docs, when making changes.
 
@@ -374,17 +388,17 @@ Always trust the actual code, not the planning docs, when making changes.
 
 ## 11. Quick Reference: Most Important Files for Common Tasks
 
-| Task                             | Start here                                                        |
-| -------------------------------- | ----------------------------------------------------------------- |
-| Add an API endpoint              | `apps/api/src/modules/<feature>/`                                 |
-| Change auth behavior             | `apps/api/src/modules/auth/`, `packages/auth/src/index.ts`        |
-| Change database schema           | `packages/database/prisma/schema.prisma`, then `pnpm db:generate` |
-| Add a shared type/schema         | `packages/shared/src/`                                            |
-| Add a UI primitive               | `packages/ui/src/`                                                |
-| Change route protection          | `apps/web/middleware.ts`                                          |
-| Change how the web calls the API | `apps/web/lib/api.ts`                                             |
-| Change theme/colors              | `packages/ui/tailwind-preset.ts`                                  |
-| Change production build/deploy   | `render.yaml`, `apps/web/vercel.json`, `apps/web/next.config.mjs` |
+| Task                             | Start here                                                              |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| Add an API endpoint              | `apps/api/src/modules/<feature>/`                                       |
+| Change auth behavior             | `apps/api/src/modules/auth/`, `packages/auth/src/index.ts`              |
+| Change database schema           | `packages/database/prisma/schema.prisma`, then `pnpm db:generate`       |
+| Add a shared type/schema         | `packages/shared/src/`                                                  |
+| Add a UI primitive               | `packages/ui/src/`                                                      |
+| Change route protection          | `apps/web/middleware.ts`                                                |
+| Change how the web calls the API | `apps/web/lib/api.ts` (and the per-resource modules in `apps/web/lib/`) |
+| Change theme/colors              | `packages/ui/tailwind-preset.ts`                                        |
+| Change production build/deploy   | `render.yaml`, `apps/web/vercel.json`, `apps/web/next.config.mjs`       |
 
 ---
 
