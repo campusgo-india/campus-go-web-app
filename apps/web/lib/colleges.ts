@@ -7,6 +7,7 @@ export interface College {
   name: string;
   slug: string;
   domain: string | null;
+  logoUrl: string | null;
   contactEmail: string;
   contactPhone: string | null;
   city: string | null;
@@ -58,6 +59,17 @@ export const setCollegeStatus = (id: string, isActive: boolean) =>
     method: 'PATCH',
     body: JSON.stringify({ isActive }),
   });
+
+// Logo upload goes as multipart FormData (the api() wrapper skips the JSON
+// content-type for FormData bodies). PNG/JPEG/WebP only, max 2 MB (API-enforced).
+export const uploadCollegeLogo = (id: string, file: File) => {
+  const body = new FormData();
+  body.append('file', file);
+  return api<College>(`/colleges/${id}/logo`, { method: 'POST', body });
+};
+
+export const removeCollegeLogo = (id: string) =>
+  api<College>(`/colleges/${id}/logo`, { method: 'DELETE' });
 
 export interface ResetAdminPasswordResult {
   adminId: string;

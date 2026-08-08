@@ -52,10 +52,19 @@ export function AdminSidebar() {
   return (
     <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-white px-4 py-6 md:flex">
       <div className="px-3 pb-8">
-        <span className="text-2xl font-bold">
-          <span className="text-primary-700">Campus</span>
-          <span className="text-primary-400">GO</span>
-        </span>
+        {user?.college?.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured
+          <img
+            src={user.college.logoUrl}
+            alt={user.college.name}
+            className="h-9 w-auto max-w-full object-contain"
+          />
+        ) : (
+          <span className="text-2xl font-bold">
+            <span className="text-primary-700">Campus</span>
+            <span className="text-primary-400">GO</span>
+          </span>
+        )}
       </div>
       <nav className="flex flex-col gap-1">
         {!ready &&

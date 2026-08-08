@@ -1,10 +1,36 @@
-import { Body, Controller, Get, Ip, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Ip,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { del, put } from '@vercel/blob';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AuditService } from '../../common/audit.module';
 import { CollegesService } from './colleges.service';
 import { CreateCollegeDto, ResetAdminPasswordDto, UpdateCollegeDto } from './dto';
+
+// Minimal shape of a multer upload (avoids depending on @types/multer).
+interface UploadedImage {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
+
+// SVG is intentionally excluded: it can carry script-bearing markup.
+const LOGO_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 @Controller('colleges')
 @Roles(UserRole.PLATFORM_ADMIN)
@@ -49,6 +75,72 @@ export class CollegesController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateCollegeDto) {
     return { data: await this.colleges.update(id, dto) };
+  }
+
+  // Upload/replace the college's logo. The blob is public with an unguessable URL
+  // (same trust model as job PDFs and public résumé links); /auth/me hands the URL
+  // to every shell of that tenant, which fall back to the CampusGO wordmark when null.
+  @Post(':id/logo')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
+  async uploadLogo(
+    @CurrentUser() actor: JwtPayload,
+    @Param('id') id: string,
+    @Ip() ip: string,
+    @UploadedFile() file?: UploadedImage,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    if (!LOGO_MIME_TYPES.has(file.mimetype))
+      throw new BadRequestException('Logo must be a PNG, JPEG, or WebP image');
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token)
+      throw new BadRequestException('File storage is not configured (BLOB_READ_WRITE_TOKEN)');
+    const college = await this.colleges.findOne(id);
+    const safe = file.originalname.replace(/[^\w.\-]+/g, '_').slice(-80) || 'logo.png';
+    const blob = await put(`college-logos/${id}/${Date.now()}-${safe}`, file.buffer, {
+      access: 'public',
+      token,
+      contentType: file.mimetype,
+    });
+    const updated = await this.colleges.setLogo(id, blob.url);
+    // Best-effort cleanup of the replaced blob; a failed delete must not fail the upload.
+    if (college.logoUrl) {
+      try {
+        await del(college.logoUrl, { token });
+      } catch {
+        /* orphaned blob is harmless */
+      }
+    }
+    await this.audit.record(actor, {
+      action: 'COLLEGE_LOGO_UPDATE',
+      targetType: 'college',
+      targetId: id,
+      collegeId: id,
+      ip,
+    });
+    return { data: updated };
+  }
+
+  // Remove the college's logo; shells fall back to the CampusGO wordmark.
+  @Delete(':id/logo')
+  async removeLogo(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Ip() ip: string) {
+    const college = await this.colleges.findOne(id);
+    const updated = await this.colleges.setLogo(id, null);
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (college.logoUrl && token) {
+      try {
+        await del(college.logoUrl, { token });
+      } catch {
+        /* orphaned blob is harmless */
+      }
+    }
+    await this.audit.record(actor, {
+      action: 'COLLEGE_LOGO_REMOVE',
+      targetType: 'college',
+      targetId: id,
+      collegeId: id,
+      ip,
+    });
+    return { data: updated };
   }
 
   @Post(':id/reset-admin-password')

@@ -11,8 +11,10 @@ import { InlineSkeleton } from '../../../../components/page-skeleton';
 import {
   createCollege,
   listColleges,
+  removeCollegeLogo,
   resetCollegeAdminPassword,
   setCollegeStatus,
+  uploadCollegeLogo,
   type College,
   type CreateCollegeResult,
   type ResetAdminPasswordResult,
@@ -29,6 +31,7 @@ export default function PlatformCollegesPage() {
   const [reset, setReset] = useState<ResetAdminPasswordResult | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [coursesFor, setCoursesFor] = useState<string | null>(null);
+  const [logoFor, setLogoFor] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -246,6 +249,12 @@ export default function PlatformCollegesPage() {
                           {coursesFor === c.id ? 'Hide courses' : 'Courses'}
                         </button>
                         <button
+                          onClick={() => setLogoFor((id) => (id === c.id ? null : c.id))}
+                          className="text-xs font-medium text-primary-600 hover:underline"
+                        >
+                          {logoFor === c.id ? 'Hide logo' : 'Logo'}
+                        </button>
+                        <button
                           onClick={() => resetPassword(c)}
                           disabled={busyId === c.id}
                           className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
@@ -268,6 +277,13 @@ export default function PlatformCollegesPage() {
                       </td>
                     </tr>
                   )}
+                  {logoFor === c.id && (
+                    <tr className="border-b border-border">
+                      <td colSpan={5} className="px-4 py-3">
+                        <LogoPanel college={c} onUpdated={load} />
+                      </td>
+                    </tr>
+                  )}
                 </Fragment>
               ))
             )}
@@ -284,6 +300,84 @@ const slugify = (s: string) =>
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+/** Inline panel to upload/replace/remove a college's logo (Platform Admin only). */
+function LogoPanel({ college, onUpdated }: { college: College; onUpdated: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(action: () => Promise<unknown>, fallback: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      await action();
+      setFile(null);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : fallback);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="flex h-14 w-44 items-center justify-center rounded-md border border-border bg-white p-2">
+        {college.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured
+          <img
+            src={college.logoUrl}
+            alt={`${college.name} logo`}
+            className="max-h-full max-w-full object-contain"
+          />
+        ) : (
+          <span className="text-lg font-bold">
+            <span className="text-primary-700">Campus</span>
+            <span className="text-primary-400">GO</span>
+          </span>
+        )}
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs text-subtle">
+          {college.logoUrl
+            ? 'Shown in the header of this college’s admin and student shells.'
+            : 'No logo uploaded — the CampusGO wordmark is shown in the headers instead.'}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="text-xs text-subtle file:mr-2 file:rounded-md file:border file:border-border file:bg-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-body"
+          />
+          <Button
+            size="sm"
+            onClick={() =>
+              file && run(() => uploadCollegeLogo(college.id, file), 'Could not upload logo')
+            }
+            loading={saving}
+            disabled={!file || saving}
+          >
+            {saving ? 'Saving…' : 'Upload'}
+          </Button>
+          {college.logoUrl && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => run(() => removeCollegeLogo(college.id), 'Could not remove logo')}
+              disabled={saving}
+            >
+              Remove logo
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-subtle">PNG, JPEG, or WebP — max 2 MB.</p>
+        {error && <p className="text-xs text-danger">{error}</p>}
+      </div>
+    </div>
+  );
+}
 
 function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult) => void }) {
   const [form, setForm] = useState({

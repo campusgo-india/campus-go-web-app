@@ -89,6 +89,11 @@ export class CollegesService {
     return this.prisma.college.update({ where: { id }, data: dto as never });
   }
 
+  async setLogo(id: string, logoUrl: string | null) {
+    await this.findOne(id);
+    return this.prisma.college.update({ where: { id }, data: { logoUrl } });
+  }
+
   /**
    * Resets the college's super-admin password (the earliest-created COLLEGE_ADMIN).
    * We never store/return the original password (it's a one-way bcrypt hash), so
