@@ -4,11 +4,16 @@ import { randomBytes } from 'crypto';
 import { UserRole } from '@campusgo/shared';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
-import { CreateCollegeDto, UpdateCollegeDto } from './dto';
+import { decryptSecret } from '../../common/crypto';
+import { EmailService } from '../email/email.service';
+import { CreateCollegeDto, UpdateCollegeDto, UpdateEmailSettingsDto } from './dto';
 
 @Injectable()
 export class CollegesService {
-  constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(dto: CreateCollegeDto) {
     const existing = await this.prisma.college.findUnique({ where: { slug: dto.slug } });
@@ -150,5 +155,107 @@ export class CollegesService {
       });
     }
     return college;
+  }
+
+  // ─────────────── Per-college email settings ───────────────
+
+  async getEmailSettings(id: string) {
+    await this.findOne(id);
+    const settings = await this.prisma.collegeEmailSettings.findUnique({ where: { collegeId: id } });
+    if (!settings) {
+      return {
+        collegeId: id,
+        enabled: false,
+        smtpHost: null,
+        smtpPort: null,
+        smtpSecure: true,
+        smtpUser: null,
+        hasPassword: false,
+        fromEmail: null,
+        fromName: null,
+        replyTo: null,
+        verifiedAt: null,
+        lastTestError: null,
+      };
+    }
+    const { smtpPasswordEnc, ...rest } = settings;
+    return { ...rest, hasPassword: !!smtpPasswordEnc };
+  }
+
+  // Any SMTP-affecting change invalidates the previous test — verifiedAt/
+  // lastTestError reset to null so the switch (which requires verifiedAt) locks
+  // again until a fresh test passes.
+  async upsertEmailSettings(id: string, dto: UpdateEmailSettingsDto) {
+    await this.findOne(id);
+    const existing = await this.prisma.collegeEmailSettings.findUnique({ where: { collegeId: id } });
+    const passwordEnc = dto.smtpPassword
+      ? this.emailService.encryptPassword(dto.smtpPassword)
+      : (existing?.smtpPasswordEnc ?? null);
+
+    const shared = {
+      smtpHost: dto.smtpHost,
+      smtpPort: dto.smtpPort,
+      smtpSecure: dto.smtpSecure,
+      smtpUser: dto.smtpUser,
+      smtpPasswordEnc: passwordEnc,
+      fromEmail: dto.fromEmail,
+      fromName: dto.fromName ?? null,
+      replyTo: dto.replyTo ?? null,
+    };
+    const updated = await this.prisma.collegeEmailSettings.upsert({
+      where: { collegeId: id },
+      create: { collegeId: id, ...shared },
+      update: { ...shared, verifiedAt: null, lastTestError: null },
+    });
+    const { smtpPasswordEnc: _enc, ...rest } = updated;
+    return { ...rest, hasPassword: !!passwordEnc };
+  }
+
+  async sendTestEmail(id: string, to?: string) {
+    const college = await this.findOne(id);
+    const settings = await this.prisma.collegeEmailSettings.findUnique({ where: { collegeId: id } });
+    if (!settings?.smtpHost || !settings.smtpUser || !settings.smtpPasswordEnc) {
+      throw new BadRequestException('Save SMTP settings (including a password) before sending a test.');
+    }
+
+    const result = await this.emailService.sendTest(
+      {
+        host: settings.smtpHost,
+        port: settings.smtpPort ?? 587,
+        secure: settings.smtpSecure,
+        user: settings.smtpUser,
+        pass: decryptSecret(settings.smtpPasswordEnc),
+        fromEmail: settings.fromEmail ?? settings.smtpUser,
+        fromName: settings.fromName,
+        replyTo: settings.replyTo,
+      },
+      to ?? college.contactEmail,
+    );
+
+    await this.prisma.collegeEmailSettings.update({
+      where: { collegeId: id },
+      data: result.success
+        ? { verifiedAt: new Date(), lastTestError: null }
+        : { lastTestError: result.error ?? 'Send failed' },
+    });
+
+    return result;
+  }
+
+  async setEmailEnabled(id: string, enabled: boolean) {
+    await this.findOne(id);
+    const settings = await this.prisma.collegeEmailSettings.findUnique({ where: { collegeId: id } });
+    if (!settings) {
+      throw new BadRequestException('Configure SMTP settings before enabling college email.');
+    }
+    if (enabled && !settings.verifiedAt) {
+      throw new BadRequestException('Send a successful test email before enabling college email.');
+    }
+    const updated = await this.prisma.collegeEmailSettings.update({
+      where: { collegeId: id },
+      data: { enabled },
+    });
+    const { smtpPasswordEnc, ...rest } = updated;
+    return { ...rest, hasPassword: !!smtpPasswordEnc };
   }
 }

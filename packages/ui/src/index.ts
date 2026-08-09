@@ -6,3 +6,4 @@ export { Avatar, AvatarStack, type AvatarProps, type AvatarStackProps } from './
 export { StatTile, type StatTileProps, type StatGradient } from './stat-tile';
 export { ProgressBar, type ProgressBarProps } from './progress-bar';
 export { SectionCard, type SectionCardProps } from './section-card';
+export { Switch, type SwitchProps } from './switch';

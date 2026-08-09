@@ -1,10 +1,14 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -85,4 +89,53 @@ export class UpdateCollegeDto {
   @TitleCase() @IsOptional() @IsString() state?: string;
   @IsOptional() @IsString() subscriptionPlan?: string;
   @IsOptional() @IsString() subscriptionStatus?: string;
+}
+
+export class UpdateEmailSettingsDto {
+  @IsString()
+  @MinLength(1)
+  smtpHost!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  smtpPort!: number;
+
+  @IsBoolean()
+  smtpSecure!: boolean;
+
+  @IsString()
+  @MinLength(1)
+  smtpUser!: string;
+
+  // Optional: omit to keep the currently-saved encrypted password unchanged.
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  smtpPassword?: string;
+
+  @IsEmail()
+  fromEmail!: string;
+
+  @IsOptional()
+  @IsString()
+  fromName?: string;
+
+  @EmptyToUndefined()
+  @IsOptional()
+  @IsEmail()
+  replyTo?: string;
+}
+
+export class SendTestEmailDto {
+  // Defaults to the college's contactEmail when omitted.
+  @EmptyToUndefined()
+  @IsOptional()
+  @IsEmail()
+  to?: string;
+}
+
+export class SetEmailEnabledDto {
+  @IsBoolean()
+  enabled!: boolean;
 }

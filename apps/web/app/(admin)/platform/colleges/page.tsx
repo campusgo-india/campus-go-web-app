@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
 import { PasswordInput } from '../../../../components/password-input';
@@ -254,6 +255,12 @@ export default function PlatformCollegesPage() {
                         >
                           {logoFor === c.id ? 'Hide logo' : 'Logo'}
                         </button>
+                        <Link
+                          href={`/platform/colleges/${c.id}/email`}
+                          className="text-xs font-medium text-primary-600 hover:underline"
+                        >
+                          Email settings
+                        </Link>
                         <button
                           onClick={() => resetPassword(c)}
                           disabled={busyId === c.id}

@@ -73,8 +73,34 @@ model College {
   users    User[]
   students Student[]
   courses  CollegeCourse[]
+  emailSettings CollegeEmailSettings?
 
   @@map("colleges")
+}
+
+// Per-college SMTP override for outbound notification email. When absent or
+// disabled, notifications send via the platform's default SMTP account instead
+// (see EmailService). smtpPasswordEnc is AES-256-GCM encrypted, never plaintext.
+model CollegeEmailSettings {
+  id              String    @id @default(uuid())
+  collegeId       String    @unique @map("college_id")
+  enabled         Boolean   @default(false)
+  smtpHost        String?   @map("smtp_host")
+  smtpPort        Int?      @map("smtp_port")
+  smtpSecure      Boolean   @default(true) @map("smtp_secure")
+  smtpUser        String?   @map("smtp_user")
+  smtpPasswordEnc String?   @map("smtp_password_enc")
+  fromEmail       String?   @map("from_email")
+  fromName        String?   @map("from_name")
+  replyTo         String?   @map("reply_to")
+  verifiedAt      DateTime? @map("verified_at")
+  lastTestError   String?   @map("last_test_error")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("college_email_settings")
 }
 
 model User {

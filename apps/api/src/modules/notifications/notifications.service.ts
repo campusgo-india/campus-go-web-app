@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { NotificationType, PrismaClient } from '@campusgo/database';
+import { EmailService } from '../email/email.service';
 
 export interface NotifyParams {
   userId: string;
@@ -20,8 +21,37 @@ export interface NotifyParams {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+  private readonly EMAIL_BATCH_SIZE = 5;
 
-  constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    private readonly email: EmailService,
+  ) {}
+
+  /**
+   * Sends email to a batch of recipients with a small concurrency cap, so a
+   * broadcast (e.g. "new job posted" to hundreds of students) doesn't fire
+   * everything at once against an SMTP provider's rate limit. Each individual
+   * send is already best-effort/self-logging inside EmailService.
+   */
+  private async sendEmailBatch(
+    recipients: { email: string }[],
+    collegeId: string | null,
+    params: { title: string; body?: string },
+  ): Promise<void> {
+    for (let i = 0; i < recipients.length; i += this.EMAIL_BATCH_SIZE) {
+      const chunk = recipients.slice(i, i + this.EMAIL_BATCH_SIZE);
+      await Promise.allSettled(
+        chunk.map((r) =>
+          this.email.sendForCollege(collegeId, {
+            to: r.email,
+            subject: params.title,
+            text: params.body ?? params.title,
+          }),
+        ),
+      );
+    }
+  }
 
   /** Create one notification for a single recipient. Best-effort. */
   async notify(params: NotifyParams): Promise<void> {
@@ -39,6 +69,21 @@ export class NotificationsService {
     } catch (err) {
       this.logger.error(`Failed to create notification for ${params.userId}`, err as Error);
     }
+
+    // Email is independent of the in-app row and never awaited by the caller —
+    // a slow/failing SMTP send must not add latency to the action that
+    // triggered this notification.
+    void this.prisma.user
+      .findUnique({ where: { id: params.userId }, select: { email: true } })
+      .then((user) => {
+        if (!user) return;
+        return this.email.sendForCollege(params.collegeId ?? null, {
+          to: user.email,
+          subject: params.title,
+          text: params.body ?? params.title,
+        });
+      })
+      .catch((err) => this.logger.error(`Failed to email ${params.userId}`, err as Error));
   }
 
   /** Fan a notification out to every College Admin + Placement Officer of a college. */
@@ -46,14 +91,15 @@ export class NotificationsService {
     collegeId: string,
     params: Omit<NotifyParams, 'userId' | 'collegeId'>,
   ): Promise<void> {
+    let officers: { id: string; email: string }[] = [];
     try {
-      const officers = await this.prisma.user.findMany({
+      officers = await this.prisma.user.findMany({
         where: {
           collegeId,
           role: { in: ['COLLEGE_ADMIN', 'PLACEMENT_OFFICER'] },
           isActive: true,
         },
-        select: { id: true },
+        select: { id: true, email: true },
       });
       if (officers.length === 0) return;
       await this.prisma.notification.createMany({
@@ -68,6 +114,12 @@ export class NotificationsService {
       });
     } catch (err) {
       this.logger.error(`Failed to notify officers of ${collegeId}`, err as Error);
+    }
+
+    if (officers.length > 0) {
+      void this.sendEmailBatch(officers, collegeId, params).catch((err) =>
+        this.logger.error(`Failed to email officers of ${collegeId}`, err as Error),
+      );
     }
   }
 
@@ -92,6 +144,11 @@ export class NotificationsService {
     } catch (err) {
       this.logger.error(`Failed to notify ${userIds.length} users`, err as Error);
     }
+
+    void this.prisma.user
+      .findMany({ where: { id: { in: userIds } }, select: { email: true } })
+      .then((users) => this.sendEmailBatch(users, collegeId, params))
+      .catch((err) => this.logger.error(`Failed to email ${userIds.length} users`, err as Error));
   }
 
   // ─────────────── Recipient-facing reads (own only) ───────────────

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -19,7 +20,14 @@ import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AuditService } from '../../common/audit.module';
 import { CollegesService } from './colleges.service';
-import { CreateCollegeDto, ResetAdminPasswordDto, UpdateCollegeDto } from './dto';
+import {
+  CreateCollegeDto,
+  ResetAdminPasswordDto,
+  SendTestEmailDto,
+  SetEmailEnabledDto,
+  UpdateCollegeDto,
+  UpdateEmailSettingsDto,
+} from './dto';
 
 // Minimal shape of a multer upload (avoids depending on @types/multer).
 interface UploadedImage {
@@ -172,6 +180,68 @@ export class CollegesController {
     const result = await this.colleges.setStatus(id, isActive);
     await this.audit.record(actor, {
       action: isActive ? 'COLLEGE_REACTIVATE' : 'COLLEGE_SUSPEND',
+      targetType: 'college',
+      targetId: id,
+      collegeId: id,
+      ip,
+    });
+    return { data: result };
+  }
+
+  // ─────────────── Per-college email settings ───────────────
+
+  @Get(':id/email-settings')
+  async getEmailSettings(@Param('id') id: string) {
+    return { data: await this.colleges.getEmailSettings(id) };
+  }
+
+  @Put(':id/email-settings')
+  async updateEmailSettings(
+    @CurrentUser() actor: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateEmailSettingsDto,
+    @Ip() ip: string,
+  ) {
+    const result = await this.colleges.upsertEmailSettings(id, dto);
+    await this.audit.record(actor, {
+      action: 'COLLEGE_EMAIL_SETTINGS_UPDATE',
+      targetType: 'college',
+      targetId: id,
+      collegeId: id,
+      ip,
+    });
+    return { data: result };
+  }
+
+  @Post(':id/email-settings/test')
+  async testEmailSettings(
+    @CurrentUser() actor: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: SendTestEmailDto,
+    @Ip() ip: string,
+  ) {
+    const result = await this.colleges.sendTestEmail(id, dto.to);
+    await this.audit.record(actor, {
+      action: 'COLLEGE_EMAIL_TEST_SENT',
+      targetType: 'college',
+      targetId: id,
+      collegeId: id,
+      metadata: { success: result.success },
+      ip,
+    });
+    return { data: result };
+  }
+
+  @Patch(':id/email-settings/enabled')
+  async setEmailEnabled(
+    @CurrentUser() actor: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: SetEmailEnabledDto,
+    @Ip() ip: string,
+  ) {
+    const result = await this.colleges.setEmailEnabled(id, dto.enabled);
+    await this.audit.record(actor, {
+      action: dto.enabled ? 'COLLEGE_EMAIL_ENABLED' : 'COLLEGE_EMAIL_DISABLED',
       targetType: 'college',
       targetId: id,
       collegeId: id,

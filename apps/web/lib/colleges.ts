@@ -51,6 +51,8 @@ export async function listColleges(search?: string): Promise<College[]> {
   return data;
 }
 
+export const getCollege = (id: string) => api<College>(`/colleges/${id}`);
+
 export const createCollege = (input: CreateCollegeInput) =>
   api<CreateCollegeResult>('/colleges', { method: 'POST', body: JSON.stringify(input) });
 
