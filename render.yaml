@@ -31,3 +31,23 @@ services:
         sync: false # paste the Supabase Postgres connection string in the dashboard
       - key: WEB_ORIGIN
         sync: false # set to your Vercel URL, e.g. https://campus-go-web-app.vercel.app
+      # Outbound notification email (see docs/email-integration-checklist.md).
+      # Reuse the SAME EMAIL_CREDENTIALS_KEY as your local .env — generating a
+      # different one here makes any already-encrypted college SMTP passwords
+      # in the database undecryptable.
+      - key: EMAIL_CREDENTIALS_KEY
+        sync: false
+      - key: DEFAULT_SMTP_HOST
+        sync: false
+      - key: DEFAULT_SMTP_PORT
+        sync: false
+      - key: DEFAULT_SMTP_SECURE
+        sync: false
+      - key: DEFAULT_SMTP_USER
+        sync: false
+      - key: DEFAULT_SMTP_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: DEFAULT_FROM_NAME
+        sync: false
