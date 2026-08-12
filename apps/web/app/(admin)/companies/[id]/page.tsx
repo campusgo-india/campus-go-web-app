@@ -12,9 +12,11 @@ import {
   type HiringHistoryItem,
 } from '../../../../lib/companies';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
+import { useSession } from '../../../../lib/session';
 
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useSession();
   const [company, setCompany] = useState<Company | null>(null);
   const [history, setHistory] = useState<HiringHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,15 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
       {/* Contacts */}
       <Card className="space-y-4 p-5">
         <h2 className="text-sm font-semibold text-strong">Points of contact</h2>
-        {company.contacts.length === 0 && <p className="text-xs text-subtle">No contacts yet.</p>}
+        {company.contacts.length === 0 &&
+          (company.createdBy && user && company.createdBy.id !== user.id && user.role !== 'COLLEGE_ADMIN' ? (
+            <p className="text-xs text-subtle">
+              Contact details are only visible to {company.createdBy.fullName} (who added this
+              company) and your College Admin.
+            </p>
+          ) : (
+            <p className="text-xs text-subtle">No contacts yet.</p>
+          ))}
         {company.contacts.map((c) => (
           <div
             key={c.id}

@@ -27,6 +27,8 @@ export interface CreatePlatformJobInput {
   maxActiveBacklogs?: number;
   maxTotalBacklogs?: number;
   applicationDeadline?: string;
+  pdfUrl?: string;
+  pdfName?: string;
 }
 
 export type UpdatePlatformJobInput = Partial<CreatePlatformJobInput>;

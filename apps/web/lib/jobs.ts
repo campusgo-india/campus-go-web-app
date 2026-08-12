@@ -23,6 +23,26 @@ export async function uploadJobPdf(file: File): Promise<{ url: string; name: str
   return body.data as { url: string; name: string };
 }
 
+/** Same as uploadJobPdf, for a Platform Admin's broadcast job JD (no collegeId). */
+export async function uploadPlatformJobPdf(file: File): Promise<{ url: string; name: string }> {
+  const send = () => {
+    const form = new FormData();
+    form.append('file', file);
+    const token = getAccessToken();
+    return fetch(`${API_URL}/platform/jobs/upload-pdf`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+  };
+  let res = await send();
+  if (res.status === 401 && (await tryRefresh())) res = await send();
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error?.message ?? 'Upload failed');
+  return body.data as { url: string; name: string };
+}
+
 /** Upload an offer letter PDF (multipart) → returns its public URL. */
 export async function uploadOfferLetter(file: File): Promise<{ url: string; name: string }> {
   const send = () => {
@@ -85,6 +105,8 @@ export interface Job {
   collegeId: string | null;
   companyId: string | null;
   company?: { id: string; name: string; logoUrl: string | null; industry: string | null };
+  createdById?: string;
+  createdBy?: { id: string; fullName: string } | null;
   // PLATFORM jobs are broadcast by the Platform Admin; companyName is free-text.
   scope?: string;
   isPlatform?: boolean;
@@ -155,8 +177,17 @@ export interface EligibleStudent {
 }
 
 // ─── Placement Officer ───
-export async function listJobs(status = ''): Promise<Job[]> {
-  const { data } = await apiList<Job[]>(`/jobs${status ? `?status=${status}` : ''}`);
+export async function listJobs(
+  status = '',
+  search = '',
+  createdById = '',
+): Promise<Job[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (search) params.set('search', search);
+  if (createdById) params.set('createdById', createdById);
+  const qs = params.toString();
+  const { data } = await apiList<Job[]>(`/jobs${qs ? `?${qs}` : ''}`);
   return data;
 }
 

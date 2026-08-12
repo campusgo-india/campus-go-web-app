@@ -7,10 +7,12 @@ import {
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import type { Prisma as PrismaTypes } from '@campusgo/database';
+import type { ReportDataset } from '../reports/report-serializers';
 
 // A student's "details" are complete when 10th, 12th and a degree % are on record.
 const DETAILS_COMPLETE_WHERE: PrismaTypes.StudentWhereInput = {
@@ -47,6 +49,11 @@ import { computeProfileCompletion, type StepCompletion } from '@campusgo/shared'
 // convenience — a per-college policy can replace this when email is wired.
 const DEFAULT_STUDENT_PASSWORD = 'password123';
 
+interface Viewer {
+  role: string;
+  userId: string;
+}
+
 /**
  * Placement Officer student registry. All methods are tenant-scoped:
  * collegeId comes from the authenticated officer's JWT, never the request body.
@@ -60,7 +67,23 @@ export class StudentsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
+
+  // A Placement Coordinator only ever sees their assigned branch — resolved fresh
+  // from the DB (not trusted from the JWT) so a branch reassignment takes effect
+  // without requiring re-login. Returns null for every other role (no restriction).
+  private async branchRestriction(viewer?: Viewer): Promise<string | null> {
+    if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
+    const u = await this.prisma.user.findUnique({
+      where: { id: viewer.userId },
+      select: { assignedBranch: true },
+    });
+    if (!u?.assignedBranch) {
+      throw new ForbiddenException('No branch assigned to this account yet');
+    }
+    return u.assignedBranch;
+  }
 
   async create(collegeId: string, dto: CreateStudentDto) {
     await this.assertUnique(collegeId, dto.email, dto.rollNumber);
@@ -279,9 +302,10 @@ export class StudentsService {
     };
   }
 
-  async list(collegeId: string, q: ListStudentsQuery) {
+  async list(collegeId: string, q: ListStudentsQuery, viewer?: Viewer) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 25;
+    const branchRestriction = await this.branchRestriction(viewer);
 
     const loginWhere: Prisma.StudentWhereInput =
       q.loginStatus === 'logged_in'
@@ -303,7 +327,8 @@ export class StudentsService {
       collegeId,
       // Graduated students live in the Alumni directory — hide them here.
       graduatedAt: null,
-      ...(q.branch ? { branch: q.branch } : {}),
+      // A Placement Coordinator's branch overrides whatever the query asked for.
+      ...(branchRestriction ? { branch: branchRestriction } : q.branch ? { branch: q.branch } : {}),
       ...(q.course ? { course: q.course } : {}),
       ...(q.graduationYear ? { graduationYear: q.graduationYear } : {}),
       ...(q.verificationStatus ? { verificationStatus: q.verificationStatus } : {}),
@@ -355,6 +380,68 @@ export class StudentsService {
     };
   }
 
+  /**
+   * Full active roster, one ReportDataset per department (branch), for a
+   * multi-sheet XLSX — includes a résumé link per student, unlike the generic
+   * Reports "students" export.
+   */
+  async exportByDepartment(collegeId: string): Promise<ReportDataset[]> {
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, graduatedAt: null },
+      include: {
+        user: { select: { fullName: true, email: true, phone: true } },
+        resume: { select: { publicSlug: true, isPublished: true } },
+      },
+      orderBy: [{ branch: 'asc' }, { rollNumber: 'asc' }],
+    });
+
+    const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+    const columns = [
+      { key: 'rollNumber', label: 'Reg No' },
+      { key: 'fullName', label: 'Name' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'course', label: 'Course' },
+      { key: 'branch', label: 'Branch' },
+      { key: 'graduationYear', label: 'Graduation Year' },
+      { key: 'cgpa', label: 'CGPA' },
+      { key: 'activeBacklogs', label: 'Active Backlogs' },
+      { key: 'totalBacklogs', label: 'Total Backlogs' },
+      { key: 'verificationStatus', label: 'Verification' },
+      { key: 'profileCompletion', label: 'Profile %' },
+      { key: 'resumeLink', label: 'Resume link' },
+    ];
+
+    const byBranch = new Map<string, Record<string, unknown>[]>();
+    for (const s of students) {
+      const row = {
+        rollNumber: s.rollNumber,
+        fullName: s.user.fullName,
+        email: s.user.email,
+        phone: s.user.phone ?? '',
+        course: s.course,
+        branch: s.branch,
+        graduationYear: s.graduationYear,
+        cgpa: s.cgpa != null ? Number(s.cgpa) : '',
+        activeBacklogs: s.activeBacklogs,
+        totalBacklogs: s.totalBacklogs,
+        verificationStatus: s.verificationStatus,
+        profileCompletion: s.profileCompletion,
+        resumeLink: s.resume?.isPublished ? `${webOrigin}/r/${s.resume.publicSlug}` : '',
+      };
+      const bucket = byBranch.get(s.branch) ?? [];
+      bucket.push(row);
+      byBranch.set(s.branch, bucket);
+    }
+
+    return [...byBranch.entries()].map(([branch, rows]) => ({
+      filename: `students-${branch}`,
+      title: branch,
+      columns,
+      rows,
+    }));
+  }
+
   // Batch cards for the officer's students screen: one entry per (passout year,
   // course), with how many have logged in and how many have complete details.
   async batches(collegeId: string) {
@@ -404,12 +491,18 @@ export class StudentsService {
     );
   }
 
-  async findOne(collegeId: string, id: string) {
+  async findOne(collegeId: string, id: string, viewer?: Viewer) {
     const student = await this.prisma.student.findFirst({
       where: { id, collegeId },
       include: { user: true, resume: { select: { fileUrl: true } } },
     });
     if (!student) throw new NotFoundException('Student not found');
+    const branchRestriction = await this.branchRestriction(viewer);
+    // A Coordinator asking for a student outside their branch gets the same
+    // "not found" as a genuinely missing id — no confirming who else exists.
+    if (branchRestriction && student.branch !== branchRestriction) {
+      throw new NotFoundException('Student not found');
+    }
     return this.publicStudent(student);
   }
 

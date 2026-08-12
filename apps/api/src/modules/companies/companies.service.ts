@@ -16,6 +16,11 @@ import {
   UpdateContactDto,
 } from './dto';
 
+interface Viewer {
+  id: string;
+  role: string;
+}
+
 /**
  * Placement Officer company registry. Every method is tenant-scoped: collegeId
  * comes from the authenticated officer's JWT, never the request body.
@@ -94,7 +99,21 @@ export class CompaniesService {
       .sort((a, b) => b.recruiters - a.recruiters);
   }
 
-  async list(collegeId: string, q: ListCompaniesQuery) {
+  // A PO only sees full contact details (email/phone) for companies they created;
+  // College Admin sees everyone's, since they oversee the whole recruiter book.
+  private canSeeContacts(viewer: Viewer, createdById: string | null): boolean {
+    return viewer.role === 'COLLEGE_ADMIN' || createdById === viewer.id;
+  }
+
+  private redact<T extends { createdById: string | null; contacts: unknown[] }>(
+    company: T,
+    viewer: Viewer,
+  ): T {
+    if (this.canSeeContacts(viewer, company.createdById)) return company;
+    return { ...company, contacts: [] };
+  }
+
+  async list(collegeId: string, viewer: Viewer, q: ListCompaniesQuery) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 25;
     const where: Prisma.CompanyWhereInput = {
@@ -113,7 +132,11 @@ export class CompaniesService {
       this.prisma.company.count({ where }),
       this.prisma.company.findMany({
         where,
-        include: { contacts: true, _count: { select: { jobs: true } } },
+        include: {
+          contacts: true,
+          createdBy: { select: { id: true, fullName: true } },
+          _count: { select: { jobs: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -121,18 +144,23 @@ export class CompaniesService {
     ]);
 
     return {
-      items,
+      items: items.map((c) => this.redact(c, viewer)),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   }
 
-  async findOne(collegeId: string, id: string) {
+  // viewer omitted = internal/trusted use (existence checks, post-write returns);
+  // viewer provided = a direct "view this company" request, so contacts get redacted.
+  async findOne(collegeId: string, id: string, viewer?: Viewer) {
     const company = await this.prisma.company.findFirst({
       where: { id, collegeId },
-      include: { contacts: { orderBy: { isPrimary: 'desc' } } },
+      include: {
+        contacts: { orderBy: { isPrimary: 'desc' } },
+        createdBy: { select: { id: true, fullName: true } },
+      },
     });
     if (!company) throw new NotFoundException('Company not found');
-    return company;
+    return viewer ? this.redact(company, viewer) : company;
   }
 
   async update(collegeId: string, id: string, dto: UpdateCompanyDto) {

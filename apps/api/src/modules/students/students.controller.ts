@@ -9,11 +9,14 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AuditService } from '../../common/audit.module';
+import { toMultiSheetXlsx } from '../reports/report-serializers';
 import { StudentsService } from './students.service';
 import {
   BulkDeleteStudentsDto,
@@ -43,9 +46,15 @@ export class StudentsController {
     return user.collegeId;
   }
 
+  // Placement Coordinators can view too — the service forces branch-scoping so
+  // they only ever see their own assigned branch, regardless of query params.
   @Get()
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListStudentsQuery) {
-    const { items, meta } = await this.students.list(this.collegeId(user), query);
+    const { items, meta } = await this.students.list(this.collegeId(user), query, {
+      role: user.role,
+      userId: user.sub,
+    });
     return { data: items, meta };
   }
 
@@ -55,9 +64,45 @@ export class StudentsController {
     return { data: await this.students.batches(this.collegeId(user)) };
   }
 
+  // Declared before :id for the same reason. Streams an XLSX with one sheet per
+  // department, each row including a résumé link — bypasses the {data} envelope
+  // like the Reports module's exports.
+  @Get('export/by-department')
+  async exportByDepartment(
+    @CurrentUser() user: JwtPayload,
+    @Ip() ip: string,
+    @Res() res: Response,
+  ) {
+    const collegeId = this.collegeId(user);
+    const datasets = await this.students.exportByDepartment(collegeId);
+    const buffer = await toMultiSheetXlsx(datasets);
+
+    await this.audit.record(user, {
+      action: 'STUDENTS_EXPORT_BY_DEPARTMENT',
+      targetType: 'student',
+      metadata: { departments: datasets.length, rows: datasets.reduce((n, d) => n + d.rows.length, 0) },
+      ip,
+    });
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="students-by-department-${stamp}.xlsx"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
+  }
+
   @Get(':id')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.students.findOne(this.collegeId(user), id) };
+    return {
+      data: await this.students.findOne(this.collegeId(user), id, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post()

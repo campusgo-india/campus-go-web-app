@@ -1,7 +1,7 @@
 'use client';
 
 import type { StepCompletion } from '@campusgo/shared';
-import { api, apiList } from './api';
+import { api, apiList, API_URL, getAccessToken, tryRefresh } from './api';
 
 export interface StudentUser {
   id: string;
@@ -286,4 +286,32 @@ export function updateOwnProfile(input: UpdateOwnProfileInput): Promise<Student>
 
 export function submitOwnProfile(): Promise<Student> {
   return api(`/me/student/submit`, { method: 'POST' });
+}
+
+/** Downloads an XLSX with one sheet per department, résumé links included. */
+export async function downloadStudentsByDepartment(): Promise<void> {
+  const send = () => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/students/export/by-department`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  };
+  let res = await send();
+  if (res.status === 401 && (await tryRefresh())) res = await send();
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const match = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? 'students-by-department.xlsx';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }

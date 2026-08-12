@@ -16,6 +16,8 @@ export interface SessionUser {
   mustChangePassword?: boolean;
   /** True if this College Admin is the designated College Head. */
   isCollegeHead?: boolean;
+  /** PLACEMENT_COORDINATOR only: the single branch they're responsible for. */
+  assignedBranch?: string | null;
   college?: { id: string; name: string; slug: string; logoUrl: string | null } | null;
 }
 

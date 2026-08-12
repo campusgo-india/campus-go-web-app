@@ -6,10 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { useConfirm } from '../../../components/confirm-provider';
+import { useSession } from '../../../lib/session';
 import { BatchCards } from '../../../components/batch-cards';
 import { InlineSkeleton, ListSkeleton } from '../../../components/page-skeleton';
 import {
   deleteStudents,
+  downloadStudentsByDepartment,
   graduateBatch,
   listStudentBatches,
   listStudents,
@@ -53,6 +55,8 @@ interface Course {
 
 function StudentsList() {
   const confirm = useConfirm();
+  const { user } = useSession();
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
   const router = useRouter();
   const searchParams = useSearchParams();
   const importedCount = searchParams.get('imported');
@@ -73,6 +77,19 @@ function StudentsList() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function onExportByDepartment() {
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadStudentsByDepartment();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
 
@@ -348,14 +365,19 @@ function StudentsList() {
           <h1 className="text-2xl font-semibold text-strong">{title}</h1>
           <p className="text-sm text-subtle">{subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/students/import">
-            <Button variant="ghost">Import CSV</Button>
-          </Link>
-          <Link href="/students/new">
-            <Button>Add student</Button>
-          </Link>
-        </div>
+        {!readOnly && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" onClick={onExportByDepartment} loading={exporting}>
+              Export by department
+            </Button>
+            <Link href="/students/import">
+              <Button variant="ghost">Import CSV</Button>
+            </Link>
+            <Link href="/students/new">
+              <Button>Add student</Button>
+            </Link>
+          </div>
+        )}
       </header>
 
       {showGraduate && (

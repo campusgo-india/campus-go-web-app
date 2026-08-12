@@ -22,13 +22,22 @@ export class CreateUserDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   email!: string;
 
-  @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER])
-  role!: typeof UserRole.COLLEGE_ADMIN | typeof UserRole.PLACEMENT_OFFICER;
+  @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR])
+  role!:
+    | typeof UserRole.COLLEGE_ADMIN
+    | typeof UserRole.PLACEMENT_OFFICER
+    | typeof UserRole.PLACEMENT_COORDINATOR;
 
   @EmptyToUndefined()
   @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
+
+  // PLACEMENT_COORDINATOR only: the single branch they're responsible for.
+  @EmptyToUndefined()
+  @IsOptional()
+  @IsString()
+  assignedBranch?: string;
 
   // Optional: set the teammate's password directly. If omitted, a random temp
   // password is generated and returned once.
@@ -44,6 +53,12 @@ export class UpdateUserDto {
   @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
-  @IsOptional() @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER]) role?: string;
+  @IsOptional()
+  @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR])
+  role?: string;
+  @EmptyToUndefined()
+  @IsOptional()
+  @IsString()
+  assignedBranch?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }

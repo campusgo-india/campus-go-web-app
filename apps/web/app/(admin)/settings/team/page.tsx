@@ -7,6 +7,7 @@ import { useSession } from '../../../../lib/session';
 import { PasswordInput } from '../../../../components/password-input';
 import { CopyButton } from '../../../../components/copy-button';
 import { useConfirm } from '../../../../components/confirm-provider';
+import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
 import {
   createUser,
   deactivateUser,
@@ -20,6 +21,7 @@ import {
 const ROLE_LABEL: Record<string, string> = {
   COLLEGE_ADMIN: 'College Admin',
   PLACEMENT_OFFICER: 'Placement Officer',
+  PLACEMENT_COORDINATOR: 'Placement Coordinator',
 };
 
 export default function TeamSettingsPage() {
@@ -194,7 +196,11 @@ export default function TeamSettingsPage() {
                         >
                           <option value="PLACEMENT_OFFICER">Placement Officer</option>
                           <option value="COLLEGE_ADMIN">College Admin</option>
+                          <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
                         </select>
+                      )}
+                      {m.role === 'PLACEMENT_COORDINATOR' && m.assignedBranch && (
+                        <p className="mt-1 text-xs text-subtle">{m.assignedBranch}</p>
                       )}
                     </td>
                     <td className="px-5 py-3 text-subtle">
@@ -247,12 +253,24 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
     email: '',
     role: 'PLACEMENT_OFFICER',
     phone: '',
+    assignedBranch: '',
     password: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+
+  useEffect(() => {
+    listMyCourses()
+      .then(setCourses)
+      .catch(() => {
+        /* non-fatal: branch field just falls back to free entry if this fails */
+      });
+  }, []);
+  const branches = [...new Set(courses.flatMap((c) => c.branches))];
 
   const set =
-    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function submit() {
@@ -262,6 +280,8 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
       email: form.email.trim(),
       role: form.role,
       phone: form.phone.trim() || undefined,
+      assignedBranch:
+        form.role === 'PLACEMENT_COORDINATOR' ? form.assignedBranch.trim() || undefined : undefined,
       password: form.password.trim() || undefined,
     })
       .then(onCreated)
@@ -271,8 +291,14 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
   const emailOk = !form.email.trim() || isValidEmail(form.email);
   const phoneOk = !form.phone.trim() || isValidPhone(form.phone);
   const passwordOk = form.password.trim() === '' || form.password.trim().length >= 8;
+  const branchOk = form.role !== 'PLACEMENT_COORDINATOR' || form.assignedBranch.trim();
   const ready =
-    form.fullName.trim() && form.email.trim() && isValidEmail(form.email) && phoneOk && passwordOk;
+    form.fullName.trim() &&
+    form.email.trim() &&
+    isValidEmail(form.email) &&
+    phoneOk &&
+    passwordOk &&
+    branchOk;
 
   return (
     <Card className="space-y-4 p-5">
@@ -289,8 +315,30 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
           <select className={inputCls} value={form.role} onChange={set('role')}>
             <option value="PLACEMENT_OFFICER">Placement Officer</option>
             <option value="COLLEGE_ADMIN">College Admin</option>
+            <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
           </select>
         </Field>
+        {form.role === 'PLACEMENT_COORDINATOR' && (
+          <Field label="Branch *">
+            {branches.length > 0 ? (
+              <select className={inputCls} value={form.assignedBranch} onChange={set('assignedBranch')}>
+                <option value="">Select branch</option>
+                {branches.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className={inputCls}
+                value={form.assignedBranch}
+                onChange={set('assignedBranch')}
+                placeholder="e.g. Computer Science"
+              />
+            )}
+          </Field>
+        )}
         <Field label="Phone">
           <input
             className={inputCls}
@@ -313,8 +361,9 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
       </div>
       <p className="text-xs text-subtle">
         Placement Officers manage students, companies, jobs and the ATS pipeline. College Admins can
-        additionally manage the team. Set a password to share directly, or leave blank for a
-        one-time temp password.
+        additionally manage the team. Placement Coordinators are read-only, scoped to one branch —
+        they can see jobs posted and which of their branch's students have applied. Set a password
+        to share directly, or leave blank for a one-time temp password.
       </p>
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button onClick={submit} disabled={!ready}>

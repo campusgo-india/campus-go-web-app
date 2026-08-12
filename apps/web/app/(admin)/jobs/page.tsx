@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Card } from '@campusgo/ui';
-import { listJobs, publishManyJobs, type Job } from '../../../lib/jobs';
+import { Badge, Button, Card, cn } from '@campusgo/ui';
+import { listJobs, publishManyJobs, formatCtc, type Job } from '../../../lib/jobs';
 import { JobCard } from '../../../components/job-card';
 import { ListSkeleton } from '../../../components/page-skeleton';
+import { useSession } from '../../../lib/session';
 
 const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
   DRAFT: 'cream',
@@ -14,28 +15,41 @@ const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
   CLOSED: 'lavender',
 };
 
+type ViewMode = 'tile' | 'list';
+
 export default function JobsPage() {
   const router = useRouter();
+  const { user } = useSession();
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
   const [items, setItems] = useState<Job[]>([]);
   const [status, setStatus] = useState('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [view, setView] = useState<ViewMode>('tile');
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Debounce the search box so we don't hit the API on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        setItems(await listJobs(status));
+        setItems(await listJobs(status, debouncedSearch));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load jobs');
       } finally {
         setLoading(false);
       }
     })();
-  }, [status]);
+  }, [status, debouncedSearch]);
 
   // Clear selection when switching tabs so stale ids don't persist.
   useEffect(() => {
@@ -96,10 +110,37 @@ export default function JobsPage() {
           <h1 className="text-2xl font-semibold text-strong">Jobs</h1>
           <p className="text-sm text-subtle">{items.length} postings</p>
         </div>
-        <Link href="/jobs/quick">
-          <Button>Post a job</Button>
-        </Link>
+        {!readOnly && (
+          <Link href="/jobs/quick">
+            <Button>Post a job</Button>
+          </Link>
+        )}
       </header>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by job title or company…"
+          className="h-10 w-full max-w-sm rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
+        />
+        <div className="flex rounded-md border border-border bg-white p-0.5">
+          {(['tile', 'list'] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              aria-label={`${v} view`}
+              className={cn(
+                'rounded px-3 py-1.5 text-xs font-medium capitalize transition',
+                view === v ? 'bg-primary-50 text-primary-700' : 'text-subtle hover:text-body',
+              )}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex gap-2">
@@ -138,7 +179,7 @@ export default function JobsPage() {
       {error && <p className="text-sm text-danger">{error}</p>}
 
       {/* Tip for officers */}
-      {!loading && draftIds.length > 0 && (
+      {!loading && !readOnly && draftIds.length > 0 && (
         <div className="rounded-xl bg-app p-3 text-xs text-body">
           <span className="font-medium text-strong">Tip:</span> Draft jobs are not visible to
           students. Select drafts and tap{' '}
@@ -150,8 +191,48 @@ export default function JobsPage() {
         <ListSkeleton />
       ) : items.length === 0 ? (
         <Card className="p-8 text-center text-sm text-subtle">
-          No jobs yet. Post one to get started.
+          {search ? 'No jobs match your search.' : 'No jobs yet. Post one to get started.'}
         </Card>
+      ) : view === 'list' ? (
+        <div className="overflow-hidden rounded-xl border border-border bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+              <tr>
+                <th className="px-4 py-3 font-medium">Job</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">CTC</th>
+                <th className="px-4 py-3 font-medium">Applicants</th>
+                <th className="px-4 py-3 font-medium">Posted by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((j) => {
+                const company = j.companyName ?? j.company?.name ?? 'Company';
+                return (
+                  <tr
+                    key={j.id}
+                    onClick={() => router.push(`/jobs/${j.id}`)}
+                    className="cursor-pointer border-b border-border last:border-0 hover:bg-app/60"
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-strong">{j.title}</p>
+                      <p className="text-xs text-subtle">{company}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {j.isPlatform && <Badge tint="lavender">Platform</Badge>}
+                        <Badge tint={STATUS_TINT[j.status] ?? 'primary'}>{j.status}</Badge>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-body">{formatCtc(j.ctcMin, j.ctcMax)}</td>
+                    <td className="px-4 py-3 text-body">{j.applicationCount ?? 0}</td>
+                    <td className="px-4 py-3 text-subtle">{j.createdBy?.fullName ?? '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((j, i) => {
@@ -165,7 +246,7 @@ export default function JobsPage() {
                 hideCtc
                 onOpen={() => router.push(`/jobs/${j.id}`)}
                 selection={
-                  isDraft ? (
+                  isDraft && !readOnly ? (
                     <label
                       className="flex cursor-pointer items-center"
                       onClick={(e) => e.stopPropagation()}
@@ -196,6 +277,7 @@ export default function JobsPage() {
                 <p className="text-xs text-subtle">
                   {applicants} applicant{applicants === 1 ? '' : 's'}
                   {j.graduationYears?.length ? ` · batch ${j.graduationYears.join(', ')}` : ''}
+                  {j.createdBy?.fullName ? ` · Posted by ${j.createdBy.fullName}` : ''}
                 </p>
               </JobCard>
             );
@@ -204,7 +286,7 @@ export default function JobsPage() {
       )}
 
       {/* Floating select-all bar for drafts */}
-      {status !== 'PUBLISHED' && status !== 'CLOSED' && draftIds.length > 0 && (
+      {!readOnly && status !== 'PUBLISHED' && status !== 'CLOSED' && draftIds.length > 0 && (
         <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-card">
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-body">
             <input

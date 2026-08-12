@@ -7,6 +7,7 @@ export const UserRole = {
   PLATFORM_ADMIN: 'PLATFORM_ADMIN',
   COLLEGE_ADMIN: 'COLLEGE_ADMIN',
   PLACEMENT_OFFICER: 'PLACEMENT_OFFICER',
+  PLACEMENT_COORDINATOR: 'PLACEMENT_COORDINATOR',
   STUDENT: 'STUDENT',
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
@@ -16,6 +17,7 @@ export const ADMIN_ROLES: UserRole[] = [
   UserRole.PLATFORM_ADMIN,
   UserRole.COLLEGE_ADMIN,
   UserRole.PLACEMENT_OFFICER,
+  UserRole.PLACEMENT_COORDINATOR,
 ];
 
 export const isAdminRole = (role: UserRole): boolean => ADMIN_ROLES.includes(role);

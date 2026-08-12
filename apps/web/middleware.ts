@@ -79,6 +79,7 @@ export function middleware(req: NextRequest) {
 function homeFor(role: UserRole): string {
   if (role === UserRole.STUDENT) return '/me';
   if (role === UserRole.PLATFORM_ADMIN) return '/platform/dashboard';
+  if (role === UserRole.PLACEMENT_COORDINATOR) return '/jobs';
   return '/dashboard';
 }
 

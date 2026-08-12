@@ -8,6 +8,7 @@ export interface TeamMember {
   fullName: string;
   role: string;
   phone: string | null;
+  assignedBranch: string | null;
   isActive: boolean;
   lastLoginAt: string | null;
 }
@@ -15,8 +16,10 @@ export interface TeamMember {
 export interface CreateUserInput {
   fullName: string;
   email: string;
-  role: string; // COLLEGE_ADMIN | PLACEMENT_OFFICER
+  role: string; // COLLEGE_ADMIN | PLACEMENT_OFFICER | PLACEMENT_COORDINATOR
   phone?: string;
+  // PLACEMENT_COORDINATOR only: the single branch they're responsible for.
+  assignedBranch?: string;
   // Optional: set the password directly. Omit to auto-generate a temp password.
   password?: string;
 }
@@ -31,6 +34,7 @@ export interface UpdateUserInput {
   fullName?: string;
   phone?: string;
   role?: string;
+  assignedBranch?: string;
   isActive?: boolean;
 }
 

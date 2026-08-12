@@ -99,7 +99,16 @@ export class JobsService {
     const where: Prisma.JobWhereInput = {
       ...this.visibleToCollege(collegeId),
       ...(q.status ? { status: q.status as Prisma.JobWhereInput['status'] } : {}),
-      ...(q.search ? { title: { contains: q.search, mode: 'insensitive' } } : {}),
+      ...(q.createdById ? { createdById: q.createdById } : {}),
+      ...(q.search
+        ? {
+            OR: [
+              { title: { contains: q.search, mode: 'insensitive' } },
+              { companyName: { contains: q.search, mode: 'insensitive' } },
+              { company: { name: { contains: q.search, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
     };
 
     const [total, jobs] = await this.prisma.$transaction([
@@ -109,6 +118,7 @@ export class JobsService {
         // Count only THIS college's applicants, even for a shared platform job.
         include: {
           company: true,
+          createdBy: { select: { id: true, fullName: true } },
           _count: { select: { applications: { where: { collegeId } } } },
         },
         orderBy: { createdAt: 'desc' },
@@ -128,6 +138,7 @@ export class JobsService {
       where: { id, ...this.visibleToCollege(collegeId) },
       include: {
         company: true,
+        createdBy: { select: { id: true, fullName: true } },
         _count: { select: { applications: { where: { collegeId } } } },
       },
     });
@@ -346,6 +357,45 @@ export class JobsService {
         branch: s.branch,
         cgpa: s.cgpa != null ? Number(s.cgpa) : null,
       }));
+  }
+
+  async resolveAssignedBranch(userId: string): Promise<string | null> {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { assignedBranch: true } });
+    return u?.assignedBranch ?? null;
+  }
+
+  /**
+   * For one job: every student in `branch` (or the whole college if omitted),
+   * annotated with whether they've applied and their current stage. Built for
+   * Placement Coordinators ("who in my branch applied, who didn't"), but usable
+   * by any officer with an explicit branch filter.
+   */
+  async applicantStatusByBranch(collegeId: string, jobId: string, branch?: string) {
+    const job = await this.prisma.job.findFirst({ where: { id: jobId, ...this.visibleToCollege(collegeId) } });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const [students, applications] = await Promise.all([
+      this.prisma.student.findMany({
+        where: { collegeId, graduatedAt: null, ...(branch ? { branch } : {}) },
+        include: { user: { select: { fullName: true } } },
+        orderBy: { rollNumber: 'asc' },
+      }),
+      this.prisma.application.findMany({
+        where: { jobId, collegeId, ...(branch ? { student: { branch } } : {}) },
+        select: { studentId: true, stage: true, appliedAt: true },
+      }),
+    ]);
+    const byStudentId = new Map(applications.map((a) => [a.studentId, a]));
+
+    return students.map((s) => ({
+      id: s.id,
+      rollNumber: s.rollNumber,
+      fullName: s.user.fullName,
+      branch: s.branch,
+      applied: byStudentId.has(s.id),
+      stage: byStudentId.get(s.id)?.stage ?? null,
+      appliedAt: byStudentId.get(s.id)?.appliedAt ?? null,
+    }));
   }
 
   // ─────────────── Platform Admin: cross-college broadcast jobs ───────────────
@@ -716,6 +766,8 @@ export class JobsService {
     companyId: string | null;
     companyName: string | null;
     company?: { id: string; name: string; logoUrl: string | null; industry: string | null } | null;
+    createdById?: string;
+    createdBy?: { id: string; fullName: string } | null;
     _count?: { applications: number };
   }) {
     const isPlatform = j.scope === 'PLATFORM';
@@ -765,6 +817,8 @@ export class JobsService {
             industry: j.company.industry,
           }
         : undefined,
+      createdById: j.createdById,
+      createdBy: j.createdBy ?? undefined,
       applicationCount: j._count?.applications,
     };
   }

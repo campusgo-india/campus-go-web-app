@@ -22,6 +22,8 @@ export interface Company {
   isActive: boolean;
   createdAt: string;
   contacts: CompanyContact[];
+  createdById?: string | null;
+  createdBy?: { id: string; fullName: string } | null;
   _count?: { jobs: number };
 }
 

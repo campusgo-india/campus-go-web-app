@@ -33,7 +33,11 @@ export class CompaniesController {
 
   @Get()
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListCompaniesQuery) {
-    const { items, meta } = await this.companies.list(this.collegeId(user), query);
+    const { items, meta } = await this.companies.list(
+      this.collegeId(user),
+      { id: user.sub, role: user.role },
+      query,
+    );
     return { data: items, meta };
   }
 
@@ -47,7 +51,12 @@ export class CompaniesController {
 
   @Get(':id')
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.companies.findOne(this.collegeId(user), id) };
+    return {
+      data: await this.companies.findOne(this.collegeId(user), id, {
+        id: user.sub,
+        role: user.role,
+      }),
+    };
   }
 
   @Get(':id/hiring-history')

@@ -16,6 +16,7 @@ enum UserRole {
   PLATFORM_ADMIN
   COLLEGE_ADMIN
   PLACEMENT_OFFICER
+  PLACEMENT_COORDINATOR
   STUDENT
 }
 
@@ -117,6 +118,9 @@ model User {
   // see all the college's recruiter POCs and the per-teammate recruiter tracking.
   // Assigned by the Platform Admin (the founding admin is the head by default).
   isCollegeHead      Boolean   @default(false) @map("is_college_head")
+  // PLACEMENT_COORDINATOR only: the single branch they're responsible for
+  // (read-only visibility into that branch's students + jobs). Unused by other roles.
+  assignedBranch     String?   @map("assigned_branch")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   emailVerifiedAt    DateTime? @map("email_verified_at")
   lastLoginAt        DateTime? @map("last_login_at")
@@ -128,6 +132,8 @@ model User {
   passwordResets PasswordResetToken[]
   student        Student?
   notifications  Notification[]
+  createdJobs      Job[]     @relation("JobCreatedBy")
+  createdCompanies Company[] @relation("CompanyCreatedBy")
 
   @@index([collegeId])
   @@map("users")
@@ -419,8 +425,9 @@ model Company {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  contacts CompanyContact[]
-  jobs     Job[]
+  contacts  CompanyContact[]
+  jobs      Job[]
+  createdBy User?            @relation("CompanyCreatedBy", fields: [createdById], references: [id])
 
   @@unique([collegeId, name])
   @@index([collegeId])
@@ -488,6 +495,7 @@ model Job {
   company      Company?      @relation(fields: [companyId], references: [id])
   applications Application[]
   rounds       JobRound[]
+  createdBy    User          @relation("JobCreatedBy", fields: [createdById], references: [id])
 
   @@index([collegeId, status])
   @@index([companyId])

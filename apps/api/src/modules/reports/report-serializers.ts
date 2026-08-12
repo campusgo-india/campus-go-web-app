@@ -37,14 +37,20 @@ export function toCsv(dataset: ReportDataset): Buffer {
   return Buffer.from('﻿' + body, 'utf8');
 }
 
-/** Serialize a dataset to an XLSX workbook buffer with a styled header row. */
-export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'CampusGO';
-  wb.created = new Date();
-  // Sheet names are capped at 31 chars and forbid : \ / ? * [ ].
-  const sheet = wb.addWorksheet(dataset.title.slice(0, 31).replace(/[:\\/?*[\]]/g, ' '));
+/** Adds one styled, frozen-header worksheet for `dataset` to an existing workbook. */
+function addSheet(wb: ExcelJS.Workbook, dataset: ReportDataset, usedNames: Set<string>): void {
+  // Sheet names are capped at 31 chars, forbid : \ / ? * [ ], and must be unique
+  // within the workbook (department names can collide after truncation).
+  let name = dataset.title.slice(0, 31).replace(/[:\\/?*[\]]/g, ' ').trim() || 'Sheet';
+  let suffix = 2;
+  while (usedNames.has(name)) {
+    const base = name.slice(0, 31 - String(suffix).length - 1);
+    name = `${base} ${suffix}`;
+    suffix += 1;
+  }
+  usedNames.add(name);
 
+  const sheet = wb.addWorksheet(name);
   sheet.columns = dataset.columns.map((c) => ({
     header: c.label,
     key: c.key,
@@ -63,7 +69,26 @@ export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
     c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   });
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
+}
 
+/** Serialize a dataset to an XLSX workbook buffer with a styled header row. */
+export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CampusGO';
+  wb.created = new Date();
+  addSheet(wb, dataset, new Set());
+  const out = await wb.xlsx.writeBuffer();
+  return Buffer.from(out);
+}
+
+/** Serialize multiple datasets into ONE workbook, one worksheet each — e.g. a
+ * students export with one tab per department. */
+export async function toMultiSheetXlsx(datasets: ReportDataset[]): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'CampusGO';
+  wb.created = new Date();
+  const usedNames = new Set<string>();
+  for (const dataset of datasets) addSheet(wb, dataset, usedNames);
   const out = await wb.xlsx.writeBuffer();
   return Buffer.from(out);
 }

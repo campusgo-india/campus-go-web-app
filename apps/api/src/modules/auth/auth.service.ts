@@ -151,6 +151,7 @@ export class AuthService {
     avatarUrl: string | null;
     mustChangePassword: boolean;
     isCollegeHead: boolean;
+    assignedBranch?: string | null;
   }) {
     return {
       id: user.id,
@@ -161,6 +162,7 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       mustChangePassword: user.mustChangePassword,
       isCollegeHead: user.isCollegeHead,
+      assignedBranch: user.assignedBranch ?? null,
     };
   }
 }

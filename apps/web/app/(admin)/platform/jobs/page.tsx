@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { listColleges, type College } from '../../../../lib/colleges';
 import { JobCard } from '../../../../components/job-card';
 import { ListSkeleton } from '../../../../components/page-skeleton';
-import type { Job } from '../../../../lib/jobs';
+import { uploadPlatformJobPdf, type Job } from '../../../../lib/jobs';
 import {
   listPlatformJobs,
   createPlatformJob,
@@ -191,6 +191,8 @@ function NewPlatformJobForm({
     applicationDeadline: '',
   });
   const [targets, setTargets] = useState<string[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -217,10 +219,19 @@ function NewPlatformJobForm({
     setSaving(true);
     setError(null);
     try {
+      let pdfUrl: string | undefined;
+      let pdfName: string | undefined;
+      if (file) {
+        const up = await uploadPlatformJobPdf(file);
+        pdfUrl = up.url;
+        pdfName = up.name;
+      }
       await createPlatformJob({
         title: form.title,
         companyName: form.companyName,
         targetCollegeIds: targets,
+        pdfUrl,
+        pdfName,
         jobType: form.jobType,
         workMode: form.workMode || undefined,
         location: form.location || undefined,
@@ -360,6 +371,30 @@ function NewPlatformJobForm({
           onChange={set('description')}
         />
       </Field>
+      <div className="space-y-1">
+        <span className="text-xs font-medium text-subtle">Job description PDF</span>
+        <div className="flex items-center gap-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileRef.current?.click()}
+          >
+            {file ? 'Change PDF' : 'Choose PDF…'}
+          </Button>
+          <span className="truncate text-sm text-subtle">
+            {file ? file.name : 'No file selected'}
+          </span>
+        </div>
+        <p className="text-xs text-subtle">Visible to students at every targeted college. Max 10 MB.</p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <Field label="CTC min (₹/yr)">
           <input

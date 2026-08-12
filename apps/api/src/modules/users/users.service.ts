@@ -28,6 +28,7 @@ export class UsersService {
         fullName: dto.fullName,
         role: dto.role,
         phone: dto.phone,
+        assignedBranch: dto.assignedBranch,
         passwordHash,
       },
     });
@@ -42,7 +43,10 @@ export class UsersService {
 
   async list(collegeId: string) {
     const users = await this.prisma.user.findMany({
-      where: { collegeId, role: { in: ['COLLEGE_ADMIN', 'PLACEMENT_OFFICER'] } },
+      where: {
+        collegeId,
+        role: { in: ['COLLEGE_ADMIN', 'PLACEMENT_OFFICER', 'PLACEMENT_COORDINATOR'] },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return users.map((u) => this.publicUser(u));
@@ -76,6 +80,7 @@ export class UsersService {
     fullName: string;
     role: string;
     phone: string | null;
+    assignedBranch: string | null;
     isActive: boolean;
     lastLoginAt: Date | null;
   }) {
@@ -85,6 +90,7 @@ export class UsersService {
       fullName: u.fullName,
       role: u.role,
       phone: u.phone,
+      assignedBranch: u.assignedBranch,
       isActive: u.isActive,
       lastLoginAt: u.lastLoginAt,
     };

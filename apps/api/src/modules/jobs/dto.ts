@@ -220,6 +220,8 @@ export class UpdatePlatformJobDto {
 export class ListJobsQuery {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsString() status?: string;
+  // Filter to jobs posted by a specific officer ("mine only").
+  @IsOptional() @IsString() createdById?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) limit?: number;
 }
