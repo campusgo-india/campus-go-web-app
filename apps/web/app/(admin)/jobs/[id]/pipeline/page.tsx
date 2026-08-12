@@ -747,12 +747,10 @@ function AddRoundForm({
     scheduledAt: string;
   }) => void;
 }) {
-  const presets = [
-    nextLabel,
-    ...['Managerial Round', 'HR Round', 'Offer Round'].filter((p) => p !== nextLabel),
-  ];
-  const CUSTOM = 'Custom…';
-  const [titlePreset, setTitlePreset] = useState<string>(nextLabel);
+  const FIXED_PRESETS = ['Round 1', 'Round 2', 'Round 3', 'Final Round'];
+  const CUSTOM = 'Customize';
+  const defaultPreset = FIXED_PRESETS.includes(nextLabel) ? nextLabel : CUSTOM;
+  const [titlePreset, setTitlePreset] = useState<string>(defaultPreset);
   const [title, setTitle] = useState(nextLabel);
   const [roundType, setRoundType] = useState<RoundType | ''>('');
   const [description, setDescription] = useState('');
@@ -774,7 +772,7 @@ function AddRoundForm({
               if (next !== CUSTOM) setTitle(next);
             }}
           >
-            {presets.map((p) => (
+            {FIXED_PRESETS.map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>

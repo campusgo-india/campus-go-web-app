@@ -9,14 +9,17 @@ import { useSession } from '../lib/session';
 export function StudentBrandHeader() {
   const { user } = useSession();
   return (
-    <header className="flex h-12 items-center px-5">
+    <header className="flex h-16 items-center px-5">
       {user?.college?.logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured
-        <img
-          src={user.college.logoUrl}
-          alt={user.college.name}
-          className="h-7 w-auto max-w-[70%] object-contain"
-        />
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured */}
+          <img
+            src={user.college.logoUrl}
+            alt={user.college.name}
+            className="h-11 w-11 shrink-0 rounded-md object-contain"
+          />
+          <span className="truncate text-sm font-semibold text-strong">{user.college.name}</span>
+        </div>
       ) : (
         <span className="text-lg font-bold">
           <span className="text-primary-700">Campus</span>

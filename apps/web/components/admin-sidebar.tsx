@@ -34,10 +34,18 @@ const COLLEGE_NAV: NavItem[] = [
 // Team (user management) is College Admin only.
 const TEAM_NAV: NavItem = { href: '/settings/team', label: 'Team' };
 
+// Placement Coordinator: read-only, scoped to their assigned branch — jobs
+// posted + which of their branch's students applied, nothing else.
+const COORDINATOR_NAV: NavItem[] = [
+  { href: '/jobs', label: 'Jobs' },
+  { href: '/students', label: 'Students' },
+];
+
 function navFor(role: UserRole | undefined): NavItem[] {
   if (role === UserRole.PLATFORM_ADMIN) return PLATFORM_NAV;
   if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, TEAM_NAV];
   if (role === UserRole.PLACEMENT_OFFICER) return COLLEGE_NAV;
+  if (role === UserRole.PLACEMENT_COORDINATOR) return COORDINATOR_NAV;
   return []; // unknown / still bootstrapping — render no role-specific links
 }
 
@@ -53,12 +61,17 @@ export function AdminSidebar() {
     <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-white px-4 py-6 md:flex">
       <div className="px-3 pb-8">
         {user?.college?.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured
-          <img
-            src={user.college.logoUrl}
-            alt={user.college.name}
-            className="h-9 w-auto max-w-full object-contain"
-          />
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- remote blob URL, next/image not configured */}
+            <img
+              src={user.college.logoUrl}
+              alt={user.college.name}
+              className="h-14 w-14 shrink-0 rounded-md object-contain"
+            />
+            <span className="text-sm font-semibold leading-tight text-strong">
+              {user.college.name}
+            </span>
+          </div>
         ) : (
           <span className="text-2xl font-bold">
             <span className="text-primary-700">Campus</span>
