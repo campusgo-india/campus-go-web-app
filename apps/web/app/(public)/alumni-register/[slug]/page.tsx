@@ -87,6 +87,7 @@ function RegisterForm({
     isValidEmail(form.email) &&
     form.branch.trim() &&
     form.graduationYear &&
+    form.phone.trim() &&
     phoneOk;
 
   async function submit() {
@@ -98,7 +99,7 @@ function RegisterForm({
         email: form.email.trim(),
         graduationYear: Number(form.graduationYear),
         branch: form.branch.trim(),
-        phone: form.phone.trim() || undefined,
+        phone: form.phone.trim(),
         registerNumber: form.registerNumber.trim() || undefined,
         joiningYear: form.joiningYear ? Number(form.joiningYear) : undefined,
         course: form.course.trim() || undefined,
@@ -138,7 +139,7 @@ function RegisterForm({
         {!emailOk && <span className="text-xs text-danger">Enter a valid email address.</span>}
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Joining year / Course year">
+        <Field label="Year of Admission">
           <input
             type="number"
             className={inputCls}
@@ -148,7 +149,7 @@ function RegisterForm({
             min="0"
           />
         </Field>
-        <Field label="Passout year *">
+        <Field label="Year of Graduation *">
           <input
             type="number"
             className={inputCls}
@@ -177,7 +178,7 @@ function RegisterForm({
             onChange={set('registerNumber')}
           />
         </Field>
-        <Field label="Phone">
+        <Field label="Phone *">
           <input
             className={inputCls}
             value={form.phone}

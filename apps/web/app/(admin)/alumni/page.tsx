@@ -18,6 +18,7 @@ import {
   type AlumniFilters,
   type AlumniStats,
 } from '../../../lib/alumni';
+import { listMyCourses, type CollegeCourse } from '../../../lib/courses';
 
 type ViewMode = 'years' | 'courses' | 'table';
 
@@ -483,9 +484,19 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+
+  useEffect(() => {
+    listMyCourses()
+      .then(setCourses)
+      .catch(() => {
+        /* non-fatal: course field just falls back to free entry if this fails */
+      });
+  }, []);
 
   const set =
-    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function submit() {
@@ -497,7 +508,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
         email: form.email.trim(),
         graduationYear: Number(form.graduationYear),
         branch: form.branch.trim(),
-        phone: form.phone.trim() || undefined,
+        phone: form.phone.trim(),
         registerNumber: form.registerNumber.trim() || undefined,
         joiningYear: form.joiningYear ? Number(form.joiningYear) : undefined,
         course: form.course || undefined,
@@ -533,6 +544,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     isValidEmail(form.email) &&
     form.branch.trim() &&
     form.graduationYear &&
+    form.phone.trim() &&
     phoneOk;
 
   return (
@@ -558,7 +570,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
           <input className={inputCls} value={form.email} onChange={set('email')} />
           {!emailOk && <span className="text-xs text-danger">Enter a valid email address.</span>}
         </Field>
-        <Field label="Joining year / Course year">
+        <Field label="Year of Admission">
           <input
             type="number"
             className={inputCls}
@@ -568,7 +580,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             min="0"
           />
         </Field>
-        <Field label="Passout year *">
+        <Field label="Year of Graduation *">
           <input
             type="number"
             className={inputCls}
@@ -581,7 +593,18 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
           <input className={inputCls} value={form.branch} onChange={set('branch')} />
         </Field>
         <Field label="Course">
-          <input className={inputCls} value={form.course} onChange={set('course')} />
+          {courses.length > 0 ? (
+            <select className={inputCls} value={form.course} onChange={set('course')}>
+              <option value="">Select course</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input className={inputCls} value={form.course} onChange={set('course')} />
+          )}
         </Field>
         <Field label="Register number">
           <input
@@ -590,7 +613,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             onChange={set('registerNumber')}
           />
         </Field>
-        <Field label="Phone">
+        <Field label="Phone *">
           <input
             className={inputCls}
             value={form.phone}

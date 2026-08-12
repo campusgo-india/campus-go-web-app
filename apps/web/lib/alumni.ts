@@ -32,7 +32,7 @@ export interface AlumniInput {
   email: string;
   graduationYear: number;
   branch: string;
-  phone?: string;
+  phone: string;
   registerNumber?: string;
   joiningYear?: number;
   course?: string;
@@ -77,7 +77,7 @@ export interface SelfRegisterInput {
   email: string;
   graduationYear: number;
   branch: string;
-  phone?: string;
+  phone: string;
   registerNumber?: string;
   joiningYear?: number;
   course?: string;

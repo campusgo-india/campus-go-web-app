@@ -23,10 +23,8 @@ const toBool = ({ value }: { value: unknown }) =>
 export class CreateAlumniDto {
   @IsString() @MinLength(2) fullName!: string;
   @IsEmail() email!: string;
-  @EmptyToUndefined()
-  @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
-  phone?: string;
+  phone!: string;
   @IsOptional() @IsString() registerNumber?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) joiningYear?: number;
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
@@ -47,10 +45,8 @@ export class CreateAlumniDto {
 export class SelfRegisterAlumniDto {
   @IsString() @MinLength(2) fullName!: string;
   @IsEmail() email!: string;
-  @EmptyToUndefined()
-  @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
-  phone?: string;
+  phone!: string;
   @IsOptional() @IsString() registerNumber?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) joiningYear?: number;
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
