@@ -82,7 +82,10 @@ export class AlumniService {
       ...(q.tag ? { tags: { has: q.tag } } : {}),
       ...(q.isMentor !== undefined ? { isMentor: q.isMentor } : {}),
       ...(q.isHiring !== undefined ? { isHiring: q.isHiring } : {}),
-      ...(q.pending ? { isApproved: false } : {}),
+      // Unapproved (self-registered, unreviewed) entries stay out of the main
+      // directory until an officer approves them; the "Pending approval" filter
+      // is the only way to see them.
+      ...(q.pending ? { isApproved: false } : { isApproved: true }),
       ...(q.search
         ? {
             OR: [
@@ -130,31 +133,35 @@ export class AlumniService {
    * (branches, years, companies) drive the filter UI; counts give the overview.
    */
   async stats(collegeId: string) {
-    const [total, mentors, hiring, byYearRaw, byYearCourseRaw, byBranchRaw, byCompanyRaw] =
+    // Scoped to approved entries only, so these headline numbers match what the
+    // default directory view actually shows (pending ones are excluded there).
+    const approved = { collegeId, isApproved: true };
+    const [total, mentors, hiring, pending, byYearRaw, byYearCourseRaw, byBranchRaw, byCompanyRaw] =
       await Promise.all([
-        this.prisma.alumni.count({ where: { collegeId } }),
-        this.prisma.alumni.count({ where: { collegeId, isMentor: true } }),
-        this.prisma.alumni.count({ where: { collegeId, isHiring: true } }),
+        this.prisma.alumni.count({ where: approved }),
+        this.prisma.alumni.count({ where: { ...approved, isMentor: true } }),
+        this.prisma.alumni.count({ where: { ...approved, isHiring: true } }),
+        this.prisma.alumni.count({ where: { collegeId, isApproved: false } }),
         this.prisma.alumni.groupBy({
           by: ['graduationYear'],
-          where: { collegeId },
+          where: approved,
           _count: { _all: true },
           orderBy: { graduationYear: 'desc' },
         }),
         this.prisma.alumni.groupBy({
           by: ['graduationYear', 'course'],
-          where: { collegeId, course: { not: null } },
+          where: { ...approved, course: { not: null } },
           _count: { _all: true },
           orderBy: { graduationYear: 'desc' },
         }),
         this.prisma.alumni.groupBy({
           by: ['branch'],
-          where: { collegeId },
+          where: approved,
           _count: { _all: true },
         }),
         this.prisma.alumni.groupBy({
           by: ['currentCompany'],
-          where: { collegeId, currentCompany: { not: null } },
+          where: { ...approved, currentCompany: { not: null } },
           _count: { _all: true },
         }),
       ]);
@@ -178,6 +185,7 @@ export class AlumniService {
       total,
       mentors,
       hiring,
+      pending,
       byGraduationYear: byYearRaw.map((y) => ({
         graduationYear: y.graduationYear,
         count: y._count._all,

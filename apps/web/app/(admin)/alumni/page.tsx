@@ -297,7 +297,7 @@ export default function AlumniPage() {
                 Hiring
               </Chip>
               <Chip active={filters.pending === true} onClick={() => toggle('pending', true)}>
-                Pending approval
+                Pending approval{stats?.pending ? ` (${stats.pending})` : ''}
               </Chip>
               {hasFilters && (
                 <button

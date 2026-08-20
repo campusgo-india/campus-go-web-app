@@ -50,6 +50,7 @@ export interface AlumniStats {
   total: number;
   mentors: number;
   hiring: number;
+  pending: number;
   byGraduationYear: { graduationYear: number; count: number }[];
   byYearCourse: { graduationYear: number; course: string; count: number }[];
   byBranch: { branch: string; count: number }[];
