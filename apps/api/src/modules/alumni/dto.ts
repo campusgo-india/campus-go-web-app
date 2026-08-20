@@ -12,7 +12,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { PHONE_REGEX } from '@campusgo/shared';
-import { EmptyToUndefined, TitleCase } from '../../common/transforms';
+import { EmptyToUndefined, NormalizeUrl, TitleCase } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
 
@@ -33,7 +33,7 @@ export class CreateAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @IsBoolean() isMentor?: boolean;
   @IsOptional() @IsBoolean() isHiring?: boolean;
   @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];
@@ -55,7 +55,7 @@ export class SelfRegisterAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
 }
 
 export class UpdateAlumniDto {
@@ -73,7 +73,7 @@ export class UpdateAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @IsBoolean() isMentor?: boolean;
   @IsOptional() @IsBoolean() isHiring?: boolean;
   @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];

@@ -66,5 +66,14 @@ export const createMyInternship = (input: InternshipInput) =>
 export const updateMyInternship = (id: string, input: Partial<InternshipInput>) =>
   api<Internship>(`/me/internships/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 
-// ─── Officer / College Admin (read-only) ───
+// ─── Officer / College Admin ───
 export const listInternships = () => api<Internship[]>('/internships');
+
+export const createInternship = (input: InternshipInput & { studentId: string }) =>
+  api<Internship>('/internships', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateInternship = (id: string, input: Partial<InternshipInput>) =>
+  api<Internship>(`/internships/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteInternship = (id: string) =>
+  api<{ success: boolean }>(`/internships/${id}`, { method: 'DELETE' });

@@ -8,7 +8,7 @@ import {
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { Internship, PrismaClient } from '@campusgo/database';
-import { CreateInternshipDto, UpdateInternshipDto } from './dto';
+import { CreateInternshipDto, OfficerCreateInternshipDto, UpdateInternshipDto } from './dto';
 
 const MAX_INTERNSHIPS_PER_STUDENT = 3;
 const dec = (v: Prisma.Decimal | null) => (v != null ? Number(v) : null);
@@ -71,6 +71,63 @@ export class InternshipsService {
     return student;
   }
 
+  private async assertUnderLimit(studentId: string) {
+    const existingCount = await this.prisma.internship.count({ where: { studentId } });
+    if (existingCount >= MAX_INTERNSHIPS_PER_STUDENT) {
+      throw new BadRequestException(
+        `You can add up to ${MAX_INTERNSHIPS_PER_STUDENT} internships.`,
+      );
+    }
+  }
+
+  private buildCreateData(collegeId: string, studentId: string, dto: CreateInternshipDto) {
+    return {
+      collegeId,
+      studentId,
+      companyName: dto.companyName.trim(),
+      role: dto.role.trim(),
+      employmentType: dto.employmentType,
+      domain: dto.domain,
+      skills: dto.skills,
+      location: dto.location,
+      isPaid: dto.isPaid ?? false,
+      stipend: toDec(dto.stipend),
+      startDate: dto.startDate ? new Date(dto.startDate) : null,
+      endDate: dto.endDate ? new Date(dto.endDate) : null,
+      isPpo: dto.isPpo ?? false,
+      description: dto.description,
+      pocName: dto.pocName,
+      pocEmail: dto.pocEmail,
+      pocPhone: dto.pocPhone,
+      certificateUrl: dto.certificateUrl,
+    };
+  }
+
+  private buildUpdateData(dto: UpdateInternshipDto) {
+    return {
+      ...(dto.companyName ? { companyName: dto.companyName.trim() } : {}),
+      ...(dto.role ? { role: dto.role.trim() } : {}),
+      ...(dto.employmentType !== undefined ? { employmentType: dto.employmentType } : {}),
+      ...(dto.domain !== undefined ? { domain: dto.domain } : {}),
+      ...(dto.skills !== undefined ? { skills: dto.skills } : {}),
+      ...(dto.location !== undefined ? { location: dto.location } : {}),
+      ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
+      ...(dto.stipend !== undefined ? { stipend: toDec(dto.stipend) } : {}),
+      ...(dto.startDate !== undefined
+        ? { startDate: dto.startDate ? new Date(dto.startDate) : null }
+        : {}),
+      ...(dto.endDate !== undefined
+        ? { endDate: dto.endDate ? new Date(dto.endDate) : null }
+        : {}),
+      ...(dto.isPpo !== undefined ? { isPpo: dto.isPpo } : {}),
+      ...(dto.description !== undefined ? { description: dto.description } : {}),
+      ...(dto.pocName !== undefined ? { pocName: dto.pocName } : {}),
+      ...(dto.pocEmail !== undefined ? { pocEmail: dto.pocEmail } : {}),
+      ...(dto.pocPhone !== undefined ? { pocPhone: dto.pocPhone } : {}),
+      ...(dto.certificateUrl !== undefined ? { certificateUrl: dto.certificateUrl } : {}),
+    };
+  }
+
   // ─────────────── Student (self) ───────────────
   async listOwn(userId: string) {
     const student = await this.studentForUser(userId);
@@ -83,43 +140,16 @@ export class InternshipsService {
 
   async createOwn(userId: string, dto: CreateInternshipDto) {
     const student = await this.studentForUser(userId);
-
-    const existingCount = await this.prisma.internship.count({
-      where: { studentId: student.id },
-    });
-    if (existingCount >= MAX_INTERNSHIPS_PER_STUDENT) {
-      throw new BadRequestException(
-        `You can add up to ${MAX_INTERNSHIPS_PER_STUDENT} internships.`,
-      );
-    }
-
+    await this.assertUnderLimit(student.id);
     const created = await this.prisma.internship.create({
-      data: {
-        collegeId: student.collegeId,
-        studentId: student.id,
-        companyName: dto.companyName.trim(),
-        role: dto.role.trim(),
-        employmentType: dto.employmentType,
-        domain: dto.domain,
-        skills: dto.skills,
-        location: dto.location,
-        isPaid: dto.isPaid ?? false,
-        stipend: toDec(dto.stipend),
-        startDate: dto.startDate ? new Date(dto.startDate) : null,
-        endDate: dto.endDate ? new Date(dto.endDate) : null,
-        isPpo: dto.isPpo ?? false,
-        description: dto.description,
-        pocName: dto.pocName,
-        pocEmail: dto.pocEmail,
-        pocPhone: dto.pocPhone,
-        certificateUrl: dto.certificateUrl,
-      },
+      data: this.buildCreateData(student.collegeId, student.id, dto),
     });
     return this.toPublic(created);
   }
 
   // Students self-report internships they found on their own and can freely edit
-  // them — there is no officer verification step (the placement cell only views).
+  // their own entries. Officers can now also fine-tune any record at their
+  // college (correcting typos, filling gaps a student left blank, etc.).
   async updateOwn(userId: string, id: string, dto: UpdateInternshipDto) {
     const student = await this.studentForUser(userId);
     const existing = await this.prisma.internship.findFirst({
@@ -128,33 +158,12 @@ export class InternshipsService {
     if (!existing) throw new NotFoundException('Internship not found');
     const updated = await this.prisma.internship.update({
       where: { id },
-      data: {
-        ...(dto.companyName ? { companyName: dto.companyName.trim() } : {}),
-        ...(dto.role ? { role: dto.role.trim() } : {}),
-        ...(dto.employmentType !== undefined ? { employmentType: dto.employmentType } : {}),
-        ...(dto.domain !== undefined ? { domain: dto.domain } : {}),
-        ...(dto.skills !== undefined ? { skills: dto.skills } : {}),
-        ...(dto.location !== undefined ? { location: dto.location } : {}),
-        ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
-        ...(dto.stipend !== undefined ? { stipend: toDec(dto.stipend) } : {}),
-        ...(dto.startDate !== undefined
-          ? { startDate: dto.startDate ? new Date(dto.startDate) : null }
-          : {}),
-        ...(dto.endDate !== undefined
-          ? { endDate: dto.endDate ? new Date(dto.endDate) : null }
-          : {}),
-        ...(dto.isPpo !== undefined ? { isPpo: dto.isPpo } : {}),
-        ...(dto.description !== undefined ? { description: dto.description } : {}),
-        ...(dto.pocName !== undefined ? { pocName: dto.pocName } : {}),
-        ...(dto.pocEmail !== undefined ? { pocEmail: dto.pocEmail } : {}),
-        ...(dto.pocPhone !== undefined ? { pocPhone: dto.pocPhone } : {}),
-        ...(dto.certificateUrl !== undefined ? { certificateUrl: dto.certificateUrl } : {}),
-      },
+      data: this.buildUpdateData(dto),
     });
     return this.toPublic(updated);
   }
 
-  // ─────────────── Officer / Admin (read-only) ───────────────
+  // ─────────────── Officer / Admin ───────────────
   // Every self-reported internship at the college, with the student's batch info
   // (course + graduation year) so the officer UI can group them batch by batch.
   async list(collegeId: string) {
@@ -173,5 +182,56 @@ export class InternshipsService {
       },
     });
     return rows.map((r) => this.toPublic(r));
+  }
+
+  async create(collegeId: string, dto: OfficerCreateInternshipDto) {
+    const student = await this.prisma.student.findFirst({
+      where: { id: dto.studentId, collegeId },
+      select: { id: true },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+    await this.assertUnderLimit(student.id);
+    const { studentId: _studentId, ...rest } = dto;
+    const created = await this.prisma.internship.create({
+      data: this.buildCreateData(collegeId, student.id, rest),
+      include: {
+        student: {
+          select: {
+            rollNumber: true,
+            course: true,
+            graduationYear: true,
+            user: { select: { fullName: true } },
+          },
+        },
+      },
+    });
+    return this.toPublic(created);
+  }
+
+  async update(collegeId: string, id: string, dto: UpdateInternshipDto) {
+    const existing = await this.prisma.internship.findFirst({ where: { id, collegeId } });
+    if (!existing) throw new NotFoundException('Internship not found');
+    const updated = await this.prisma.internship.update({
+      where: { id },
+      data: this.buildUpdateData(dto),
+      include: {
+        student: {
+          select: {
+            rollNumber: true,
+            course: true,
+            graduationYear: true,
+            user: { select: { fullName: true } },
+          },
+        },
+      },
+    });
+    return this.toPublic(updated);
+  }
+
+  async remove(collegeId: string, id: string) {
+    const existing = await this.prisma.internship.findFirst({ where: { id, collegeId } });
+    if (!existing) throw new NotFoundException('Internship not found');
+    await this.prisma.internship.delete({ where: { id } });
+    return { success: true };
   }
 }

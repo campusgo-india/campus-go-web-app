@@ -14,3 +14,16 @@ export const TitleCase = () =>
   Transform(({ value }) =>
     typeof value === 'string' && value.trim() ? toTitleCase(value) : value,
   );
+
+/**
+ * Ensure a user-typed URL has a protocol. Without this, "linkedin.com/in/x"
+ * gets stored as-is and an <a href="linkedin.com/in/x"> resolves as a RELATIVE
+ * path on our own domain — a 404, not the intended external site.
+ */
+export const NormalizeUrl = () =>
+  Transform(({ value }) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  });

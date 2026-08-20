@@ -18,7 +18,7 @@ import {
 } from 'class-validator';
 import { VerificationStatus } from '@campusgo/database';
 import { PHONE_REGEX } from '@campusgo/shared';
-import { EmptyToUndefined } from '../../common/transforms';
+import { EmptyToUndefined, NormalizeUrl } from '../../common/transforms';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
@@ -89,7 +89,7 @@ export class CreateStudentDto {
   @EmptyToUndefined() @IsOptional() @IsDateString() dateOfBirth?: string;
   @IsOptional() @IsIn(GENDERS) gender?: string;
   @EmptyToUndefined() @IsOptional() @IsEmail() personalEmail?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) tenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) twelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) ugPercentage?: number;
@@ -126,7 +126,7 @@ export class UpdateStudentDto {
   @EmptyToUndefined() @IsOptional() @IsDateString() dateOfBirth?: string;
   @IsOptional() @IsIn(GENDERS) gender?: string;
   @EmptyToUndefined() @IsOptional() @IsEmail() personalEmail?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) tenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) twelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) ugPercentage?: number;
@@ -193,7 +193,7 @@ export class UpdateOwnProfileDto {
   @EmptyToUndefined() @IsOptional() @IsDateString() dateOfBirth?: string;
   @IsOptional() @IsIn(GENDERS) gender?: string;
   @EmptyToUndefined() @IsOptional() @IsEmail() personalEmail?: string;
-  @IsOptional() @IsString() linkedinUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) tenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) twelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) ugPercentage?: number;

@@ -10,13 +10,13 @@ import {
   MinLength,
 } from 'class-validator';
 import { PHONE_REGEX } from '@campusgo/shared';
-import { EmptyToUndefined, TitleCase } from '../../common/transforms';
+import { EmptyToUndefined, NormalizeUrl, TitleCase } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
 
 export class CreateCompanyDto {
   @IsString() @MinLength(2) name!: string;
-  @IsOptional() @IsString() website?: string;
+  @NormalizeUrl() @IsOptional() @IsString() website?: string;
   @IsOptional() @IsString() industry?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() logoUrl?: string;
@@ -34,7 +34,7 @@ export class CreateCompanyDto {
 
 export class UpdateCompanyDto {
   @IsOptional() @IsString() @MinLength(2) name?: string;
-  @IsOptional() @IsString() website?: string;
+  @NormalizeUrl() @IsOptional() @IsString() website?: string;
   @IsOptional() @IsString() industry?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() logoUrl?: string;

@@ -13,7 +13,7 @@ import {
 } from 'class-validator';
 import { EmploymentType } from '@campusgo/database';
 import { PHONE_REGEX } from '@campusgo/shared';
-import { EmptyToUndefined } from '../../common/transforms';
+import { EmptyToUndefined, NormalizeUrl } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
 
@@ -34,7 +34,13 @@ export class CreateInternshipDto {
   @IsString() @MinLength(1) pocName!: string;
   @IsEmail() pocEmail!: string;
   @IsString() @Matches(PHONE_REGEX, { message: PHONE_MESSAGE }) pocPhone!: string;
-  @IsOptional() @IsString() certificateUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() certificateUrl?: string;
+}
+
+// Officer/Admin create: same fields as the student's own form, plus which
+// student it's for (the student derives this from their own session instead).
+export class OfficerCreateInternshipDto extends CreateInternshipDto {
+  @IsString() @MinLength(1) studentId!: string;
 }
 
 export class UpdateInternshipDto {
@@ -53,5 +59,5 @@ export class UpdateInternshipDto {
   @IsOptional() @IsString() @MinLength(1) pocName?: string;
   @IsOptional() @IsEmail() pocEmail?: string;
   @IsOptional() @IsString() @Matches(PHONE_REGEX, { message: PHONE_MESSAGE }) pocPhone?: string;
-  @IsOptional() @IsString() certificateUrl?: string;
+  @NormalizeUrl() @IsOptional() @IsString() certificateUrl?: string;
 }
