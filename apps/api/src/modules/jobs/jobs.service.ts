@@ -16,6 +16,7 @@ import {
   UpdatePlatformJobDto,
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { jobVisibleToCollege } from './job-scope.util';
 import {
   checkEligibility,
   checkApplyEligibility,
@@ -330,7 +331,9 @@ export class JobsService {
 
   // Officer preview: every active, verified, non-placed student who matches.
   async eligibleStudents(collegeId: string, jobId: string) {
-    const job = await this.prisma.job.findFirst({ where: { id: jobId, collegeId } });
+    const job = await this.prisma.job.findFirst({
+      where: { id: jobId, ...this.visibleToCollege(collegeId) },
+    });
     if (!job) throw new NotFoundException('Job not found');
 
     const students = await this.prisma.student.findMany({
@@ -561,9 +564,7 @@ export class JobsService {
   // A student sees a job if it's their own college's job, OR a platform-broadcast
   // job that targets their college. (collegeId is non-null for any real student.)
   private visibleToCollege(collegeId: string): Prisma.JobWhereInput {
-    return {
-      OR: [{ collegeId }, { scope: 'PLATFORM', targetCollegeIds: { has: collegeId } }],
-    };
+    return jobVisibleToCollege(collegeId);
   }
 
   // Student job feed: every published job visible to the college, plus closed

@@ -10,6 +10,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
+import { jobVisibleToCollege } from './job-scope.util';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
 import type { ReportDataset } from '../reports/report-serializers';
 
@@ -128,7 +129,7 @@ export class ApplicationsService {
   async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
     const [job, college] = await Promise.all([
       this.prisma.job.findFirst({
-        where: { id: jobId, collegeId },
+        where: { id: jobId, ...jobVisibleToCollege(collegeId) },
         include: { company: { select: { name: true } } },
       }),
       this.prisma.college.findUnique({ where: { id: collegeId }, select: { name: true } }),
@@ -142,6 +143,7 @@ export class ApplicationsService {
           select: {
             rollNumber: true,
             dateOfBirth: true,
+            personalEmail: true,
             user: { select: { fullName: true, email: true, phone: true } },
             resume: { select: { publicSlug: true, isPublished: true } },
           },
@@ -154,7 +156,9 @@ export class ApplicationsService {
     const rows = apps.map((a) => ({
       rollNumber: a.student.rollNumber,
       fullName: a.student.user.fullName,
-      email: a.student.user.email,
+      // Personal email, not the institutional login — recruiters need a way
+      // to reach the candidate after they graduate and lose institute access.
+      email: a.student.personalEmail || a.student.user.email,
       phone: a.student.user.phone ?? '',
       dateOfBirth: a.student.dateOfBirth ? a.student.dateOfBirth.toISOString().slice(0, 10) : '',
       resumeLink: a.student.resume?.isPublished

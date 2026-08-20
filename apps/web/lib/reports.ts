@@ -16,7 +16,9 @@ export const REPORT_LABELS: Record<string, string> = {
   placement: 'Placement',
   offers: 'Offers',
   branch: 'Branch Summary',
+  batch: 'Batch Summary',
   funnel: 'Application Funnel',
+  summary: 'Placement & Readiness Summary',
 };
 
 export const getReportCatalog = () => api<ReportCatalog>('/reports');

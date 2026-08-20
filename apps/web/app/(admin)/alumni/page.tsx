@@ -498,6 +498,11 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+  // Branch options are scoped to the selected course, mirroring students/new —
+  // branch used to be a free-text field completely decoupled from course.
+  const setCourse = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, course: e.target.value, branch: '' }));
+  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
 
   async function submit() {
     setSaving(true);
@@ -589,12 +594,9 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             min="0"
           />
         </Field>
-        <Field label="Branch *">
-          <input className={inputCls} value={form.branch} onChange={set('branch')} />
-        </Field>
         <Field label="Course">
           {courses.length > 0 ? (
-            <select className={inputCls} value={form.course} onChange={set('course')}>
+            <select className={inputCls} value={form.course} onChange={setCourse}>
               <option value="">Select course</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.name}>
@@ -603,7 +605,26 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
               ))}
             </select>
           ) : (
-            <input className={inputCls} value={form.course} onChange={set('course')} />
+            <input className={inputCls} value={form.course} onChange={setCourse} />
+          )}
+        </Field>
+        <Field label="Branch *">
+          {branchesFor.length > 0 ? (
+            <select className={inputCls} value={form.branch} onChange={set('branch')}>
+              <option value="">Select branch</option>
+              {branchesFor.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className={inputCls}
+              value={form.branch}
+              onChange={set('branch')}
+              placeholder={form.course ? 'No sub-branches for this course' : 'e.g. Computer Science'}
+            />
           )}
         </Field>
         <Field label="Register number">

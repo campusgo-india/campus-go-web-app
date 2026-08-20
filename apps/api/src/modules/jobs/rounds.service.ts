@@ -3,6 +3,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
+import { jobVisibleToCollege } from './job-scope.util';
 import { CreateRoundDto, PlaceApplicantDto, UpdateRoundDto } from './rounds-dto';
 
 // Student fields the funnel screen needs, reused across the two funnel queries.
@@ -40,10 +41,7 @@ export class RoundsService {
   // round numbering (JobRound is unique per [jobId, collegeId, seq]).
   private async resolveJob(collegeId: string, jobId: string) {
     const job = await this.prisma.job.findFirst({
-      where: {
-        id: jobId,
-        OR: [{ collegeId }, { scope: 'PLATFORM', targetCollegeIds: { has: collegeId } }],
-      },
+      where: { id: jobId, ...jobVisibleToCollege(collegeId) },
       select: {
         id: true,
         title: true,
@@ -126,6 +124,17 @@ export class RoundsService {
   // ─────────────── Round lifecycle ───────────────
   async createRound(collegeId: string, jobId: string, createdById: string, dto: CreateRoundDto) {
     const job = await this.resolveJob(collegeId, jobId);
+
+    // Once any applicant has been selected, the funnel is done — a new round
+    // would let a decided candidate get pulled back into evaluation.
+    const alreadySelected = await this.prisma.application.count({
+      where: { collegeId, jobId, status: 'SELECTED' },
+    });
+    if (alreadySelected > 0) {
+      throw new BadRequestException(
+        'Candidates have already been selected for this job — no further rounds can be added.',
+      );
+    }
 
     const last = await this.prisma.jobRound.findFirst({
       where: { jobId, collegeId },

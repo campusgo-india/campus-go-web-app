@@ -17,7 +17,10 @@ const DESCRIPTIONS: Record<string, string> = {
   placement: 'One row per placed student — company, role & CTC.',
   offers: 'Every released, accepted & joined offer.',
   branch: 'Branch-wise placement rate, offers & average package.',
+  batch: 'Batch-wise (graduation year) placement rate, offers & average package.',
   funnel: 'Application counts by outcome status.',
+  summary:
+    'Headline placement & readiness numbers — placement rate, CTC stats, higher studies & entrepreneurship interest. Useful for pitches and accreditation submissions (not a NAAC/NIRF/IQAC-formatted template).',
 };
 
 function fmtMonth(m: string): string {

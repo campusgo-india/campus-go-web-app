@@ -12,6 +12,7 @@ import {
   type Alumni,
   type AlumniInput,
 } from '../../../../lib/alumni';
+import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
 
 export default function AlumniDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -194,10 +195,23 @@ function EditAlumniForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+
+  useEffect(() => {
+    listMyCourses()
+      .then(setCourses)
+      .catch(() => {
+        /* non-fatal: course/branch fields just fall back to free entry if this fails */
+      });
+  }, []);
 
   const set =
-    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setCourse = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, course: e.target.value, branch: '' }));
+  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
 
   async function submit() {
     setSaving(true);
@@ -261,11 +275,38 @@ function EditAlumniForm({
             min="0"
           />
         </Field>
-        <Field label="Branch *">
-          <input className={inputCls} value={form.branch} onChange={set('branch')} />
-        </Field>
         <Field label="Course">
-          <input className={inputCls} value={form.course} onChange={set('course')} />
+          {courses.length > 0 ? (
+            <select className={inputCls} value={form.course} onChange={setCourse}>
+              <option value="">Select course</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input className={inputCls} value={form.course} onChange={setCourse} />
+          )}
+        </Field>
+        <Field label="Branch *">
+          {branchesFor.length > 0 ? (
+            <select className={inputCls} value={form.branch} onChange={set('branch')}>
+              <option value="">Select branch</option>
+              {branchesFor.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className={inputCls}
+              value={form.branch}
+              onChange={set('branch')}
+              placeholder={form.course ? 'No sub-branches for this course' : 'e.g. Computer Science'}
+            />
+          )}
         </Field>
         <Field label="Phone">
           <input className={inputCls} value={form.phone} onChange={set('phone')} />

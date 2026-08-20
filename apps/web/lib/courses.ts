@@ -17,6 +17,16 @@ export interface CourseInput {
 // ─── Tenant (College Admin / Officer): own college catalog for forms ───
 export const listMyCourses = () => api<CollegeCourse[]>('/courses');
 
+// ─── Tenant (College Admin only): self-serve catalog management ───
+export const createMyCourse = (input: CourseInput) =>
+  api<CollegeCourse>('/courses', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateMyCourse = (id: string, input: CourseInput) =>
+  api<CollegeCourse>(`/courses/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteMyCourse = (id: string) =>
+  api<{ success: boolean }>(`/courses/${id}`, { method: 'DELETE' });
+
 // ─── Platform Admin: manage a college's catalog ───
 export const listCollegeCourses = (collegeId: string) =>
   api<CollegeCourse[]>(`/colleges/${collegeId}/courses`);

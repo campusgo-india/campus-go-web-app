@@ -14,16 +14,46 @@ import { CurrentUser, Roles } from '../../common/decorators';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto, UpdateCourseDto } from './dto';
 
-/** Tenant read: the caller's own college catalog (to populate student/job forms). */
+/**
+ * Tenant: the caller's own college catalog. Reads are open to officers too
+ * (to populate student/job/alumni forms); mutations are College-Admin-only —
+ * self-serve catalog management, same as Team and College Settings.
+ */
 @Controller('courses')
 @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
 export class CoursesController {
   constructor(private readonly courses: CoursesService) {}
 
+  private collegeId(user: JwtPayload): string {
+    if (!user.collegeId) throw new BadRequestException('No college context');
+    return user.collegeId;
+  }
+
   @Get()
   async list(@CurrentUser() user: JwtPayload) {
-    if (!user.collegeId) throw new BadRequestException('No college context');
-    return { data: await this.courses.listForCollege(user.collegeId) };
+    return { data: await this.courses.listForCollege(this.collegeId(user)) };
+  }
+
+  @Post()
+  @Roles(UserRole.COLLEGE_ADMIN)
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCourseDto) {
+    return { data: await this.courses.create(this.collegeId(user), dto) };
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.COLLEGE_ADMIN)
+  async update(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateCourseDto,
+  ) {
+    return { data: await this.courses.update(this.collegeId(user), id, dto) };
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.COLLEGE_ADMIN)
+  async remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return { data: await this.courses.remove(this.collegeId(user), id) };
   }
 }
 

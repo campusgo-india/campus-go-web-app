@@ -27,7 +27,9 @@ export const REPORT_TYPES = [
   'placement',
   'offers',
   'branch',
+  'batch',
   'funnel',
+  'summary',
 ] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
@@ -57,8 +59,12 @@ export class ReportsService {
         return this.offers(collegeId);
       case 'branch':
         return this.branch(collegeId);
+      case 'batch':
+        return this.batch(collegeId);
       case 'funnel':
         return this.funnel(collegeId);
+      case 'summary':
+        return this.summary(collegeId);
       default:
         throw new BadRequestException(`Unknown report type: ${type as string}`);
     }
@@ -235,6 +241,7 @@ export class ReportsService {
           select: {
             rollNumber: true,
             branch: true,
+            personalEmail: true,
             user: { select: { fullName: true, email: true } },
           },
         },
@@ -267,7 +274,7 @@ export class ReportsService {
       rows: apps.map((a) => ({
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
-        email: a.student.user.email,
+        email: a.student.personalEmail || a.student.user.email,
         branch: a.student.branch,
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
@@ -384,4 +391,147 @@ export class ReportsService {
       }),
     };
   }
+
+  // ─────────────── Batch-wise summary (mirrors "branch", grouped by year) ───────────────
+  private async batch(collegeId: string): Promise<ReportDataset> {
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, isActive: true },
+      select: { graduationYear: true },
+    });
+    const placed = await this.prisma.application.findMany({
+      where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+      select: {
+        offerCtc: true,
+        studentId: true,
+        student: { select: { graduationYear: true } },
+      },
+      distinct: ['studentId'],
+    });
+
+    const map = new Map<
+      number,
+      { total: number; placed: number; offers: number; packages: number[] }
+    >();
+    const get = (y: number) => {
+      let row = map.get(y);
+      if (!row) {
+        row = { total: 0, placed: 0, offers: 0, packages: [] };
+        map.set(y, row);
+      }
+      return row;
+    };
+    for (const s of students) get(s.graduationYear).total++;
+    for (const a of placed) {
+      const row = get(a.student.graduationYear);
+      row.placed++;
+      row.offers++;
+      const ctc = dec(a.offerCtc);
+      if (ctc != null) row.packages.push(ctc);
+    }
+
+    const rows = [...map.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([graduationYear, r]) => {
+        const avg = r.packages.length
+          ? r.packages.reduce((x, y) => x + y, 0) / r.packages.length
+          : null;
+        const high = r.packages.length ? Math.max(...r.packages) : null;
+        return {
+          graduationYear,
+          total: r.total,
+          placed: r.placed,
+          unplaced: r.total - r.placed,
+          placementRate: r.total > 0 ? Math.round((r.placed / r.total) * 1000) / 10 : 0,
+          offers: r.offers,
+          avgCtcLpa: lpa(avg),
+          highestCtcLpa: lpa(high),
+        };
+      });
+
+    return {
+      filename: 'batch-summary',
+      title: 'Batch Summary',
+      columns: [
+        { key: 'graduationYear', label: 'Batch (Graduation Year)' },
+        { key: 'total', label: 'Total Students' },
+        { key: 'placed', label: 'Placed' },
+        { key: 'unplaced', label: 'Unplaced' },
+        { key: 'placementRate', label: 'Placement %' },
+        { key: 'offers', label: 'Offers' },
+        { key: 'avgCtcLpa', label: 'Avg CTC (LPA)' },
+        { key: 'highestCtcLpa', label: 'Highest CTC (LPA)' },
+      ],
+      rows,
+    };
+  }
+
+  // ─────────────── Placement & readiness summary (one metric per row) ───────────────
+  // A general-purpose overview report — the kind of headline numbers a
+  // placement cell would cite when pitching the college or feeding into an
+  // accreditation submission (NAAC/NIRF/IQAC). Not a compliance-formatted
+  // template for any specific body — those have precise, regulator-defined
+  // column layouts this doesn't attempt to replicate.
+  private async summary(collegeId: string): Promise<ReportDataset> {
+    const [total, active, verified, placedGroups, offerRows, internships, higherStudies, entrepreneurship] =
+      await Promise.all([
+        this.prisma.student.count({ where: { collegeId } }),
+        this.prisma.student.count({ where: { collegeId, isActive: true } }),
+        this.prisma.student.count({ where: { collegeId, verificationStatus: 'VERIFIED' } }),
+        this.prisma.application.groupBy({
+          by: ['studentId'],
+          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        }),
+        this.prisma.application.findMany({
+          where: { collegeId, stage: { in: [...PLACING_STAGES] }, offerCtc: { not: null } },
+          select: { offerCtc: true },
+        }),
+        this.prisma.internship.count({ where: { collegeId } }),
+        this.prisma.student.count({ where: { collegeId, isActive: true, higherStudiesPlanned: true } }),
+        this.prisma.student.count({ where: { collegeId, isActive: true, entrepreneurshipInterest: true } }),
+      ]);
+
+    const placed = placedGroups.length;
+    const packages = offerRows.map((o) => dec(o.offerCtc)).filter((n): n is number => n != null);
+    const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 1000) / 10 : 0);
+
+    const rows = [
+      { metric: 'Total Students', value: total },
+      { metric: 'Active Students', value: active },
+      { metric: 'Verified Students', value: verified },
+      { metric: 'Placed Students', value: placed },
+      { metric: 'Unplaced Students', value: active - placed },
+      { metric: 'Placement Rate (%)', value: pct(placed, active) },
+      { metric: 'Total Offers', value: packages.length },
+      { metric: 'Average CTC (LPA)', value: lpa(mean(packages)) },
+      { metric: 'Median CTC (LPA)', value: lpa(median(packages)) },
+      { metric: 'Highest CTC (LPA)', value: packages.length ? lpa(Math.max(...packages)) : null },
+      { metric: 'Lowest CTC (LPA)', value: packages.length ? lpa(Math.min(...packages)) : null },
+      { metric: 'Internships Logged', value: internships },
+      { metric: 'Students Planning Higher Studies', value: higherStudies },
+      { metric: 'Higher Studies (%)', value: pct(higherStudies, active) },
+      { metric: 'Students Interested in Entrepreneurship', value: entrepreneurship },
+      { metric: 'Entrepreneurship Interest (%)', value: pct(entrepreneurship, active) },
+    ];
+
+    return {
+      filename: 'placement-readiness-summary',
+      title: 'Placement & Readiness Summary',
+      columns: [
+        { key: 'metric', label: 'Metric' },
+        { key: 'value', label: 'Value' },
+      ],
+      rows,
+    };
+  }
+}
+
+function mean(xs: number[]): number | null {
+  return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+}
+
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }

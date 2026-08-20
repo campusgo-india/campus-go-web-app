@@ -18,7 +18,8 @@ const cleanList = (xs: string[] = []): string[] => {
 
 /**
  * Per-college course catalog. Read access is tenant-scoped (own college) for
- * officers/admins to populate forms; mutations are Platform-Admin only.
+ * officers/admins to populate forms; mutations are College-Admin (self-serve)
+ * or Platform-Admin (managing any college).
  */
 @Injectable()
 export class CoursesService {

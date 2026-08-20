@@ -253,6 +253,7 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
     email: '',
     role: 'PLACEMENT_OFFICER',
     phone: '',
+    course: '',
     assignedBranch: '',
     password: '',
   });
@@ -266,7 +267,17 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
         /* non-fatal: branch field just falls back to free entry if this fails */
       });
   }, []);
-  const branches = [...new Set(courses.flatMap((c) => c.branches))];
+  // Branch options are scoped to the selected course — a flat list across every
+  // course previously hid courses with no configured sub-branches (e.g. MBA)
+  // whenever another course's branches happened to collide or the array was empty.
+  // A course with no sub-branches (like MBA) IS the branch — students in that
+  // course have Student.branch === course name (see students CSV import), so
+  // default assignedBranch to the course name to match.
+  const setCourse = (v: string) => {
+    const branchesForCourse = courses.find((c) => c.name === v)?.branches ?? [];
+    setForm((f) => ({ ...f, course: v, assignedBranch: branchesForCourse.length > 0 ? '' : v }));
+  };
+  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
 
   const set =
     (k: keyof typeof form) =>
@@ -319,25 +330,50 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
           </select>
         </Field>
         {form.role === 'PLACEMENT_COORDINATOR' && (
-          <Field label="Branch *">
-            {branches.length > 0 ? (
-              <select className={inputCls} value={form.assignedBranch} onChange={set('assignedBranch')}>
-                <option value="">Select branch</option>
-                {branches.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className={inputCls}
-                value={form.assignedBranch}
-                onChange={set('assignedBranch')}
-                placeholder="e.g. Computer Science"
-              />
-            )}
-          </Field>
+          <>
+            <Field label="Course *">
+              {courses.length > 0 ? (
+                <select
+                  className={inputCls}
+                  value={form.course}
+                  onChange={(e) => setCourse(e.target.value)}
+                >
+                  <option value="">Select course</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputCls}
+                  value={form.course}
+                  onChange={(e) => setCourse(e.target.value)}
+                  placeholder="e.g. MBA"
+                />
+              )}
+            </Field>
+            <Field label="Branch *">
+              {branchesFor.length > 0 ? (
+                <select className={inputCls} value={form.assignedBranch} onChange={set('assignedBranch')}>
+                  <option value="">Select branch</option>
+                  {branchesFor.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputCls}
+                  value={form.assignedBranch}
+                  onChange={set('assignedBranch')}
+                  placeholder={form.course ? 'No sub-branches for this course' : 'Select a course first'}
+                />
+              )}
+            </Field>
+          </>
         )}
         <Field label="Phone">
           <input

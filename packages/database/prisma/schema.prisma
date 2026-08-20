@@ -292,6 +292,9 @@ model Student {
   resume          Resume?
   applications    Application[]
   internships     Internship[]
+  assessmentScores   AssessmentScore[]
+  trainingAttendance TrainingAttendance[]
+  trainingFeedback   TrainingFeedback[]
 
   @@unique([collegeId, rollNumber])
   @@index([collegeId, branch, graduationYear])
@@ -705,4 +708,127 @@ model Internship {
   @@index([collegeId, status])
   @@index([studentId])
   @@map("internships")
+}
+
+// ─────────────────────────── Training Module ───────────────────────────
+
+// The 4 fixed skill pillars every assessment/session is tagged with.
+enum TrainingPillar {
+  APTITUDE_REASONING
+  TECHNICAL_TOOLS
+  SOFT_SKILLS_COMMUNICATION
+  CAREER_READINESS
+}
+
+enum AssessmentPhase {
+  PRE
+  POST
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+// An admin-defined test hosted on an external platform (students click through
+// via externalUrl); this table only tracks the test's metadata, not questions.
+model Assessment {
+  id          String          @id @default(uuid())
+  collegeId   String          @map("college_id")
+  name        String
+  pillar      TrainingPillar
+  phase       AssessmentPhase
+  externalUrl String          @map("external_url")
+  maxMarks    Int             @map("max_marks")
+  isActive    Boolean         @default(true) @map("is_active")
+  createdById String          @map("created_by_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  scores AssessmentScore[]
+
+  @@index([collegeId, pillar])
+  @@map("training_assessments")
+}
+
+// One student's score on one assessment. Uploaded via CSV/XLSX import (matched
+// by Student.rollNumber) or entered manually for a single student.
+model AssessmentScore {
+  id             String     @id @default(uuid())
+  collegeId      String     @map("college_id")
+  assessmentId   String     @map("assessment_id")
+  studentId      String     @map("student_id")
+  marksObtained  Decimal    @db.Decimal(6, 2) @map("marks_obtained")
+  enteredById    String     @map("entered_by_id")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+  @@map("training_assessment_scores")
+}
+
+// A scheduled training program (workshop, GD practice, mock interview slot…).
+// College-wide — every active student is eligible, no per-branch targeting.
+model TrainingSession {
+  id          String        @id @default(uuid())
+  collegeId   String        @map("college_id")
+  title       String
+  pillar      TrainingPillar?
+  trainerName String?       @map("trainer_name")
+  description String?
+  startsAt    DateTime      @map("starts_at")
+  endsAt      DateTime      @map("ends_at")
+  status      SessionStatus @default(SCHEDULED)
+  createdById String        @map("created_by_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  attendance TrainingAttendance[]
+  feedback   TrainingFeedback[]
+
+  @@index([collegeId, status])
+  @@map("training_sessions")
+}
+
+// One student's attendance record for one session. Presence of a row = the
+// student was expected/tracked for this session; `present` is the outcome.
+model TrainingAttendance {
+  id          String   @id @default(uuid())
+  collegeId   String   @map("college_id")
+  sessionId   String   @map("session_id")
+  studentId   String   @map("student_id")
+  present     Boolean  @default(true)
+  markedById  String   @map("marked_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@map("training_attendance")
+}
+
+// A student's post-session star rating (1–5 per question). One per
+// student per session — also gates the "already submitted" pop-up check.
+model TrainingFeedback {
+  id                    String   @id @default(uuid())
+  collegeId             String   @map("college_id")
+  sessionId             String   @map("session_id")
+  studentId             String   @map("student_id")
+  contentQuality        Int      @map("content_quality")
+  trainerDelivery       Int      @map("trainer_delivery")
+  relevanceToPlacement  Int      @map("relevance_to_placement")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  session TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@map("training_feedback")
 }

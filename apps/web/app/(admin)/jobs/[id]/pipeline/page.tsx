@@ -58,7 +58,9 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
   if (!funnel) return <p className="text-danger">{error ?? 'Not found'}</p>;
 
   const lastRound = funnel.rounds[funnel.rounds.length - 1];
-  const canAddRound = !lastRound || lastRound.status === 'DECIDED';
+  // Once anyone's been selected, the funnel is decided — no pulling a placed
+  // candidate back into a new round.
+  const canAddRound = (!lastRound || lastRound.status === 'DECIDED') && funnel.placed.length === 0;
   const activeRound = funnel.rounds.find((r) => r.id === tab) ?? null;
 
   const tabs: { key: string; label: string; count: number; tone?: 'open' | 'done' }[] = [

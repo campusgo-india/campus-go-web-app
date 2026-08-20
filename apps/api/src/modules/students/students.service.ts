@@ -396,10 +396,14 @@ export class StudentsService {
     });
 
     const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+    // Every field the student step-form wizard collects (packages/shared/src/profile.ts
+    // PROFILE_STEPS), not just the core registration set — "download everything
+    // the student filled in", not a curated subset.
     const columns = [
       { key: 'rollNumber', label: 'Reg No' },
       { key: 'fullName', label: 'Name' },
-      { key: 'email', label: 'Email' },
+      { key: 'email', label: 'Institute Email' },
+      { key: 'personalEmail', label: 'Personal Email' },
       { key: 'phone', label: 'Phone' },
       { key: 'course', label: 'Course' },
       { key: 'branch', label: 'Branch' },
@@ -410,7 +414,52 @@ export class StudentsService {
       { key: 'verificationStatus', label: 'Verification' },
       { key: 'profileCompletion', label: 'Profile %' },
       { key: 'resumeLink', label: 'Resume link' },
+      // Personal
+      { key: 'gender', label: 'Gender' },
+      { key: 'dateOfBirth', label: 'Date of Birth' },
+      { key: 'nationality', label: 'Nationality' },
+      { key: 'panNumber', label: 'PAN Number' },
+      { key: 'linkedinUrl', label: 'LinkedIn URL' },
+      // Address & family
+      { key: 'currentAddress', label: 'Current Address' },
+      { key: 'permanentAddress', label: 'Permanent Address' },
+      { key: 'city', label: 'City' },
+      { key: 'state', label: 'State' },
+      { key: 'pinCode', label: 'PIN Code' },
+      { key: 'fatherName', label: "Father's Name" },
+      { key: 'fatherOccupation', label: "Father's Occupation" },
+      { key: 'fatherPhone', label: "Father's Phone" },
+      // Academic
+      { key: 'department', label: 'Department' },
+      { key: 'specialization', label: 'Specialization' },
+      { key: 'admissionYear', label: 'Admission Year' },
+      { key: 'currentSemester', label: 'Current Semester' },
+      { key: 'hasArrearHistory', label: 'Arrear History' },
+      { key: 'semesterMarks', label: 'Semester Marks' },
+      // Education history
+      { key: 'tenthBoard', label: '10th Board' },
+      { key: 'tenthSchool', label: '10th School' },
+      { key: 'tenthPassingYear', label: '10th Passing Year' },
+      { key: 'tenthPercentage', label: '10th %' },
+      { key: 'twelfthBoard', label: '12th Board' },
+      { key: 'twelfthSchool', label: '12th School' },
+      { key: 'twelfthStream', label: '12th Stream' },
+      { key: 'twelfthPassingYear', label: '12th Passing Year' },
+      { key: 'twelfthPercentage', label: '12th %' },
+      { key: 'ugCollege', label: 'UG College' },
+      { key: 'ugDegree', label: 'UG Degree' },
+      { key: 'ugSpecialization', label: 'UG Specialization' },
+      { key: 'ugPercentage', label: 'UG %' },
+      // Skills & preferences
+      { key: 'languagesKnown', label: 'Languages Known' },
+      { key: 'communicationSkillRating', label: 'Communication Skill (1-5)' },
+      { key: 'higherStudiesPlanned', label: 'Higher Studies Planned' },
+      { key: 'entrepreneurshipInterest', label: 'Entrepreneurship Interest' },
     ];
+
+    const yesNo = (v: boolean | null) => (v == null ? '' : v ? 'Yes' : 'No');
+    const dec = (v: Prisma.Decimal | null) => (v != null ? Number(v) : '');
+    const date = (v: Date | null) => (v ? v.toISOString().slice(0, 10) : '');
 
     const byBranch = new Map<string, Record<string, unknown>[]>();
     for (const s of students) {
@@ -418,16 +467,53 @@ export class StudentsService {
         rollNumber: s.rollNumber,
         fullName: s.user.fullName,
         email: s.user.email,
+        personalEmail: s.personalEmail ?? '',
         phone: s.user.phone ?? '',
         course: s.course,
         branch: s.branch,
         graduationYear: s.graduationYear,
-        cgpa: s.cgpa != null ? Number(s.cgpa) : '',
+        cgpa: dec(s.cgpa),
         activeBacklogs: s.activeBacklogs,
         totalBacklogs: s.totalBacklogs,
         verificationStatus: s.verificationStatus,
         profileCompletion: s.profileCompletion,
         resumeLink: s.resume?.isPublished ? `${webOrigin}/r/${s.resume.publicSlug}` : '',
+        gender: s.gender ?? '',
+        dateOfBirth: date(s.dateOfBirth),
+        nationality: s.nationality ?? '',
+        panNumber: s.panNumber ?? '',
+        linkedinUrl: s.linkedinUrl ?? '',
+        currentAddress: s.currentAddress ?? '',
+        permanentAddress: s.permanentAddress ?? '',
+        city: s.city ?? '',
+        state: s.state ?? '',
+        pinCode: s.pinCode ?? '',
+        fatherName: s.fatherName ?? '',
+        fatherOccupation: s.fatherOccupation ?? '',
+        fatherPhone: s.fatherPhone ?? '',
+        department: s.department ?? '',
+        specialization: s.specialization ?? '',
+        admissionYear: s.admissionYear ?? '',
+        currentSemester: s.currentSemester ?? '',
+        hasArrearHistory: yesNo(s.hasArrearHistory),
+        semesterMarks: s.semesterMarks ? JSON.stringify(s.semesterMarks) : '',
+        tenthBoard: s.tenthBoard ?? '',
+        tenthSchool: s.tenthSchool ?? '',
+        tenthPassingYear: s.tenthPassingYear ?? '',
+        tenthPercentage: dec(s.tenthPercentage),
+        twelfthBoard: s.twelfthBoard ?? '',
+        twelfthSchool: s.twelfthSchool ?? '',
+        twelfthStream: s.twelfthStream ?? '',
+        twelfthPassingYear: s.twelfthPassingYear ?? '',
+        twelfthPercentage: dec(s.twelfthPercentage),
+        ugCollege: s.ugCollege ?? '',
+        ugDegree: s.ugDegree ?? '',
+        ugSpecialization: s.ugSpecialization ?? '',
+        ugPercentage: dec(s.ugPercentage),
+        languagesKnown: s.languagesKnown ?? '',
+        communicationSkillRating: s.communicationSkillRating ?? '',
+        higherStudiesPlanned: yesNo(s.higherStudiesPlanned),
+        entrepreneurshipInterest: yesNo(s.entrepreneurshipInterest),
       };
       const bucket = byBranch.get(s.branch) ?? [];
       bucket.push(row);
