@@ -106,15 +106,26 @@ export default function StudentHome() {
         <Stat value={offers.length} label="Offers" />
       </div>
 
-      <Link href="/me/training" className="block">
-        <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
-          <div>
-            <p className="font-semibold text-strong">My Employability</p>
-            <p className="text-xs text-subtle">Readiness score, assessments &amp; training calendar</p>
-          </div>
-          <span className="text-primary-600">→</span>
-        </Card>
-      </Link>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Link href="/me/training" className="block">
+          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
+            <div>
+              <p className="font-semibold text-strong">My Employability</p>
+              <p className="text-xs text-subtle">Readiness score, assessments &amp; training calendar</p>
+            </div>
+            <span className="text-primary-600">→</span>
+          </Card>
+        </Link>
+        <Link href="/me/placement" className="block">
+          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
+            <div>
+              <p className="font-semibold text-strong">My Placement Dashboard</p>
+              <p className="text-xs text-subtle">Application funnel, interviews &amp; offers</p>
+            </div>
+            <span className="text-primary-600">→</span>
+          </Card>
+        </Link>
+      </div>
 
       {/* Profile / verification nudge */}
       {showProfileNudge && (

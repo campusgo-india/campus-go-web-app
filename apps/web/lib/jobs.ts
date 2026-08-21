@@ -84,8 +84,8 @@ export interface Job {
   experienceMax: number | null;
   ctcMin: number | null;
   ctcMax: number | null;
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   minCgpa: number | null;
   minTenthPercentage: number | null;
   minTwelfthPercentage: number | null;
@@ -132,8 +132,8 @@ export interface CreateJobInput {
   experienceMax?: number;
   ctcMin?: number;
   ctcMax?: number;
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa?: number;
   minTenthPercentage?: number;
@@ -172,7 +172,7 @@ export interface EligibleStudent {
   rollNumber: string;
   fullName: string;
   email: string;
-  branch: string;
+  programme: string;
   cgpa: number | null;
 }
 

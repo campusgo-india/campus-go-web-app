@@ -428,7 +428,7 @@ function RoundView({
               )}
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Reg No.</th>
-              <th className="px-4 py-3 font-medium">Branch</th>
+              <th className="px-4 py-3 font-medium">Programme</th>
               <th className="px-4 py-3 font-medium">Resume</th>
               <th className="px-4 py-3 font-medium">{open ? 'Advance?' : 'Result'}</th>
             </tr>
@@ -459,7 +459,7 @@ function RoundView({
                   )}
                   <td className="px-4 py-3 font-medium text-strong">{p.fullName}</td>
                   <td className="px-4 py-3">{p.rollNumber}</td>
-                  <td className="px-4 py-3">{p.branch}</td>
+                  <td className="px-4 py-3">{p.programme}</td>
                   <td className="px-4 py-3">
                     {p.resumeSlug ? (
                       <a
@@ -623,7 +623,7 @@ function FinalistsTable({
               </th>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Reg No.</th>
-              <th className="px-4 py-3 font-medium">Branch</th>
+              <th className="px-4 py-3 font-medium">Programme</th>
               <th className="px-4 py-3 font-medium">Resume</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
@@ -647,7 +647,7 @@ function FinalistsTable({
                 </td>
                 <td className="px-4 py-3 font-medium text-strong">{s.fullName}</td>
                 <td className="px-4 py-3">{s.rollNumber}</td>
-                <td className="px-4 py-3">{s.branch}</td>
+                <td className="px-4 py-3">{s.programme}</td>
                 <td className="px-4 py-3">
                   {s.resumeSlug ? (
                     <a
@@ -710,7 +710,7 @@ function PeopleList({
           <div>
             <p className="font-medium text-strong">{s.fullName}</p>
             <p className="text-xs text-subtle">
-              {s.rollNumber} · {s.branch}
+              {s.rollNumber} · {s.programme}
               {s.resumeSlug && (
                 <>
                   {' · '}

@@ -23,7 +23,7 @@ export class InternshipsService {
       student?: {
         user: { fullName: string };
         rollNumber: string;
-        course: string;
+        school: string;
         graduationYear: number;
       };
     },
@@ -55,7 +55,7 @@ export class InternshipsService {
         ? {
             studentName: i.student.user.fullName,
             rollNumber: i.student.rollNumber,
-            studentCourse: i.student.course,
+            studentSchool: i.student.school,
             graduationYear: i.student.graduationYear,
           }
         : {}),
@@ -165,7 +165,7 @@ export class InternshipsService {
 
   // ─────────────── Officer / Admin ───────────────
   // Every self-reported internship at the college, with the student's batch info
-  // (course + graduation year) so the officer UI can group them batch by batch.
+  // (school + graduation year) so the officer UI can group them batch by batch.
   async list(collegeId: string) {
     const rows = await this.prisma.internship.findMany({
       where: { collegeId },
@@ -174,7 +174,7 @@ export class InternshipsService {
         student: {
           select: {
             rollNumber: true,
-            course: true,
+            school: true,
             graduationYear: true,
             user: { select: { fullName: true } },
           },
@@ -198,7 +198,7 @@ export class InternshipsService {
         student: {
           select: {
             rollNumber: true,
-            course: true,
+            school: true,
             graduationYear: true,
             user: { select: { fullName: true } },
           },
@@ -218,7 +218,7 @@ export class InternshipsService {
         student: {
           select: {
             rollNumber: true,
-            course: true,
+            school: true,
             graduationYear: true,
             user: { select: { fullName: true } },
           },

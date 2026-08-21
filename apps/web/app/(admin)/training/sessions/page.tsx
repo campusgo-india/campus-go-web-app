@@ -83,6 +83,9 @@ export default function TrainingSessionsPage() {
           <Link href="/training">
             <Button variant="outline">Assessments</Button>
           </Link>
+          <Link href="/training/batches">
+            <Button variant="outline">Batches</Button>
+          </Link>
           <Link href="/training/sessions/new">
             <Button>New session</Button>
           </Link>

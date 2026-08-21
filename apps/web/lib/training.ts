@@ -28,6 +28,9 @@ export interface Assessment {
   externalUrl: string;
   maxMarks: number;
   isActive: boolean;
+  // Empty on both = every active student at the college.
+  targetProgrammes: string[];
+  targetBatchIds: string[];
   createdAt: string;
   myScore?: number | null; // present only on the student feed
 }
@@ -39,6 +42,8 @@ export interface AssessmentInput {
   externalUrl: string;
   maxMarks: number;
   isActive?: boolean;
+  targetProgrammes?: string[];
+  targetBatchIds?: string[];
 }
 
 export interface ScoreRow {
@@ -63,6 +68,8 @@ export interface TrainingSession {
   startsAt: string;
   endsAt: string;
   status: SessionStatus;
+  targetProgrammes: string[];
+  targetBatchIds: string[];
   createdAt: string;
   myAttendance?: boolean | null; // present only on the student feed
 }
@@ -75,6 +82,25 @@ export interface SessionInput {
   startsAt: string;
   endsAt: string;
   status?: SessionStatus;
+  targetProgrammes?: string[];
+  targetBatchIds?: string[];
+}
+
+export interface TrainingBatch {
+  id: string;
+  name: string;
+  description: string | null;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface BatchMemberRow {
+  studentId: string;
+  rollNumber: string;
+  fullName: string;
+  school: string;
+  programme: string;
+  isMember: boolean;
 }
 
 export interface AttendanceRow {
@@ -199,6 +225,35 @@ export const markAttendance = (sessionId: string, rows: Array<{ studentId: strin
   api<{ success: boolean; marked: number }>(`/training/sessions/${sessionId}/attendance`, {
     method: 'POST',
     body: JSON.stringify({ rows }),
+  });
+
+export async function importAttendance(sessionId: string, file: File): Promise<ImportResult> {
+  const fileBase64 = await fileToBase64(file);
+  return api<ImportResult>(`/training/sessions/${sessionId}/attendance/import`, {
+    method: 'POST',
+    body: JSON.stringify({ fileBase64, fileName: file.name }),
+  });
+}
+
+// ─── Officer / College Admin: batches ───
+export const listBatches = () => api<TrainingBatch[]>('/training/batches');
+
+export const createBatch = (input: { name: string; description?: string }) =>
+  api<TrainingBatch>('/training/batches', { method: 'POST', body: JSON.stringify(input) });
+
+export const updateBatch = (id: string, input: { name?: string; description?: string }) =>
+  api<TrainingBatch>(`/training/batches/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
+export const deleteBatch = (id: string) =>
+  api<{ success: boolean }>(`/training/batches/${id}`, { method: 'DELETE' });
+
+export const listBatchMembers = (id: string) =>
+  api<BatchMemberRow[]>(`/training/batches/${id}/members`);
+
+export const setBatchMembers = (id: string, studentIds: string[]) =>
+  api<{ success: boolean; memberCount: number }>(`/training/batches/${id}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ studentIds }),
   });
 
 // ─── Officer / College Admin: feedback analytics ───

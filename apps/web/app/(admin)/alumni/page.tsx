@@ -18,14 +18,14 @@ import {
   type AlumniFilters,
   type AlumniStats,
 } from '../../../lib/alumni';
-import { listMyCourses, type CollegeCourse } from '../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../lib/courses';
 
-type ViewMode = 'years' | 'courses' | 'table';
+type ViewMode = 'years' | 'schools' | 'table';
 
 interface ViewState {
   mode: ViewMode;
   year?: number;
-  course?: string;
+  school?: string;
 }
 
 export default function AlumniPage() {
@@ -106,25 +106,25 @@ export default function AlumniPage() {
     [stats],
   );
 
-  const coursesForYear = useMemo(() => {
+  const schoolsForYear = useMemo(() => {
     if (view.mode === 'years' || view.year == null) return [];
-    return (stats?.byYearCourse ?? [])
+    return (stats?.byYearSchool ?? [])
       .filter((yc) => yc.graduationYear === view.year)
-      .sort((a, b) => a.course.localeCompare(b.course));
+      .sort((a, b) => a.school.localeCompare(b.school));
   }, [stats, view]);
 
   function selectYear(year: number) {
     const nextFilters: AlumniFilters = { graduationYear: year };
     setSearch('');
     setFilters(nextFilters);
-    setView({ mode: 'courses', year });
+    setView({ mode: 'schools', year });
   }
 
-  function selectCourse(year: number, course: string) {
-    const nextFilters: AlumniFilters = { graduationYear: year, course };
+  function selectSchool(year: number, school: string) {
+    const nextFilters: AlumniFilters = { graduationYear: year, school };
     setSearch('');
     setFilters(nextFilters);
-    setView({ mode: 'table', year, course });
+    setView({ mode: 'table', year, school });
   }
 
   function backToYears() {
@@ -133,17 +133,17 @@ export default function AlumniPage() {
     setView({ mode: 'years' });
   }
 
-  function backToCourses() {
+  function backToSchools() {
     if (view.year == null) return;
     setSearch('');
     setFilters({ graduationYear: view.year });
-    setView({ mode: 'courses', year: view.year });
+    setView({ mode: 'schools', year: view.year });
   }
 
   const title = useMemo(() => {
     if (view.mode === 'years') return 'Alumni';
-    if (view.mode === 'courses') return `Alumni · ${view.year}`;
-    return `Alumni · ${view.year} · ${view.course}`;
+    if (view.mode === 'schools') return `Alumni · ${view.year}`;
+    return `Alumni · ${view.year} · ${view.school}`;
   }, [view]);
 
   const subtitle = useMemo(() => {
@@ -154,21 +154,21 @@ export default function AlumniPage() {
         <InlineSkeleton width="w-24" height="h-4" />
       );
     }
-    if (view.mode === 'courses') {
-      return `${coursesForYear.length} ${coursesForYear.length === 1 ? 'course' : 'courses'} in ${view.year}`;
+    if (view.mode === 'schools') {
+      return `${schoolsForYear.length} ${schoolsForYear.length === 1 ? 'school' : 'schools'} in ${view.year}`;
     }
-    return `${items.length} ${items.length === 1 ? 'alumnus' : 'alumni'} in ${view.course} ${view.year}`;
-  }, [view, stats, years, coursesForYear, items.length]);
+    return `${items.length} ${items.length === 1 ? 'alumnus' : 'alumni'} in ${view.school} ${view.year}`;
+  }, [view, stats, years, schoolsForYear, items.length]);
 
   const breadcrumbCrumbs = useMemo(() => {
     const crumbs: Array<{ label: string; onClick?: () => void }> = [
       { label: 'Alumni', onClick: backToYears },
     ];
-    if (view.mode === 'courses') {
+    if (view.mode === 'schools') {
       crumbs.push({ label: String(view.year) });
     } else if (view.mode === 'table') {
-      crumbs.push({ label: String(view.year), onClick: backToCourses });
-      crumbs.push({ label: view.course ?? '' });
+      crumbs.push({ label: String(view.year), onClick: backToSchools });
+      crumbs.push({ label: view.school ?? '' });
     }
     return crumbs;
   }, [view]);
@@ -221,19 +221,19 @@ export default function AlumniPage() {
         </>
       )}
 
-      {/* Course picker */}
-      {view.mode === 'courses' && (
+      {/* School picker */}
+      {view.mode === 'schools' && (
         <BatchCards
-          items={coursesForYear.map((c) => ({
-            key: `${c.graduationYear}|${c.course}`,
-            title: c.course,
-            category: `${c.graduationYear} · Course`,
+          items={schoolsForYear.map((c) => ({
+            key: `${c.graduationYear}|${c.school}`,
+            title: c.school,
+            category: `${c.graduationYear} · School`,
             stats: [{ label: c.count === 1 ? 'alumnus' : 'alumni', value: c.count }],
           }))}
           onSelect={(k) => {
-            const course =
-              coursesForYear.find((c) => `${c.graduationYear}|${c.course}` === k)?.course ?? '';
-            selectCourse(view.year!, course);
+            const school =
+              schoolsForYear.find((c) => `${c.graduationYear}|${c.school}` === k)?.school ?? '';
+            selectSchool(view.year!, school);
           }}
         />
       )}
@@ -264,10 +264,10 @@ export default function AlumniPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             {view.mode === 'table' ? (
               <button
-                onClick={backToCourses}
+                onClick={backToSchools}
                 className="text-sm font-medium text-primary-600 hover:underline"
               >
-                ← All courses in {view.year}
+                ← All schools in {view.year}
               </button>
             ) : (
               <span />
@@ -303,9 +303,9 @@ export default function AlumniPage() {
                 <button
                   onClick={() => {
                     setSearch('');
-                    if (view.mode === 'table' && view.year != null && view.course != null) {
-                      setFilters({ graduationYear: view.year, course: view.course });
-                    } else if (view.mode === 'courses' && view.year != null) {
+                    if (view.mode === 'table' && view.year != null && view.school != null) {
+                      setFilters({ graduationYear: view.year, school: view.school });
+                    } else if (view.mode === 'schools' && view.year != null) {
                       setFilters({ graduationYear: view.year });
                     } else {
                       setFilters({});
@@ -318,10 +318,10 @@ export default function AlumniPage() {
               )}
             </div>
 
-            {stats && stats.facets.branches.length > 0 && (
-              <FacetRow label="Branch">
-                {stats.facets.branches.map((b) => (
-                  <Chip key={b} active={filters.branch === b} onClick={() => toggle('branch', b)}>
+            {stats && stats.facets.programmes.length > 0 && (
+              <FacetRow label="Programme">
+                {stats.facets.programmes.map((b) => (
+                  <Chip key={b} active={filters.programme === b} onClick={() => toggle('programme', b)}>
                     {b}
                   </Chip>
                 ))}
@@ -338,8 +338,8 @@ export default function AlumniPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Batch</th>
-                  <th className="px-4 py-3 font-medium">Course</th>
-                  <th className="px-4 py-3 font-medium">Branch</th>
+                  <th className="px-4 py-3 font-medium">School</th>
+                  <th className="px-4 py-3 font-medium">Programme</th>
                   <th className="px-4 py-3 font-medium">Now at</th>
                   <th className="px-4 py-3 font-medium">LinkedIn</th>
                   <th className="px-4 py-3 font-medium">Tags</th>
@@ -374,8 +374,8 @@ export default function AlumniPage() {
                         <p className="text-xs text-subtle">{a.email}</p>
                       </td>
                       <td className="px-4 py-3">{a.graduationYear}</td>
-                      <td className="px-4 py-3">{a.course || '—'}</td>
-                      <td className="px-4 py-3">{a.branch}</td>
+                      <td className="px-4 py-3">{a.school || '—'}</td>
+                      <td className="px-4 py-3">{a.programme}</td>
                       <td className="px-4 py-3">
                         {a.currentCompany ? (
                           <>
@@ -468,11 +468,11 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     fullName: '',
     email: '',
     graduationYear: String(new Date().getFullYear()),
-    branch: '',
+    programme: '',
     phone: '',
     registerNumber: '',
     joiningYear: '',
-    course: '',
+    school: '',
     currentCompany: '',
     currentDesignation: '',
     currentLocation: '',
@@ -484,13 +484,13 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
 
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {
-        /* non-fatal: course field just falls back to free entry if this fails */
+        /* non-fatal: school field just falls back to free entry if this fails */
       });
   }, []);
 
@@ -498,11 +498,11 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  // Branch options are scoped to the selected course, mirroring students/new —
-  // branch used to be a free-text field completely decoupled from course.
-  const setCourse = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, course: e.target.value, branch: '' }));
-  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
+  // Programme options are scoped to the selected school, mirroring students/new —
+  // programme used to be a free-text field completely decoupled from school.
+  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, school: e.target.value, programme: '' }));
+  const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
 
   async function submit() {
     setSaving(true);
@@ -512,11 +512,11 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         graduationYear: Number(form.graduationYear),
-        branch: form.branch.trim(),
+        programme: form.programme.trim(),
         phone: form.phone.trim(),
         registerNumber: form.registerNumber.trim() || undefined,
         joiningYear: form.joiningYear ? Number(form.joiningYear) : undefined,
-        course: form.course || undefined,
+        school: form.school || undefined,
         currentCompany: form.currentCompany || undefined,
         currentDesignation: form.currentDesignation || undefined,
         currentLocation: form.currentLocation.trim()
@@ -547,7 +547,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     form.fullName.trim() &&
     form.email.trim() &&
     isValidEmail(form.email) &&
-    form.branch.trim() &&
+    form.programme.trim() &&
     form.graduationYear &&
     form.phone.trim() &&
     phoneOk;
@@ -557,7 +557,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-strong">Add alumnus</h2>
-          <p className="text-sm text-subtle">Only name, email, batch and branch are required.</p>
+          <p className="text-sm text-subtle">Only name, email, batch and programme are required.</p>
         </div>
         <button
           onClick={onCancel}
@@ -581,7 +581,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year they joined the course"
+            placeholder="Year they joined the school"
             min="0"
           />
         </Field>
@@ -594,25 +594,25 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             min="0"
           />
         </Field>
-        <Field label="Course">
-          {courses.length > 0 ? (
-            <select className={inputCls} value={form.course} onChange={setCourse}>
-              <option value="">Select course</option>
-              {courses.map((c) => (
+        <Field label="School">
+          {schools.length > 0 ? (
+            <select className={inputCls} value={form.school} onChange={setSchool}>
+              <option value="">Select school</option>
+              {schools.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
                 </option>
               ))}
             </select>
           ) : (
-            <input className={inputCls} value={form.course} onChange={setCourse} />
+            <input className={inputCls} value={form.school} onChange={setSchool} />
           )}
         </Field>
-        <Field label="Branch *">
-          {branchesFor.length > 0 ? (
-            <select className={inputCls} value={form.branch} onChange={set('branch')}>
-              <option value="">Select branch</option>
-              {branchesFor.map((b) => (
+        <Field label="Programme *">
+          {programmesFor.length > 0 ? (
+            <select className={inputCls} value={form.programme} onChange={set('programme')}>
+              <option value="">Select programme</option>
+              {programmesFor.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
@@ -621,9 +621,9 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
           ) : (
             <input
               className={inputCls}
-              value={form.branch}
-              onChange={set('branch')}
-              placeholder={form.course ? 'No sub-branches for this course' : 'e.g. Computer Science'}
+              value={form.programme}
+              onChange={set('programme')}
+              placeholder={form.school ? 'No sub-programmes for this school' : 'e.g. Computer Science'}
             />
           )}
         </Field>

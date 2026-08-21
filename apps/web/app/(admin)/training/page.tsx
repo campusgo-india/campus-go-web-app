@@ -77,6 +77,9 @@ export default function TrainingAssessmentsPage() {
           <Link href="/training/sessions">
             <Button variant="outline">Sessions</Button>
           </Link>
+          <Link href="/training/batches">
+            <Button variant="outline">Batches</Button>
+          </Link>
           <Link href="/training/feedback">
             <Button variant="outline">Feedback</Button>
           </Link>

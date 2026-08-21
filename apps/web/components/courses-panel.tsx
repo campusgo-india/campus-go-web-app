@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@campusgo/ui';
 import {
-  createCollegeCourse,
-  deleteCollegeCourse,
-  listCollegeCourses,
-  updateCollegeCourse,
-  type CollegeCourse,
+  createCollegeSchool,
+  deleteCollegeSchool,
+  listCollegeSchools,
+  updateCollegeSchool,
+  type CollegeSchool,
 } from '../lib/courses';
 
 const parseList = (s: string) =>
@@ -18,19 +18,19 @@ const parseList = (s: string) =>
 const inputCls =
   'h-9 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400';
 
-/** Platform Admin: manage a single college's course catalog (API-backed). */
-export function CoursesPanel({ collegeId }: { collegeId: string }) {
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+/** Platform Admin: manage a single college's school catalog (API-backed). */
+export function SchoolsPanel({ collegeId }: { collegeId: string }) {
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [name, setName] = useState('');
-  const [branches, setBranches] = useState('');
+  const [programmes, setProgrammes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function load() {
     try {
-      setCourses(await listCollegeCourses(collegeId));
+      setSchools(await listCollegeSchools(collegeId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load courses');
+      setError(e instanceof Error ? e.message : 'Failed to load schools');
     }
   }
 
@@ -44,21 +44,21 @@ export function CoursesPanel({ collegeId }: { collegeId: string }) {
     setBusy(true);
     setError(null);
     try {
-      await createCollegeCourse(collegeId, { name: name.trim(), branches: parseList(branches) });
+      await createCollegeSchool(collegeId, { name: name.trim(), programmes: parseList(programmes) });
       setName('');
-      setBranches('');
+      setProgrammes('');
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not add course');
+      setError(e instanceof Error ? e.message : 'Could not add school');
     } finally {
       setBusy(false);
     }
   }
 
-  async function saveBranches(id: string, value: string) {
+  async function saveProgrammes(id: string, value: string) {
     setError(null);
     try {
-      await updateCollegeCourse(collegeId, id, { branches: parseList(value) });
+      await updateCollegeSchool(collegeId, id, { programmes: parseList(value) });
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not update');
@@ -68,7 +68,7 @@ export function CoursesPanel({ collegeId }: { collegeId: string }) {
   async function remove(id: string) {
     setError(null);
     try {
-      await deleteCollegeCourse(collegeId, id);
+      await deleteCollegeSchool(collegeId, id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete');
@@ -77,22 +77,22 @@ export function CoursesPanel({ collegeId }: { collegeId: string }) {
 
   return (
     <div className="space-y-3 rounded-md border border-border bg-app/40 p-4">
-      <p className="text-sm font-semibold text-strong">Course catalog</p>
+      <p className="text-sm font-semibold text-strong">School catalog</p>
       {error && <p className="text-xs text-danger">{error}</p>}
 
-      {courses.length === 0 ? (
-        <p className="text-xs text-subtle">No courses yet. Add the college's courses below.</p>
+      {schools.length === 0 ? (
+        <p className="text-xs text-subtle">No schools yet. Add the college's schools below.</p>
       ) : (
         <div className="space-y-2">
-          {courses.map((c) => (
-            <CourseRow key={c.id} course={c} onSave={saveBranches} onRemove={remove} />
+          {schools.map((c) => (
+            <SchoolRow key={c.id} school={c} onSave={saveProgrammes} onRemove={remove} />
           ))}
         </div>
       )}
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
         <label className="space-y-1">
-          <span className="text-xs font-medium text-subtle">Course</span>
+          <span className="text-xs font-medium text-subtle">School</span>
           <input
             className={`${inputCls} w-40`}
             value={name}
@@ -101,53 +101,53 @@ export function CoursesPanel({ collegeId }: { collegeId: string }) {
           />
         </label>
         <label className="flex-1 space-y-1">
-          <span className="text-xs font-medium text-subtle">Branches (comma-separated)</span>
+          <span className="text-xs font-medium text-subtle">Programmes (comma-separated)</span>
           <input
             className={inputCls}
-            value={branches}
-            onChange={(e) => setBranches(e.target.value)}
+            value={programmes}
+            onChange={(e) => setProgrammes(e.target.value)}
             placeholder="CSE, ECE, Mechanical (leave blank if none)"
           />
         </label>
         <Button size="sm" onClick={add} loading={busy} disabled={!name.trim()}>
-          Add course
+          Add school
         </Button>
       </div>
     </div>
   );
 }
 
-function CourseRow({
-  course,
+function SchoolRow({
+  school,
   onSave,
   onRemove,
 }: {
-  course: CollegeCourse;
+  school: CollegeSchool;
   onSave: (id: string, value: string) => void;
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(course.branches.join(', '));
+  const [value, setValue] = useState(school.programmes.join(', '));
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm">
-      <span className="font-medium text-strong">{course.name}</span>
+      <span className="font-medium text-strong">{school.name}</span>
       {!editing ? (
         <>
           <span className="flex-1 text-xs text-subtle">
-            {course.branches.length ? course.branches.join(' · ') : 'no branches'}
+            {school.programmes.length ? school.programmes.join(' · ') : 'no programmes'}
           </span>
           <button
             onClick={() => {
-              setValue(course.branches.join(', '));
+              setValue(school.programmes.join(', '));
               setEditing(true);
             }}
             className="text-xs font-medium text-primary-600 hover:underline"
           >
-            Edit branches
+            Edit programmes
           </button>
           <button
-            onClick={() => onRemove(course.id)}
+            onClick={() => onRemove(school.id)}
             className="text-xs font-medium text-danger hover:underline"
           >
             Remove
@@ -163,7 +163,7 @@ function CourseRow({
           />
           <button
             onClick={() => {
-              onSave(course.id, value);
+              onSave(school.id, value);
               setEditing(false);
             }}
             className="text-xs font-medium text-primary-600 hover:underline"

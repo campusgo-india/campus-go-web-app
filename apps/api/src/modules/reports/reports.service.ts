@@ -26,7 +26,7 @@ export const REPORT_TYPES = [
   'companies',
   'placement',
   'offers',
-  'branch',
+  'programme',
   'batch',
   'funnel',
   'summary',
@@ -57,8 +57,8 @@ export class ReportsService {
         return this.placement(collegeId);
       case 'offers':
         return this.offers(collegeId);
-      case 'branch':
-        return this.branch(collegeId);
+      case 'programme':
+        return this.programme(collegeId);
       case 'batch':
         return this.batch(collegeId);
       case 'funnel':
@@ -74,12 +74,11 @@ export class ReportsService {
   private async students(collegeId: string): Promise<ReportDataset> {
     const students = await this.prisma.student.findMany({
       where: { collegeId },
-      orderBy: [{ branch: 'asc' }, { rollNumber: 'asc' }],
+      orderBy: [{ programme: 'asc' }, { rollNumber: 'asc' }],
       select: {
         rollNumber: true,
-        enrollmentNumber: true,
-        course: true,
-        branch: true,
+        school: true,
+        programme: true,
         graduationYear: true,
         cgpa: true,
         activeBacklogs: true,
@@ -96,12 +95,11 @@ export class ReportsService {
       title: 'Students',
       columns: [
         { key: 'rollNumber', label: 'Roll Number' },
-        { key: 'enrollmentNumber', label: 'Enrollment No.' },
         { key: 'fullName', label: 'Name' },
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Phone' },
-        { key: 'course', label: 'Course' },
-        { key: 'branch', label: 'Branch' },
+        { key: 'school', label: 'School/Department' },
+        { key: 'programme', label: 'Programme' },
         { key: 'graduationYear', label: 'Graduation Year' },
         { key: 'cgpa', label: 'Percentage' },
         { key: 'activeBacklogs', label: 'Active Backlogs' },
@@ -112,12 +110,11 @@ export class ReportsService {
       ],
       rows: students.map((s) => ({
         rollNumber: s.rollNumber,
-        enrollmentNumber: s.enrollmentNumber,
         fullName: s.user.fullName,
         email: s.user.email,
         phone: s.user.phone,
-        course: s.course,
-        branch: s.branch,
+        school: s.school,
+        programme: s.programme,
         graduationYear: s.graduationYear,
         cgpa: dec(s.cgpa),
         activeBacklogs: s.activeBacklogs,
@@ -189,7 +186,7 @@ export class ReportsService {
         student: {
           select: {
             rollNumber: true,
-            branch: true,
+            programme: true,
             graduationYear: true,
             user: { select: { fullName: true } },
           },
@@ -206,7 +203,7 @@ export class ReportsService {
       columns: [
         { key: 'rollNumber', label: 'Roll Number' },
         { key: 'fullName', label: 'Name' },
-        { key: 'branch', label: 'Branch' },
+        { key: 'programme', label: 'Programme' },
         { key: 'graduationYear', label: 'Graduation Year' },
         { key: 'company', label: 'Company' },
         { key: 'role', label: 'Role' },
@@ -217,7 +214,7 @@ export class ReportsService {
       rows: apps.map((a) => ({
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
-        branch: a.student.branch,
+        programme: a.student.programme,
         graduationYear: a.student.graduationYear,
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
@@ -240,7 +237,7 @@ export class ReportsService {
         student: {
           select: {
             rollNumber: true,
-            branch: true,
+            programme: true,
             personalEmail: true,
             user: { select: { fullName: true, email: true } },
           },
@@ -263,7 +260,7 @@ export class ReportsService {
         { key: 'rollNumber', label: 'Roll Number' },
         { key: 'fullName', label: 'Name' },
         { key: 'email', label: 'Email' },
-        { key: 'branch', label: 'Branch' },
+        { key: 'programme', label: 'Programme' },
         { key: 'company', label: 'Company' },
         { key: 'role', label: 'Role' },
         { key: 'jobType', label: 'Type' },
@@ -275,7 +272,7 @@ export class ReportsService {
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
         email: a.student.personalEmail || a.student.user.email,
-        branch: a.student.branch,
+        programme: a.student.programme,
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
         jobType: a.job.jobType,
@@ -286,19 +283,19 @@ export class ReportsService {
     };
   }
 
-  // ─────────────── Branch-wise summary ───────────────
-  private async branch(collegeId: string): Promise<ReportDataset> {
+  // ─────────────── Programme-wise summary ───────────────
+  private async programme(collegeId: string): Promise<ReportDataset> {
     const students = await this.prisma.student.findMany({
       where: { collegeId, isActive: true },
-      select: { branch: true, graduationYear: true },
+      select: { programme: true, graduationYear: true },
     });
-    // Placing-stage applications give us hire counts + packages per branch.
+    // Placing-stage applications give us hire counts + packages per programme.
     const placed = await this.prisma.application.findMany({
       where: { collegeId, stage: { in: [...PLACING_STAGES] } },
       select: {
         offerCtc: true,
         studentId: true,
-        student: { select: { branch: true } },
+        student: { select: { programme: true } },
       },
       distinct: ['studentId'],
     });
@@ -316,11 +313,11 @@ export class ReportsService {
       return row;
     };
     for (const s of students) {
-      const row = get(s.branch);
+      const row = get(s.programme);
       row.total++;
     }
     for (const a of placed) {
-      const row = get(a.student.branch);
+      const row = get(a.student.programme);
       row.placed++;
       row.offers++;
       const ctc = dec(a.offerCtc);
@@ -329,13 +326,13 @@ export class ReportsService {
 
     const rows = [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([branch, r]) => {
+      .map(([programme, r]) => {
         const avg = r.packages.length
           ? r.packages.reduce((x, y) => x + y, 0) / r.packages.length
           : null;
         const high = r.packages.length ? Math.max(...r.packages) : null;
         return {
-          branch,
+          programme,
           total: r.total,
           placed: r.placed,
           unplaced: r.total - r.placed,
@@ -347,10 +344,10 @@ export class ReportsService {
       });
 
     return {
-      filename: 'branch-summary',
-      title: 'Branch Summary',
+      filename: 'programme-summary',
+      title: 'Programme Summary',
       columns: [
-        { key: 'branch', label: 'Branch' },
+        { key: 'programme', label: 'Programme' },
         { key: 'total', label: 'Total Students' },
         { key: 'placed', label: 'Placed' },
         { key: 'unplaced', label: 'Unplaced' },
@@ -392,7 +389,7 @@ export class ReportsService {
     };
   }
 
-  // ─────────────── Batch-wise summary (mirrors "branch", grouped by year) ───────────────
+  // ─────────────── Batch-wise summary (mirrors "programme", grouped by year) ───────────────
   private async batch(collegeId: string): Promise<ReportDataset> {
     const students = await this.prisma.student.findMany({
       where: { collegeId, isActive: true },

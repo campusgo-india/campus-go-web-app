@@ -25,20 +25,20 @@ interface Year {
   items: Internship[];
 }
 
-interface Course {
+interface School {
   key: string;
   year: number;
-  course: string;
+  school: string;
   items: Internship[];
 }
 
 type ViewState =
   | { mode: 'years' }
-  | { mode: 'courses'; year: number }
-  | { mode: 'table'; year: number; course: string };
+  | { mode: 'schools'; year: number }
+  | { mode: 'table'; year: number; school: string };
 
 /** Officer view: student-reported internships.
- * Drill-down: Years → Courses → Table. Officers can add one on a student's
+ * Drill-down: Years → Schools → Table. Officers can add one on a student's
  * behalf, edit any record to fine-tune it, or remove one — students still
  * self-report and manage their own from their side. */
 export default function InternshipsPage() {
@@ -97,17 +97,17 @@ export default function InternshipsPage() {
     return [...map.values()].sort((a, b) => b.year - a.year);
   }, [items]);
 
-  const coursesForYear = useMemo<Course[]>(() => {
-    if (view.mode !== 'courses' && view.mode !== 'table') return [];
-    const map = new Map<string, Course>();
+  const schoolsForYear = useMemo<School[]>(() => {
+    if (view.mode !== 'schools' && view.mode !== 'table') return [];
+    const map = new Map<string, School>();
     for (const i of items) {
       if ((i.graduationYear ?? 0) !== view.year) continue;
-      const course = i.studentCourse ?? 'Unknown';
-      const key = `${view.year}|${course}`;
-      if (!map.has(key)) map.set(key, { key, year: view.year, course, items: [] });
+      const school = i.studentSchool ?? 'Unknown';
+      const key = `${view.year}|${school}`;
+      if (!map.has(key)) map.set(key, { key, year: view.year, school, items: [] });
       map.get(key)!.items.push(i);
     }
-    return [...map.values()].sort((a, b) => a.course.localeCompare(b.course));
+    return [...map.values()].sort((a, b) => a.school.localeCompare(b.school));
   }, [items, view]);
 
   const tableItems = useMemo<Internship[]>(() => {
@@ -115,39 +115,39 @@ export default function InternshipsPage() {
     return items
       .filter(
         (i) =>
-          (i.graduationYear ?? 0) === view.year && (i.studentCourse ?? 'Unknown') === view.course,
+          (i.graduationYear ?? 0) === view.year && (i.studentSchool ?? 'Unknown') === view.school,
       )
       .sort((a, b) => (a.studentName ?? '').localeCompare(b.studentName ?? ''));
   }, [items, view]);
 
   const title = useMemo(() => {
     if (view.mode === 'years') return 'Internships';
-    if (view.mode === 'courses') return `Internships · ${view.year}`;
-    return `Internships · ${view.year} · ${view.course}`;
+    if (view.mode === 'schools') return `Internships · ${view.year}`;
+    return `Internships · ${view.year} · ${view.school}`;
   }, [view]);
 
   const subtitle = useMemo(() => {
     if (view.mode === 'years') {
       return `Internships students found on their own · ${items.length} total across ${years.length} ${years.length === 1 ? 'year' : 'years'}`;
     }
-    if (view.mode === 'courses') {
-      return `${coursesForYear.length} ${coursesForYear.length === 1 ? 'course' : 'courses'} in ${view.year}`;
+    if (view.mode === 'schools') {
+      return `${schoolsForYear.length} ${schoolsForYear.length === 1 ? 'school' : 'schools'} in ${view.year}`;
     }
-    return `${tableItems.length} ${tableItems.length === 1 ? 'student' : 'students'} in ${view.course} ${view.year}`;
-  }, [items.length, years.length, coursesForYear.length, tableItems.length, view]);
+    return `${tableItems.length} ${tableItems.length === 1 ? 'student' : 'students'} in ${view.school} ${view.year}`;
+  }, [items.length, years.length, schoolsForYear.length, tableItems.length, view]);
 
   const breadcrumbCrumbs = useMemo(() => {
     const crumbs: Array<{ label: string; onClick?: () => void }> = [
       { label: 'Internships', onClick: () => setView({ mode: 'years' }) },
     ];
-    if (view.mode === 'courses') {
+    if (view.mode === 'schools') {
       crumbs.push({ label: String(view.year) });
     } else if (view.mode === 'table') {
       crumbs.push({
         label: String(view.year),
-        onClick: () => setView({ mode: 'courses', year: view.year }),
+        onClick: () => setView({ mode: 'schools', year: view.year }),
       });
-      crumbs.push({ label: view.course });
+      crumbs.push({ label: view.school });
     }
     return crumbs;
   }, [view]);
@@ -189,17 +189,17 @@ export default function InternshipsPage() {
             stats: [
               { label: y.items.length === 1 ? 'internship' : 'internships', value: y.items.length },
               {
-                label: 'courses',
-                value: new Set(y.items.map((i) => i.studentCourse)).size,
+                label: 'schools',
+                value: new Set(y.items.map((i) => i.studentSchool)).size,
               },
             ],
           }))}
           onSelect={(key) => {
             const year = years.find((y) => y.key === key)?.year ?? 0;
-            setView({ mode: 'courses', year });
+            setView({ mode: 'schools', year });
           }}
         />
-      ) : view.mode === 'courses' ? (
+      ) : view.mode === 'schools' ? (
         <>
           <button
             onClick={() => setView({ mode: 'years' })}
@@ -208,10 +208,10 @@ export default function InternshipsPage() {
             ← All years
           </button>
           <BatchCards
-            items={coursesForYear.map((c) => ({
+            items={schoolsForYear.map((c) => ({
               key: c.key,
-              title: c.course,
-              category: `${c.year} · Course`,
+              title: c.school,
+              category: `${c.year} · School`,
               stats: [
                 {
                   label: c.items.length === 1 ? 'internship' : 'internships',
@@ -224,18 +224,18 @@ export default function InternshipsPage() {
               ],
             }))}
             onSelect={(key) => {
-              const course = coursesForYear.find((c) => c.key === key)?.course ?? '';
-              setView({ mode: 'table', year: view.year, course });
+              const school = schoolsForYear.find((c) => c.key === key)?.school ?? '';
+              setView({ mode: 'table', year: view.year, school });
             }}
           />
         </>
       ) : (
         <>
           <button
-            onClick={() => setView({ mode: 'courses', year: view.year })}
+            onClick={() => setView({ mode: 'schools', year: view.year })}
             className="text-sm font-medium text-primary-600 hover:underline"
           >
-            ← All courses in {view.year}
+            ← All schools in {view.year}
           </button>
           <Card className="overflow-x-auto p-0">
             <table className="w-full min-w-[980px] text-left text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
@@ -381,7 +381,7 @@ function StudentPicker({
       <div className="flex items-center gap-2 rounded-md border border-border bg-app px-3 py-2 text-sm">
         <span className="font-medium text-strong">{selected.user.fullName}</span>
         <span className="text-xs text-subtle">
-          {selected.rollNumber} · {selected.course}
+          {selected.rollNumber} · {selected.school}
         </span>
         <button
           onClick={() => onSelect(null as unknown as Student)}
@@ -418,7 +418,7 @@ function StudentPicker({
               >
                 <span className="font-medium text-strong">{s.user.fullName}</span>
                 <span className="text-xs text-subtle">
-                  {s.rollNumber} · {s.course} · {s.branch}
+                  {s.rollNumber} · {s.school} · {s.programme}
                 </span>
               </button>
             ))

@@ -15,7 +15,7 @@ export const REPORT_LABELS: Record<string, string> = {
   companies: 'Companies',
   placement: 'Placement',
   offers: 'Offers',
-  branch: 'Branch Summary',
+  programme: 'Programme Summary',
   batch: 'Batch Summary',
   funnel: 'Application Funnel',
   summary: 'Placement & Readiness Summary',

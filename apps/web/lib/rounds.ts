@@ -29,7 +29,7 @@ export interface FunnelStudent {
   studentId: string;
   rollNumber: string;
   fullName: string;
-  branch: string;
+  programme: string;
   email: string;
   resumeSlug: string | null;
   appliedAt: string;

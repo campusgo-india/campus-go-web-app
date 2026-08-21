@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
   Ip,
   Param,
@@ -19,7 +18,6 @@ import { AuditService } from '../../common/audit.module';
 import { toMultiSheetXlsx } from '../reports/report-serializers';
 import { StudentsService } from './students.service';
 import {
-  BulkDeleteStudentsDto,
   CreateStudentDto,
   GraduateBatchDto,
   ImportStudentsDto,
@@ -46,8 +44,8 @@ export class StudentsController {
     return user.collegeId;
   }
 
-  // Placement Coordinators can view too — the service forces branch-scoping so
-  // they only ever see their own assigned branch, regardless of query params.
+  // Placement Coordinators can view too — the service forces programme-scoping
+  // so they only ever see their own assigned programmes, regardless of query params.
   @Get()
   @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListStudentsQuery) {
@@ -65,22 +63,22 @@ export class StudentsController {
   }
 
   // Declared before :id for the same reason. Streams an XLSX with one sheet per
-  // department, each row including a résumé link — bypasses the {data} envelope
+  // programme, each row including a résumé link — bypasses the {data} envelope
   // like the Reports module's exports.
-  @Get('export/by-department')
-  async exportByDepartment(
+  @Get('export/by-programme')
+  async exportByProgramme(
     @CurrentUser() user: JwtPayload,
     @Ip() ip: string,
     @Res() res: Response,
   ) {
     const collegeId = this.collegeId(user);
-    const datasets = await this.students.exportByDepartment(collegeId);
+    const datasets = await this.students.exportByProgramme(collegeId);
     const buffer = await toMultiSheetXlsx(datasets);
 
     await this.audit.record(user, {
-      action: 'STUDENTS_EXPORT_BY_DEPARTMENT',
+      action: 'STUDENTS_EXPORT_BY_PROGRAMME',
       targetType: 'student',
-      metadata: { departments: datasets.length, rows: datasets.reduce((n, d) => n + d.rows.length, 0) },
+      metadata: { programmes: datasets.length, rows: datasets.reduce((n, d) => n + d.rows.length, 0) },
       ip,
     });
 
@@ -89,7 +87,7 @@ export class StudentsController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader('Content-Disposition', `attachment; filename="students-by-department-${stamp}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="students-by-programme-${stamp}.xlsx"`);
     res.setHeader('Content-Length', buffer.length);
     res.end(buffer);
   }
@@ -140,35 +138,8 @@ export class StudentsController {
     return { data: result };
   }
 
-  @Post('bulk-delete')
-  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
-  async removeMany(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: BulkDeleteStudentsDto,
-    @Ip() ip: string,
-  ) {
-    const result = await this.students.removeMany(this.collegeId(user), dto.ids);
-    await this.audit.record(user, {
-      action: 'STUDENT_BULK_DELETE',
-      targetType: 'student',
-      metadata: { count: result.deleted },
-      ip,
-    });
-    return { data: result };
-  }
-
-  @Delete(':id')
-  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
-  async remove(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Ip() ip: string) {
-    const result = await this.students.remove(this.collegeId(user), id);
-    await this.audit.record(user, {
-      action: 'STUDENT_DELETE',
-      targetType: 'student',
-      targetId: id,
-      ip,
-    });
-    return { data: result };
-  }
+  // No delete endpoint, by design: a college can create/edit/deactivate a
+  // student login, but never permanently delete one — see setActive below.
 
   @Patch(':id/status')
   @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)

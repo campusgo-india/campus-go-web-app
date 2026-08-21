@@ -7,12 +7,13 @@ import { useSession } from '../../../../lib/session';
 import { PasswordInput } from '../../../../components/password-input';
 import { CopyButton } from '../../../../components/copy-button';
 import { useConfirm } from '../../../../components/confirm-provider';
-import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 import {
   createUser,
   deactivateUser,
   listUsers,
   reactivateUser,
+  resetUserPassword,
   updateUser,
   type CreateUserResult,
   type TeamMember,
@@ -32,6 +33,9 @@ export default function TeamSettingsPage() {
   const [showForm, setShowForm] = useState(false);
   const [created, setCreated] = useState<CreateUserResult | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [resetFor, setResetFor] = useState<{ member: TeamMember; tempPassword: string } | null>(
+    null,
+  );
 
   async function load() {
     setError(null);
@@ -67,6 +71,28 @@ export default function TeamSettingsPage() {
   async function onChangeRole(m: TeamMember, role: string) {
     if (role === m.role) return;
     await run(m.id, () => updateUser(m.id, { role }), 'Could not change role');
+  }
+
+  async function onResetPassword(m: TeamMember) {
+    const ok = await confirm({
+      title: `Reset password for ${m.fullName}?`,
+      message:
+        "They'll be signed out and any password they currently have stops working immediately. A new one-time temp password is generated for you to share with them.",
+      confirmLabel: 'Reset password',
+      destructive: true,
+    });
+    if (!ok) return;
+    setBusyId(m.id);
+    setError(null);
+    setCreated(null);
+    try {
+      const { tempPassword } = await resetUserPassword(m.id);
+      setResetFor({ member: m, tempPassword });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not reset password');
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function run(id: string, fn: () => Promise<unknown>, fallback: string) {
@@ -137,6 +163,41 @@ export default function TeamSettingsPage() {
         </Card>
       )}
 
+      {/* One-time credentials shown right after a password reset */}
+      {resetFor && (
+        <Card className="space-y-2 border border-success/30 bg-success/5 p-5">
+          <div className="flex items-start justify-between">
+            <p className="text-sm font-semibold text-strong">
+              Password reset for “{resetFor.member.fullName}”
+            </p>
+            <button
+              onClick={() => setResetFor(null)}
+              aria-label="Dismiss"
+              className="text-xs text-subtle hover:text-strong"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="text-sm text-body">
+            Share this once — it won't be shown again. They'll be prompted to set a new password on
+            next login.
+          </p>
+          <div className="rounded-md bg-white p-3 text-sm">
+            <p>
+              <span className="text-subtle">Email:</span>{' '}
+              <span className="font-medium text-strong">{resetFor.member.email}</span>
+            </p>
+            <p className="mt-1 flex items-center gap-2">
+              <span className="text-subtle">Temp password:</span>
+              <code className="rounded bg-app px-1.5 py-0.5 font-mono text-strong">
+                {resetFor.tempPassword}
+              </code>
+              <CopyButton value={resetFor.tempPassword} className="px-2 py-1" />
+            </p>
+          </div>
+        </Card>
+      )}
+
       {showForm && (
         <NewMemberForm
           onCreated={(result) => {
@@ -199,8 +260,8 @@ export default function TeamSettingsPage() {
                           <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
                         </select>
                       )}
-                      {m.role === 'PLACEMENT_COORDINATOR' && m.assignedBranch && (
-                        <p className="mt-1 text-xs text-subtle">{m.assignedBranch}</p>
+                      {m.role === 'PLACEMENT_COORDINATOR' && m.assignedProgrammes.length > 0 && (
+                        <p className="mt-1 text-xs text-subtle">{m.assignedProgrammes.join(', ')}</p>
                       )}
                     </td>
                     <td className="px-5 py-3 text-subtle">
@@ -218,23 +279,34 @@ export default function TeamSettingsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      {isSelf ? null : m.isActive ? (
-                        <button
-                          onClick={() => onDeactivate(m)}
-                          disabled={busyId === m.id}
-                          className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
-                        >
-                          {busyId === m.id ? 'Removing…' : 'Deactivate'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onReactivate(m)}
-                          disabled={busyId === m.id}
-                          className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
-                        >
-                          {busyId === m.id ? 'Restoring…' : 'Reactivate'}
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-3">
+                        {!isSelf && m.isActive && (
+                          <button
+                            onClick={() => onResetPassword(m)}
+                            disabled={busyId === m.id}
+                            className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+                          >
+                            Reset password
+                          </button>
+                        )}
+                        {isSelf ? null : m.isActive ? (
+                          <button
+                            onClick={() => onDeactivate(m)}
+                            disabled={busyId === m.id}
+                            className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
+                          >
+                            {busyId === m.id ? 'Removing…' : 'Deactivate'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onReactivate(m)}
+                            disabled={busyId === m.id}
+                            className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+                          >
+                            {busyId === m.id ? 'Restoring…' : 'Reactivate'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -253,31 +325,34 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
     email: '',
     role: 'PLACEMENT_OFFICER',
     phone: '',
-    course: '',
-    assignedBranch: '',
+    assignedProgrammes: [] as string[],
+    freeTextProgrammes: '',
     password: '',
   });
   const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
 
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {
-        /* non-fatal: branch field just falls back to free entry if this fails */
+        /* non-fatal: programme picker just falls back to free entry if this fails */
       });
   }, []);
-  // Branch options are scoped to the selected course — a flat list across every
-  // course previously hid courses with no configured sub-branches (e.g. MBA)
-  // whenever another course's branches happened to collide or the array was empty.
-  // A course with no sub-branches (like MBA) IS the branch — students in that
-  // course have Student.branch === course name (see students CSV import), so
-  // default assignedBranch to the course name to match.
-  const setCourse = (v: string) => {
-    const branchesForCourse = courses.find((c) => c.name === v)?.branches ?? [];
-    setForm((f) => ({ ...f, course: v, assignedBranch: branchesForCourse.length > 0 ? '' : v }));
+
+  // A coordinator can cover more than one programme (e.g. BBA & MBA), so this
+  // is a checklist grouped by school rather than a single cascading select. A
+  // school with no sub-programmes (like MBA) IS the programme — students in that
+  // school have Student.programme === school name (see students CSV import) — so
+  // it's listed as a single checkbox using the school's own name.
+  const toggleProgramme = (programme: string) => {
+    setForm((f) => ({
+      ...f,
+      assignedProgrammes: f.assignedProgrammes.includes(programme)
+        ? f.assignedProgrammes.filter((b) => b !== programme)
+        : [...f.assignedProgrammes, programme],
+    }));
   };
-  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
 
   const set =
     (k: keyof typeof form) =>
@@ -286,13 +361,19 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
 
   async function submit() {
     setError(null);
+    const programmes =
+      schools.length > 0
+        ? form.assignedProgrammes
+        : form.freeTextProgrammes
+            .split(',')
+            .map((b) => b.trim())
+            .filter(Boolean);
     await createUser({
       fullName: form.fullName.trim(),
       email: form.email.trim(),
       role: form.role,
       phone: form.phone.trim() || undefined,
-      assignedBranch:
-        form.role === 'PLACEMENT_COORDINATOR' ? form.assignedBranch.trim() || undefined : undefined,
+      assignedProgrammes: form.role === 'PLACEMENT_COORDINATOR' ? programmes : undefined,
       password: form.password.trim() || undefined,
     })
       .then(onCreated)
@@ -302,14 +383,16 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
   const emailOk = !form.email.trim() || isValidEmail(form.email);
   const phoneOk = !form.phone.trim() || isValidPhone(form.phone);
   const passwordOk = form.password.trim() === '' || form.password.trim().length >= 8;
-  const branchOk = form.role !== 'PLACEMENT_COORDINATOR' || form.assignedBranch.trim();
+  const programmeOk =
+    form.role !== 'PLACEMENT_COORDINATOR' ||
+    (schools.length > 0 ? form.assignedProgrammes.length > 0 : form.freeTextProgrammes.trim());
   const ready =
     form.fullName.trim() &&
     form.email.trim() &&
     isValidEmail(form.email) &&
     phoneOk &&
     passwordOk &&
-    branchOk;
+    programmeOk;
 
   return (
     <Card className="space-y-4 p-5">
@@ -330,50 +413,39 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
           </select>
         </Field>
         {form.role === 'PLACEMENT_COORDINATOR' && (
-          <>
-            <Field label="Course *">
-              {courses.length > 0 ? (
-                <select
-                  className={inputCls}
-                  value={form.course}
-                  onChange={(e) => setCourse(e.target.value)}
-                >
-                  <option value="">Select course</option>
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className={inputCls}
-                  value={form.course}
-                  onChange={(e) => setCourse(e.target.value)}
-                  placeholder="e.g. MBA"
-                />
-              )}
-            </Field>
-            <Field label="Branch *">
-              {branchesFor.length > 0 ? (
-                <select className={inputCls} value={form.assignedBranch} onChange={set('assignedBranch')}>
-                  <option value="">Select branch</option>
-                  {branchesFor.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  className={inputCls}
-                  value={form.assignedBranch}
-                  onChange={set('assignedBranch')}
-                  placeholder={form.course ? 'No sub-branches for this course' : 'Select a course first'}
-                />
-              )}
-            </Field>
-          </>
+          <div className="sm:col-span-2">
+            <span className="text-xs font-medium text-subtle">
+              Programmes * — pick every one this coordinator covers
+            </span>
+            {schools.length > 0 ? (
+              <div className="mt-1.5 space-y-3 rounded-md border border-border bg-white p-3">
+                {schools.map((c) => (
+                  <div key={c.id}>
+                    <p className="text-xs font-semibold text-strong">{c.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                      {(c.programmes.length > 0 ? c.programmes : [c.name]).map((b) => (
+                        <label key={b} className="flex items-center gap-1.5 text-sm text-body">
+                          <input
+                            type="checkbox"
+                            checked={form.assignedProgrammes.includes(b)}
+                            onChange={() => toggleProgramme(b)}
+                          />
+                          {b}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <input
+                className={`${inputCls} mt-1.5`}
+                value={form.freeTextProgrammes}
+                onChange={set('freeTextProgrammes')}
+                placeholder="Comma-separated, e.g. BBA, MBA"
+              />
+            )}
+          </div>
         )}
         <Field label="Phone">
           <input
@@ -397,9 +469,9 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
       </div>
       <p className="text-xs text-subtle">
         Placement Officers manage students, companies, jobs and the ATS pipeline. College Admins can
-        additionally manage the team. Placement Coordinators are read-only, scoped to one branch —
-        they can see jobs posted and which of their branch's students have applied. Set a password
-        to share directly, or leave blank for a one-time temp password.
+        additionally manage the team. Placement Coordinators are read-only, scoped to their assigned
+        programmes — they can see jobs posted and which of their programmes' students have applied.
+        Set a password to share directly, or leave blank for a one-time temp password.
       </p>
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button onClick={submit} disabled={!ready}>

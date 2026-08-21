@@ -130,7 +130,7 @@ export default function DashboardPage() {
         <p className="text-sm text-body">
           Manage students, companies, jobs, the ATS pipeline, alumni, and reports from the left
           navigation. Head to <span className="font-medium text-strong">Reports</span> for the full
-          breakdown by branch, batch and recruiter.
+          breakdown by programme, batch and recruiter.
         </p>
       </SectionCard>
     </div>

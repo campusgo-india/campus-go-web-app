@@ -2,46 +2,46 @@
 
 import { api } from './api';
 
-export interface CollegeCourse {
+export interface CollegeSchool {
   id: string;
   collegeId: string;
   name: string;
-  branches: string[];
+  programmes: string[];
 }
 
-export interface CourseInput {
+export interface SchoolInput {
   name?: string;
-  branches?: string[];
+  programmes?: string[];
 }
 
 // ─── Tenant (College Admin / Officer): own college catalog for forms ───
-export const listMyCourses = () => api<CollegeCourse[]>('/courses');
+export const listMySchools = () => api<CollegeSchool[]>('/schools');
 
 // ─── Tenant (College Admin only): self-serve catalog management ───
-export const createMyCourse = (input: CourseInput) =>
-  api<CollegeCourse>('/courses', { method: 'POST', body: JSON.stringify(input) });
+export const createMySchool = (input: SchoolInput) =>
+  api<CollegeSchool>('/schools', { method: 'POST', body: JSON.stringify(input) });
 
-export const updateMyCourse = (id: string, input: CourseInput) =>
-  api<CollegeCourse>(`/courses/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+export const updateMySchool = (id: string, input: SchoolInput) =>
+  api<CollegeSchool>(`/schools/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 
-export const deleteMyCourse = (id: string) =>
-  api<{ success: boolean }>(`/courses/${id}`, { method: 'DELETE' });
+export const deleteMySchool = (id: string) =>
+  api<{ success: boolean }>(`/schools/${id}`, { method: 'DELETE' });
 
 // ─── Platform Admin: manage a college's catalog ───
-export const listCollegeCourses = (collegeId: string) =>
-  api<CollegeCourse[]>(`/colleges/${collegeId}/courses`);
+export const listCollegeSchools = (collegeId: string) =>
+  api<CollegeSchool[]>(`/colleges/${collegeId}/schools`);
 
-export const createCollegeCourse = (collegeId: string, input: CourseInput) =>
-  api<CollegeCourse>(`/colleges/${collegeId}/courses`, {
+export const createCollegeSchool = (collegeId: string, input: SchoolInput) =>
+  api<CollegeSchool>(`/colleges/${collegeId}/schools`, {
     method: 'POST',
     body: JSON.stringify(input),
   });
 
-export const updateCollegeCourse = (collegeId: string, id: string, input: CourseInput) =>
-  api<CollegeCourse>(`/colleges/${collegeId}/courses/${id}`, {
+export const updateCollegeSchool = (collegeId: string, id: string, input: SchoolInput) =>
+  api<CollegeSchool>(`/colleges/${collegeId}/schools/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
 
-export const deleteCollegeCourse = (collegeId: string, id: string) =>
-  api<{ success: boolean }>(`/colleges/${collegeId}/courses/${id}`, { method: 'DELETE' });
+export const deleteCollegeSchool = (collegeId: string, id: string) =>
+  api<{ success: boolean }>(`/colleges/${collegeId}/schools/${id}`, { method: 'DELETE' });

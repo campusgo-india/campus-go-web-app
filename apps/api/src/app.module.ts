@@ -14,7 +14,7 @@ import { CollegesModule } from './modules/colleges/colleges.module';
 import { StudentsModule } from './modules/students/students.module';
 import { ResumesModule } from './modules/resumes/resumes.module';
 import { CompaniesModule } from './modules/companies/companies.module';
-import { CoursesModule } from './modules/courses/courses.module';
+import { SchoolsModule } from './modules/courses/courses.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ReportsModule } from './modules/reports/reports.module';
@@ -48,7 +48,7 @@ import { HealthController } from './modules/health/health.controller';
     StudentsModule,
     ResumesModule,
     CompaniesModule,
-    CoursesModule,
+    SchoolsModule,
     JobsModule,
     AnalyticsModule,
     ReportsModule,

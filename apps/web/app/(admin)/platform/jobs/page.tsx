@@ -182,8 +182,8 @@ function NewPlatformJobForm({
     description: '',
     ctcMin: '',
     ctcMax: '',
-    eligibleCourses: '',
-    eligibleBranches: '',
+    eligibleSchools: '',
+    eligibleProgrammes: '',
     graduationYears: '',
     minCgpa: '',
     maxActiveBacklogs: '',
@@ -240,8 +240,8 @@ function NewPlatformJobForm({
         description: form.description || undefined,
         ctcMin: num(form.ctcMin),
         ctcMax: num(form.ctcMax),
-        eligibleCourses: splitList(form.eligibleCourses),
-        eligibleBranches: splitList(form.eligibleBranches),
+        eligibleSchools: splitList(form.eligibleSchools),
+        eligibleProgrammes: splitList(form.eligibleProgrammes),
         graduationYears: numList(form.graduationYears),
         minCgpa: num(form.minCgpa),
         maxActiveBacklogs: num(form.maxActiveBacklogs),
@@ -261,8 +261,8 @@ function NewPlatformJobForm({
     form.title.trim() &&
     form.companyName.trim() &&
     targets.length &&
-    splitList(form.eligibleCourses).length &&
-    splitList(form.eligibleBranches).length &&
+    splitList(form.eligibleSchools).length &&
+    splitList(form.eligibleProgrammes).length &&
     numList(form.graduationYears).length;
 
   return (
@@ -419,19 +419,19 @@ function NewPlatformJobForm({
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-semibold text-strong">Eligibility criteria</p>
         <div className="space-y-3">
-          <Field label="Eligible courses * (comma-separated)">
+          <Field label="Eligible schools * (comma-separated)">
             <input
               className={inputCls}
-              value={form.eligibleCourses}
-              onChange={set('eligibleCourses')}
+              value={form.eligibleSchools}
+              onChange={set('eligibleSchools')}
               placeholder="B.Tech, M.Tech"
             />
           </Field>
-          <Field label="Eligible branches * (comma-separated)">
+          <Field label="Eligible programmes * (comma-separated)">
             <input
               className={inputCls}
-              value={form.eligibleBranches}
-              onChange={set('eligibleBranches')}
+              value={form.eligibleProgrammes}
+              onChange={set('eligibleProgrammes')}
               placeholder="CSE, ECE, IT"
             />
           </Field>

@@ -5,8 +5,8 @@
 export interface EligibilityStudent {
   verificationStatus: string;
   isPlaced: boolean;
-  course: string;
-  branch: string;
+  school: string;
+  programme: string;
   graduationYear: number;
   cgpa: number | null;
   tenthPercentage: number | null;
@@ -19,8 +19,8 @@ export interface EligibilityStudent {
 }
 
 export interface EligibilityJob {
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa: number | null;
   minTenthPercentage: number | null;
@@ -47,17 +47,17 @@ function runEligibilityChecks(
     reasons.push('Profile not verified');
   }
   if (student.isPlaced) reasons.push('Already placed');
-  // Course / branch / gender comparisons are case-insensitive and tolerate whitespace.
+  // School / programme / gender comparisons are case-insensitive and tolerate whitespace.
   // Empty arrays mean "no filter" (common for quick/no-criteria jobs).
-  const courses = job.eligibleCourses ?? [];
-  const normalizedCourses = courses.map((c) => c.trim().toLowerCase());
+  const schools = job.eligibleSchools ?? [];
+  const normalizedSchools = schools.map((c) => c.trim().toLowerCase());
   if (
-    courses.length > 0 &&
-    !normalizedCourses.includes(student.course?.trim().toLowerCase() ?? '')
+    schools.length > 0 &&
+    !normalizedSchools.includes(student.school?.trim().toLowerCase() ?? '')
   ) {
-    reasons.push('Course not eligible');
+    reasons.push('School not eligible');
   }
-  // Branch is intentionally NOT a restriction — students may apply across branches.
+  // Programme is intentionally NOT a restriction — students may apply across programmes.
   if (job.graduationYears.length > 0 && !job.graduationYears.includes(student.graduationYear)) {
     reasons.push('Graduation year not eligible');
   }

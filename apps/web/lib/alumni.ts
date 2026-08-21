@@ -10,8 +10,8 @@ export interface Alumni {
   registerNumber: string | null;
   joiningYear: number | null;
   graduationYear: number;
-  course: string | null;
-  branch: string;
+  school: string | null;
+  programme: string;
   currentCompany: string | null;
   currentDesignation: string | null;
   currentLocation: string | null;
@@ -31,11 +31,11 @@ export interface AlumniInput {
   fullName: string;
   email: string;
   graduationYear: number;
-  branch: string;
+  programme: string;
   phone: string;
   registerNumber?: string;
   joiningYear?: number;
-  course?: string;
+  school?: string;
   currentCompany?: string;
   currentDesignation?: string;
   currentLocation?: string;
@@ -52,16 +52,16 @@ export interface AlumniStats {
   hiring: number;
   pending: number;
   byGraduationYear: { graduationYear: number; count: number }[];
-  byYearCourse: { graduationYear: number; course: string; count: number }[];
-  byBranch: { branch: string; count: number }[];
+  byYearSchool: { graduationYear: number; school: string; count: number }[];
+  byProgramme: { programme: string; count: number }[];
   topCompanies: { company: string; count: number }[];
-  facets: { branches: string[]; graduationYears: number[]; companies: string[] };
+  facets: { programmes: string[]; graduationYears: number[]; companies: string[] };
 }
 
 export interface AlumniFilters {
   search?: string;
-  branch?: string;
-  course?: string;
+  programme?: string;
+  school?: string;
   graduationYear?: number;
   company?: string;
   tag?: string;
@@ -77,11 +77,11 @@ export interface SelfRegisterInput {
   fullName: string;
   email: string;
   graduationYear: number;
-  branch: string;
+  programme: string;
   phone: string;
   registerNumber?: string;
   joiningYear?: number;
-  course?: string;
+  school?: string;
   currentCompany?: string;
   currentDesignation?: string;
   currentLocation?: string;

@@ -22,6 +22,8 @@ function toPublic(a: Assessment) {
     externalUrl: a.externalUrl,
     maxMarks: a.maxMarks,
     isActive: a.isActive,
+    targetProgrammes: a.targetProgrammes,
+    targetBatchIds: a.targetBatchIds,
     createdAt: a.createdAt,
   };
 }
@@ -55,6 +57,8 @@ export class AssessmentsService {
         phase: dto.phase,
         externalUrl: dto.externalUrl,
         maxMarks: dto.maxMarks,
+        targetProgrammes: dto.targetProgrammes ?? [],
+        targetBatchIds: dto.targetBatchIds ?? [],
         createdById: userId,
       },
     });
@@ -72,6 +76,8 @@ export class AssessmentsService {
         ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
         ...(dto.maxMarks !== undefined ? { maxMarks: dto.maxMarks } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(dto.targetProgrammes !== undefined ? { targetProgrammes: dto.targetProgrammes } : {}),
+        ...(dto.targetBatchIds !== undefined ? { targetBatchIds: dto.targetBatchIds } : {}),
       },
     });
     return toPublic(updated);
@@ -208,19 +214,34 @@ export class AssessmentsService {
   async studentForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },
-      select: { id: true, collegeId: true },
+      select: { id: true, collegeId: true, programme: true },
     });
     if (!student) throw new ForbiddenException('No student profile for this account');
     return student;
   }
 
-  // Active assessments at the student's college, each with the student's own
-  // score (null until graded) — the "Take Assessment ↗" feed.
+  // Active assessments visible to this student — untargeted assessments (the
+  // default) plus any that specifically target their programme or a batch
+  // they're in — each with the student's own score (null until graded).
   async listForStudent(userId: string) {
-    const { id: studentId, collegeId } = await this.studentForUser(userId);
+    const { id: studentId, collegeId, programme } = await this.studentForUser(userId);
+    const batchMemberships = await this.prisma.trainingBatchMember.findMany({
+      where: { studentId },
+      select: { batchId: true },
+    });
+    const batchIds = batchMemberships.map((m) => m.batchId);
+
     const [assessments, scores] = await Promise.all([
       this.prisma.assessment.findMany({
-        where: { collegeId, isActive: true },
+        where: {
+          collegeId,
+          isActive: true,
+          OR: [
+            { targetProgrammes: { isEmpty: true }, targetBatchIds: { isEmpty: true } },
+            { targetProgrammes: { has: programme } },
+            ...(batchIds.length ? [{ targetBatchIds: { hasSome: batchIds } }] : []),
+          ],
+        },
         orderBy: [{ pillar: 'asc' }, { createdAt: 'desc' }],
       }),
       this.prisma.assessmentScore.findMany({ where: { studentId } }),

@@ -65,7 +65,7 @@ export function JobCard({
   const chips = [
     jobTypeLabel(job.jobType),
     workModeLabel(job.workMode),
-    job.eligibleCourses?.[0],
+    job.eligibleSchools?.[0],
   ].filter(Boolean) as string[];
   const meta = [
     job.location,

@@ -53,7 +53,7 @@ export default function ProfileMenuPage() {
           )}
           {student && (
             <p className="truncate text-xs text-subtle">
-              {student.rollNumber} · {student.course} · {student.graduationYear}
+              {student.rollNumber} · {student.school} · {student.graduationYear}
             </p>
           )}
           {student?.linkedinUrl && (

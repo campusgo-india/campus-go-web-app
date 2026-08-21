@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Ip,
   NotFoundException,
@@ -216,23 +217,28 @@ export class JobsController {
     return { data: await this.jobs.eligibleStudents(this.collegeId(user), id) };
   }
 
-  // Who in a branch applied to this job and who didn't. A Placement Coordinator
-  // is always forced to their own assignedBranch, regardless of any query param.
-  @Get(':id/branch-applicants')
+  // Who in a programme applied to this job and who didn't. A Placement Coordinator
+  // is always restricted to their own assignedProgrammes, regardless of any query
+  // param — if they pass one, it must be one of their own programmes; otherwise
+  // every programme they cover is included.
+  @Get(':id/programme-applicants')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
-  async branchApplicants(
+  async programmeApplicants(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Query('branch') branch?: string,
+    @Query('programme') programme?: string,
   ) {
-    let effectiveBranch = branch;
+    let effectiveProgrammes: string[] | undefined = programme ? [programme] : undefined;
     if (user.role === UserRole.PLACEMENT_COORDINATOR) {
-      const me = await this.jobs.resolveAssignedBranch(user.sub);
-      if (!me) throw new BadRequestException('No branch assigned to this account yet');
-      effectiveBranch = me;
+      const mine = await this.jobs.resolveAssignedProgrammes(user.sub);
+      if (!mine.length) throw new BadRequestException('No programme assigned to this account yet');
+      if (programme && !mine.includes(programme)) {
+        throw new ForbiddenException('Not one of your assigned programmes');
+      }
+      effectiveProgrammes = programme ? [programme] : mine;
     }
     return {
-      data: await this.jobs.applicantStatusByBranch(this.collegeId(user), id, effectiveBranch),
+      data: await this.jobs.applicantStatusByProgramme(this.collegeId(user), id, effectiveProgrammes),
     };
   }
 

@@ -1,6 +1,5 @@
 import { Transform, Type } from 'class-transformer';
 import {
-  ArrayNotEmpty,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -44,11 +43,11 @@ export class CreateStudentDto {
 
   @IsString()
   @MinLength(1)
-  course!: string;
+  school!: string;
 
   @IsString()
   @MinLength(1)
-  branch!: string;
+  programme!: string;
 
   @Type(() => Number)
   @IsInt()
@@ -106,8 +105,8 @@ export class UpdateStudentDto {
   @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
-  @IsOptional() @IsString() @MinLength(1) course?: string;
-  @IsOptional() @IsString() @MinLength(1) branch?: string;
+  @IsOptional() @IsString() @MinLength(1) school?: string;
+  @IsOptional() @IsString() @MinLength(1) programme?: string;
   @IsOptional() @IsString() enrollmentNumber?: string;
 
   @IsOptional()
@@ -125,6 +124,9 @@ export class UpdateStudentDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) totalBacklogs?: number;
   @EmptyToUndefined() @IsOptional() @IsDateString() dateOfBirth?: string;
   @IsOptional() @IsIn(GENDERS) gender?: string;
+  // Self-declared; never surfaced to recruiters.
+  @IsOptional() @IsBoolean() hasDisability?: boolean;
+  @IsOptional() @IsString() disabilityDetails?: string;
   @EmptyToUndefined() @IsOptional() @IsEmail() personalEmail?: string;
   @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) tenthPercentage?: number;
@@ -177,8 +179,8 @@ export class UpdateOwnProfileDto {
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
   @IsOptional() @IsString() enrollmentNumber?: string;
-  @IsOptional() @IsString() @MinLength(1) course?: string;
-  @IsOptional() @IsString() @MinLength(1) branch?: string;
+  @IsOptional() @IsString() @MinLength(1) school?: string;
+  @IsOptional() @IsString() @MinLength(1) programme?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -192,6 +194,9 @@ export class UpdateOwnProfileDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) totalBacklogs?: number;
   @EmptyToUndefined() @IsOptional() @IsDateString() dateOfBirth?: string;
   @IsOptional() @IsIn(GENDERS) gender?: string;
+  // Self-declared; never surfaced to recruiters.
+  @IsOptional() @IsBoolean() hasDisability?: boolean;
+  @IsOptional() @IsString() disabilityDetails?: string;
   @EmptyToUndefined() @IsOptional() @IsEmail() personalEmail?: string;
   @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) tenthPercentage?: number;
@@ -251,9 +256,9 @@ export class ImportStudentsDto {
   csv!: string;
 
   // Batch defaults applied to every imported row (the nominal roll lists only
-  // reg no / name / email per row; course/branch/passout/year are shared).
-  @IsOptional() @IsString() course?: string;
-  @IsOptional() @IsString() branch?: string;
+  // reg no / name / email per row; school/programme/passout/year are shared).
+  @IsOptional() @IsString() school?: string;
+  @IsOptional() @IsString() programme?: string;
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -268,18 +273,14 @@ export class SetStudentStatusDto {
   isActive!: boolean;
 }
 
-export class BulkDeleteStudentsDto {
-  @IsArray() @ArrayNotEmpty() @IsString({ each: true }) ids!: string[];
-}
-
 export class GraduateBatchDto {
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
 }
 
 export class ListStudentsQuery {
   @IsOptional() @IsString() search?: string;
-  @IsOptional() @IsString() branch?: string;
-  @IsOptional() @IsString() course?: string;
+  @IsOptional() @IsString() programme?: string;
+  @IsOptional() @IsString() school?: string;
 
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) graduationYear?: number;
 

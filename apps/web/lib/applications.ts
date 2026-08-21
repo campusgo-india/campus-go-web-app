@@ -54,7 +54,7 @@ export interface Application {
   stageHistory: StageHistoryEntry[];
   // Answers to the job's custom application questions (label/value pairs).
   formAnswers?: { label: string; value: string }[];
-  student?: { id: string; rollNumber: string; fullName: string; branch: string };
+  student?: { id: string; rollNumber: string; fullName: string; programme: string };
 }
 
 export interface PipelineEntry {
@@ -66,7 +66,7 @@ export interface PipelineEntry {
     id: string;
     rollNumber: string;
     fullName: string;
-    branch: string;
+    programme: string;
     cgpa: number | null;
   };
 }

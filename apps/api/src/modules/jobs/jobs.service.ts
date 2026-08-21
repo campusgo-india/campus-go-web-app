@@ -357,34 +357,42 @@ export class JobsService {
         rollNumber: s.rollNumber,
         fullName: s.user.fullName,
         email: s.user.email,
-        branch: s.branch,
+        programme: s.programme,
         cgpa: s.cgpa != null ? Number(s.cgpa) : null,
       }));
   }
 
-  async resolveAssignedBranch(userId: string): Promise<string | null> {
-    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { assignedBranch: true } });
-    return u?.assignedBranch ?? null;
+  async resolveAssignedProgrammes(userId: string): Promise<string[]> {
+    const u = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { assignedProgrammes: true },
+    });
+    return u?.assignedProgrammes ?? [];
   }
 
   /**
-   * For one job: every student in `branch` (or the whole college if omitted),
-   * annotated with whether they've applied and their current stage. Built for
-   * Placement Coordinators ("who in my branch applied, who didn't"), but usable
-   * by any officer with an explicit branch filter.
+   * For one job: every student in `programmes` (or the whole college if
+   * omitted), annotated with whether they've applied and their current stage.
+   * Built for Placement Coordinators ("who in my programmes applied, who
+   * didn't"), but usable by any officer with an explicit programme filter.
    */
-  async applicantStatusByBranch(collegeId: string, jobId: string, branch?: string) {
+  async applicantStatusByProgramme(collegeId: string, jobId: string, programmes?: string[]) {
     const job = await this.prisma.job.findFirst({ where: { id: jobId, ...this.visibleToCollege(collegeId) } });
     if (!job) throw new NotFoundException('Job not found');
 
+    const programmeWhere = programmes?.length ? { programme: { in: programmes } } : {};
     const [students, applications] = await Promise.all([
       this.prisma.student.findMany({
-        where: { collegeId, graduatedAt: null, ...(branch ? { branch } : {}) },
+        where: { collegeId, graduatedAt: null, ...programmeWhere },
         include: { user: { select: { fullName: true } } },
         orderBy: { rollNumber: 'asc' },
       }),
       this.prisma.application.findMany({
-        where: { jobId, collegeId, ...(branch ? { student: { branch } } : {}) },
+        where: {
+          jobId,
+          collegeId,
+          ...(programmes?.length ? { student: { programme: { in: programmes } } } : {}),
+        },
         select: { studentId: true, stage: true, appliedAt: true },
       }),
     ]);
@@ -394,7 +402,7 @@ export class JobsService {
       id: s.id,
       rollNumber: s.rollNumber,
       fullName: s.user.fullName,
-      branch: s.branch,
+      programme: s.programme,
       applied: byStudentId.has(s.id),
       stage: byStudentId.get(s.id)?.stage ?? null,
       appliedAt: byStudentId.get(s.id)?.appliedAt ?? null,
@@ -606,11 +614,11 @@ export class JobsService {
     });
     const appliedMap = new Map(myApps.map((a) => [a.jobId, a.stage]));
 
-    // Only surface jobs that match the student's hard criteria (course, graduation
+    // Only surface jobs that match the student's hard criteria (school, graduation
     // year). Jobs the student has already applied to are always shown so they can
     // track their applications even if a criteria changes later.
     const visibleJobs = jobs.filter(
-      (j) => appliedMap.has(j.id) || matchesStudentCourseAndYear(student, j),
+      (j) => appliedMap.has(j.id) || matchesStudentSchoolAndYear(student, j),
     );
 
     return visibleJobs.map((j) => {
@@ -744,8 +752,8 @@ export class JobsService {
     experienceMax: number | null;
     ctcMin: Prisma.Decimal | null;
     ctcMax: Prisma.Decimal | null;
-    eligibleCourses: string[];
-    eligibleBranches: string[];
+    eligibleSchools: string[];
+    eligibleProgrammes: string[];
     minCgpa: Prisma.Decimal | null;
     minTenthPercentage: Prisma.Decimal | null;
     minTwelfthPercentage: Prisma.Decimal | null;
@@ -785,8 +793,8 @@ export class JobsService {
       experienceMax: j.experienceMax,
       ctcMin: j.ctcMin != null ? Number(j.ctcMin) : null,
       ctcMax: j.ctcMax != null ? Number(j.ctcMax) : null,
-      eligibleCourses: j.eligibleCourses,
-      eligibleBranches: j.eligibleBranches,
+      eligibleSchools: j.eligibleSchools,
+      eligibleProgrammes: j.eligibleProgrammes,
       minCgpa: j.minCgpa != null ? Number(j.minCgpa) : null,
       minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,
       minTwelfthPercentage: j.minTwelfthPercentage != null ? Number(j.minTwelfthPercentage) : null,
@@ -828,8 +836,8 @@ export class JobsService {
 function toEligibilityStudent(
   s: {
     verificationStatus: string;
-    course: string;
-    branch: string;
+    school: string;
+    programme: string;
     graduationYear: number;
     cgpa: Prisma.Decimal | null;
     tenthPercentage: Prisma.Decimal | null;
@@ -845,8 +853,8 @@ function toEligibilityStudent(
   return {
     verificationStatus: s.verificationStatus,
     isPlaced,
-    course: s.course,
-    branch: s.branch,
+    school: s.school,
+    programme: s.programme,
     graduationYear: s.graduationYear,
     cgpa: s.cgpa != null ? Number(s.cgpa) : null,
     tenthPercentage: s.tenthPercentage != null ? Number(s.tenthPercentage) : null,
@@ -862,14 +870,14 @@ function toEligibilityStudent(
 // Hard filters used to decide which jobs appear in a student's feed. These are
 // criteria the student cannot fix in the apply-time eligibility modal, so we hide
 // non-matching jobs entirely (unless they already applied).
-function matchesStudentCourseAndYear(
-  student: { course: string | null; graduationYear: number },
-  job: { eligibleCourses: string[]; graduationYears: number[] },
+function matchesStudentSchoolAndYear(
+  student: { school: string | null; graduationYear: number },
+  job: { eligibleSchools: string[]; graduationYears: number[] },
 ): boolean {
-  const courses = job.eligibleCourses ?? [];
-  if (courses.length > 0) {
-    const normalized = courses.map((c) => c.trim().toLowerCase());
-    if (!normalized.includes(student.course?.trim().toLowerCase() ?? '')) return false;
+  const schools = job.eligibleSchools ?? [];
+  if (schools.length > 0) {
+    const normalized = schools.map((c) => c.trim().toLowerCase());
+    if (!normalized.includes(student.school?.trim().toLowerCase() ?? '')) return false;
   }
   const years = job.graduationYears ?? [];
   if (years.length > 0 && !years.includes(student.graduationYear)) return false;
@@ -877,8 +885,8 @@ function matchesStudentCourseAndYear(
 }
 
 function toEligibilityJob(j: {
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa: Prisma.Decimal | null;
   minTenthPercentage: Prisma.Decimal | null;
@@ -889,8 +897,8 @@ function toEligibilityJob(j: {
   maxTotalBacklogs: number | null;
 }): EligibilityJob {
   return {
-    eligibleCourses: j.eligibleCourses ?? [],
-    eligibleBranches: j.eligibleBranches ?? [],
+    eligibleSchools: j.eligibleSchools ?? [],
+    eligibleProgrammes: j.eligibleProgrammes ?? [],
     graduationYears: j.graduationYears ?? [],
     minCgpa: j.minCgpa != null ? Number(j.minCgpa) : null,
     minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,

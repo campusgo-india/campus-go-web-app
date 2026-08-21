@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
 import { listCompanies, type Company } from '../../../../lib/companies';
-import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 import {
   createJob,
   publishJob,
@@ -27,7 +27,7 @@ const GRAD_YEARS = Array.from({ length: 4 }, (_, i) => String(new Date().getFull
 export default function QuickPostPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [gradYears, setGradYears] = useState<string[]>([]);
@@ -36,10 +36,10 @@ export default function QuickPostPage() {
   const [deadline, setDeadline] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [pickedCourses, setPickedCourses] = useState<string[]>([]);
-  const [pickedBranches, setPickedBranches] = useState<string[]>([]);
-  const [coursesText, setCoursesText] = useState('');
-  const [branchesText, setBranchesText] = useState('');
+  const [pickedSchools, setPickedSchools] = useState<string[]>([]);
+  const [pickedProgrammes, setPickedProgrammes] = useState<string[]>([]);
+  const [schoolsText, setSchoolsText] = useState('');
+  const [programmesText, setProgrammesText] = useState('');
   // Optional typed fields (used when the HR sends a "LinkedIn-style" JD, not a PDF).
   const [details, setDetails] = useState({
     description: '',
@@ -59,32 +59,32 @@ export default function QuickPostPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {});
   }, []);
 
-  const hasCatalog = courses.length > 0;
-  const availableBranches = useMemo(() => {
+  const hasCatalog = schools.length > 0;
+  const availableProgrammes = useMemo(() => {
     const set = new Set<string>();
-    for (const name of pickedCourses) {
-      courses.find((c) => c.name === name)?.branches.forEach((b) => set.add(b));
+    for (const name of pickedSchools) {
+      schools.find((c) => c.name === name)?.programmes.forEach((b) => set.add(b));
     }
     return [...set];
-  }, [pickedCourses, courses]);
+  }, [pickedSchools, schools]);
 
-  function toggleCourse(name: string) {
-    setPickedCourses((cs) => {
+  function toggleSchool(name: string) {
+    setPickedSchools((cs) => {
       const next = cs.includes(name) ? cs.filter((x) => x !== name) : [...cs, name];
       const allowed = new Set(
-        next.flatMap((n) => courses.find((c) => c.name === n)?.branches ?? []),
+        next.flatMap((n) => schools.find((c) => c.name === n)?.programmes ?? []),
       );
-      setPickedBranches((bs) => bs.filter((b) => allowed.has(b)));
+      setPickedProgrammes((bs) => bs.filter((b) => allowed.has(b)));
       return next;
     });
   }
-  const toggleBranch = (b: string) =>
-    setPickedBranches((bs) => (bs.includes(b) ? bs.filter((x) => x !== b) : [...bs, b]));
+  const toggleProgramme = (b: string) =>
+    setPickedProgrammes((bs) => (bs.includes(b) ? bs.filter((x) => x !== b) : [...bs, b]));
 
   const splitList = (v: string) =>
     v
@@ -92,11 +92,11 @@ export default function QuickPostPage() {
       .map((s) => s.trim())
       .filter(Boolean);
   const num = (v: string) => (v.trim() === '' ? undefined : Number(v));
-  const eligibleCourses = hasCatalog ? pickedCourses : splitList(coursesText);
-  const eligibleBranches = hasCatalog ? pickedBranches : splitList(branchesText);
+  const eligibleSchools = hasCatalog ? pickedSchools : splitList(schoolsText);
+  const eligibleProgrammes = hasCatalog ? pickedProgrammes : splitList(programmesText);
 
   const valid =
-    title.trim() && eligibleCourses.length && gradYears.length > 0 && details.ctc.trim() !== '';
+    title.trim() && eligibleSchools.length && gradYears.length > 0 && details.ctc.trim() !== '';
 
   async function submit(publish: boolean) {
     setSaving(publish ? 'publish' : 'draft');
@@ -112,8 +112,8 @@ export default function QuickPostPage() {
       const job = await createJob({
         title: title.trim(),
         companyName: companyName.trim() || undefined,
-        eligibleCourses,
-        eligibleBranches,
+        eligibleSchools,
+        eligibleProgrammes,
         graduationYears: gradYears.map(Number),
         pdfUrl,
         pdfName,
@@ -156,7 +156,7 @@ export default function QuickPostPage() {
 
       <div className="rounded-xl bg-app p-3 text-xs text-body">
         <span className="font-medium text-strong">Tip:</span> Required fields are title, CTC,
-        eligible courses, and graduation years. Save as a draft to review later, or publish to
+        eligible schools, and graduation years. Save as a draft to review later, or publish to
         notify students right away.
       </div>
 
@@ -222,43 +222,43 @@ export default function QuickPostPage() {
         <div className="border-t border-border pt-4">
           <p className="mb-1 text-sm font-semibold text-strong">Who can apply</p>
           <p className="mb-3 text-xs text-subtle">
-            Only students in the selected courses/branches can apply.
+            Only students in the selected schools/programmes can apply.
           </p>
           <div className="space-y-3">
             {hasCatalog ? (
               <>
-                <Field label="Eligible courses *">
+                <Field label="Eligible schools *">
                   <ChipPicker
-                    options={courses.map((c) => c.name)}
-                    selected={pickedCourses}
-                    onToggle={toggleCourse}
+                    options={schools.map((c) => c.name)}
+                    selected={pickedSchools}
+                    onToggle={toggleSchool}
                   />
                 </Field>
-                {availableBranches.length > 0 && (
-                  <Field label="Eligible branches (leave empty = all branches of the selected courses)">
+                {availableProgrammes.length > 0 && (
+                  <Field label="Eligible programmes (leave empty = all programmes of the selected schools)">
                     <ChipPicker
-                      options={availableBranches}
-                      selected={pickedBranches}
-                      onToggle={toggleBranch}
+                      options={availableProgrammes}
+                      selected={pickedProgrammes}
+                      onToggle={toggleProgramme}
                     />
                   </Field>
                 )}
               </>
             ) : (
               <>
-                <Field label="Eligible courses * (comma-separated)">
+                <Field label="Eligible schools * (comma-separated)">
                   <input
                     className={inputCls}
-                    value={coursesText}
-                    onChange={(e) => setCoursesText(e.target.value)}
+                    value={schoolsText}
+                    onChange={(e) => setSchoolsText(e.target.value)}
                     placeholder="B.Tech, MBA"
                   />
                 </Field>
-                <Field label="Eligible branches (comma-separated, optional)">
+                <Field label="Eligible programmes (comma-separated, optional)">
                   <input
                     className={inputCls}
-                    value={branchesText}
-                    onChange={(e) => setBranchesText(e.target.value)}
+                    value={programmesText}
+                    onChange={(e) => setProgrammesText(e.target.value)}
                     placeholder="CSE, ECE"
                   />
                 </Field>

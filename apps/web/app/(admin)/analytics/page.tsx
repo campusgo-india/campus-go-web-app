@@ -212,10 +212,10 @@ export default function AnalyticsPage() {
       </SectionCard>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <SectionCard title="Placement by branch">
+        <SectionCard title="Placement by programme">
           <BreakdownTable
-            rows={(breakdowns?.byBranch ?? []).map((r) => ({
-              label: r.branch,
+            rows={(breakdowns?.byProgramme ?? []).map((r) => ({
+              label: r.programme,
               total: r.total,
               placed: r.placed,
               rate: r.placementRate,

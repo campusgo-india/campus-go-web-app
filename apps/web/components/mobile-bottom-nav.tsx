@@ -7,7 +7,7 @@ import { cn } from '@campusgo/ui';
 const items = [
   { href: '/me', label: 'Home', icon: HomeIcon },
   { href: '/me/jobs', label: 'Jobs', icon: BriefcaseIcon },
-  { href: '/me/resume', label: 'Resume', icon: DocIcon },
+  { href: '/me/training', label: 'Employability', icon: DocIcon },
   { href: '/me/profile', label: 'Profile', icon: UserIcon },
 ];
 

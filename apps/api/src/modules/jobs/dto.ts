@@ -52,8 +52,8 @@ export class CreateJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMin?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMax?: number;
 
-  @IsArray() @ArrayNotEmpty() @IsString({ each: true }) eligibleCourses!: string[];
-  @IsArray() @IsString({ each: true }) eligibleBranches!: string[];
+  @IsArray() @ArrayNotEmpty() @IsString({ each: true }) eligibleSchools!: string[];
+  @IsArray() @IsString({ each: true }) eligibleProgrammes!: string[];
 
   @IsArray()
   @ArrayNotEmpty()
@@ -95,8 +95,8 @@ export class UpdateJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMin?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMax?: number;
 
-  @IsOptional() @IsArray() @IsString({ each: true }) eligibleCourses?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) eligibleBranches?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) eligibleSchools?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) eligibleProgrammes?: string[];
 
   @IsOptional()
   @IsArray()
@@ -142,8 +142,8 @@ export class CreatePlatformJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMin?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMax?: number;
 
-  @IsArray() @ArrayNotEmpty() @IsString({ each: true }) eligibleCourses!: string[];
-  @IsArray() @IsString({ each: true }) eligibleBranches!: string[];
+  @IsArray() @ArrayNotEmpty() @IsString({ each: true }) eligibleSchools!: string[];
+  @IsArray() @IsString({ each: true }) eligibleProgrammes!: string[];
 
   @IsArray()
   @ArrayNotEmpty()
@@ -187,8 +187,8 @@ export class UpdatePlatformJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMin?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) ctcMax?: number;
 
-  @IsOptional() @IsArray() @IsString({ each: true }) eligibleCourses?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) eligibleBranches?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) eligibleSchools?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) eligibleProgrammes?: string[];
 
   @IsOptional()
   @IsArray()

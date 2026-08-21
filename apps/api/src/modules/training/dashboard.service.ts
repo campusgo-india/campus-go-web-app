@@ -1,6 +1,7 @@
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient, TrainingPillar } from '@campusgo/database';
+import { visibilityFilter } from './sessions.service';
 
 const PILLARS: TrainingPillar[] = [
   'APTITUDE_REASONING',
@@ -83,10 +84,10 @@ export class TrainingDashboardService {
   async getForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },
-      select: { id: true, collegeId: true, branch: true, graduationYear: true },
+      select: { id: true, collegeId: true, programme: true, graduationYear: true },
     });
     if (!student) throw new ForbiddenException('No student profile for this account');
-    const { id: studentId, collegeId, branch, graduationYear } = student;
+    const { id: studentId, collegeId, programme, graduationYear } = student;
 
     const scores = await this.prisma.assessmentScore.findMany({
       where: { studentId },
@@ -108,11 +109,11 @@ export class TrainingDashboardService {
       : null;
 
     // Department rank: every non-graduated student in the same college +
-    // branch + graduating batch, ranked by the identical readiness formula.
+    // programme + graduating batch, ranked by the identical readiness formula.
     // Informational only — never surfaced to classmates, never used to gate
     // anything (job eligibility is decided independently per Job).
     const cohort = await this.prisma.student.findMany({
-      where: { collegeId, branch, graduationYear, graduatedAt: null },
+      where: { collegeId, programme, graduationYear, graduatedAt: null },
       select: { id: true },
     });
     const cohortIds = cohort.map((c) => c.id);
@@ -143,19 +144,29 @@ export class TrainingDashboardService {
       total: cohortIds.length,
     };
 
-    // Track & attendance: session status counts are college-wide (every
-    // active student is eligible, no per-session enrollment table); the
-    // attendance percentage is only over sessions actually marked for this
-    // student.
+    // Track & attendance: session status counts are scoped to sessions this
+    // student is actually eligible for (untargeted, or targeting their
+    // programme/batch); the attendance percentage is only over sessions actually
+    // marked for this student.
+    const batchIds = await this.prisma.trainingBatchMember
+      .findMany({ where: { studentId }, select: { batchId: true } })
+      .then((rows) => rows.map((r) => r.batchId));
+    const visible = visibilityFilter(programme, batchIds);
+
     const [attendanceRows, statusCounts, nextSession] = await Promise.all([
       this.prisma.trainingAttendance.findMany({ where: { studentId }, select: { present: true } }),
       this.prisma.trainingSession.groupBy({
         by: ['status'],
-        where: { collegeId },
+        where: { collegeId, ...visible },
         _count: { _all: true },
       }),
       this.prisma.trainingSession.findFirst({
-        where: { collegeId, status: { in: ['SCHEDULED', 'ONGOING'] }, startsAt: { gt: new Date() } },
+        where: {
+          collegeId,
+          ...visible,
+          status: { in: ['SCHEDULED', 'ONGOING'] },
+          startsAt: { gt: new Date() },
+        },
         orderBy: { startsAt: 'asc' },
         select: { title: true, startsAt: true },
       }),

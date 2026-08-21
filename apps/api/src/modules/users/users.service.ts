@@ -28,7 +28,7 @@ export class UsersService {
         fullName: dto.fullName,
         role: dto.role,
         phone: dto.phone,
-        assignedBranch: dto.assignedBranch,
+        assignedProgrammes: dto.assignedProgrammes ?? [],
         passwordHash,
       },
     });
@@ -74,13 +74,37 @@ export class UsersService {
     return { success: true };
   }
 
+  /**
+   * Generates a brand-new temp password for a teammate who lost the one shown
+   * at creation — there's no way to recover the original (it's only ever
+   * stored as a bcrypt hash). Shown once, same as on create; forces
+   * mustChangePassword and revokes existing sessions so the old password
+   * (if the teammate still had it) stops working immediately.
+   */
+  async resetPassword(collegeId: string, id: string) {
+    await this.findOne(collegeId, id);
+    const tempPassword = randomBytes(12).toString('base64url');
+    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id },
+        data: { passwordHash, mustChangePassword: true },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+    return { tempPassword };
+  }
+
   private publicUser(u: {
     id: string;
     email: string;
     fullName: string;
     role: string;
     phone: string | null;
-    assignedBranch: string | null;
+    assignedProgrammes: string[];
     isActive: boolean;
     lastLoginAt: Date | null;
   }) {
@@ -90,7 +114,7 @@ export class UsersService {
       fullName: u.fullName,
       role: u.role,
       phone: u.phone,
-      assignedBranch: u.assignedBranch,
+      assignedProgrammes: u.assignedProgrammes,
       isActive: u.isActive,
       lastLoginAt: u.lastLoginAt,
     };

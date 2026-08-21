@@ -34,14 +34,15 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
-// A course offered by a college (e.g. "B.Tech"), with its branches/specialisations
-// (e.g. ["CSE","ECE","Mechanical"]). Managed by the Platform Admin. Student
-// course/branch and job eligibleCourses/eligibleBranches reference these names.
-model CollegeCourse {
+// A school/department offered by a college (e.g. "B.Tech"), with its
+// programmes/specialisations (e.g. ["CSE","ECE","Mechanical"]). Managed by the
+// Platform Admin. Student school/programme and job eligibleSchools/
+// eligibleProgrammes reference these names.
+model CollegeSchool {
   id        String   @id @default(uuid())
   collegeId String   @map("college_id")
   name      String
-  branches  String[]
+  programmes String[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -49,7 +50,7 @@ model CollegeCourse {
 
   @@unique([collegeId, name])
   @@index([collegeId])
-  @@map("college_courses")
+  @@map("college_schools")
 }
 
 model College {
@@ -73,7 +74,7 @@ model College {
 
   users    User[]
   students Student[]
-  courses  CollegeCourse[]
+  schools  CollegeSchool[]
   emailSettings CollegeEmailSettings?
 
   @@map("colleges")
@@ -118,9 +119,10 @@ model User {
   // see all the college's recruiter POCs and the per-teammate recruiter tracking.
   // Assigned by the Platform Admin (the founding admin is the head by default).
   isCollegeHead      Boolean   @default(false) @map("is_college_head")
-  // PLACEMENT_COORDINATOR only: the single branch they're responsible for
-  // (read-only visibility into that branch's students + jobs). Unused by other roles.
-  assignedBranch     String?   @map("assigned_branch")
+  // PLACEMENT_COORDINATOR only: the programmes they're responsible for
+  // (read-only visibility into those programmes' students + jobs) — a
+  // coordinator may cover more than one (e.g. BBA & MBA). Unused by other roles.
+  assignedProgrammes String[]  @default([]) @map("assigned_programmes")
   mustChangePassword Boolean   @default(false) @map("must_change_password")
   emailVerifiedAt    DateTime? @map("email_verified_at")
   lastLoginAt        DateTime? @map("last_login_at")
@@ -185,8 +187,8 @@ model Alumni {
   registerNumber     String?  @map("register_number")
   joiningYear        Int?     @map("joining_year")
   graduationYear     Int      @map("graduation_year")
-  course             String?
-  branch             String
+  school             String?
+  programme          String
   currentCompany     String?  @map("current_company")
   currentDesignation String?  @map("current_designation")
   currentLocation    String?  @map("current_location")
@@ -206,7 +208,7 @@ model Alumni {
 
   @@unique([collegeId, email])
   @@index([collegeId, graduationYear])
-  @@index([collegeId, branch])
+  @@index([collegeId, programme])
   @@map("alumni")
 }
 
@@ -223,8 +225,8 @@ model Student {
   userId             String             @unique @map("user_id")
   rollNumber         String             @map("roll_number")
   enrollmentNumber   String?            @map("enrollment_number")
-  course             String
-  branch             String
+  school             String
+  programme          String
   graduationYear     Int                @map("graduation_year")
   // Current year of study (1, 2, …) — e.g. MBA II YEAR = 2. Null = not tracked.
   currentYear        Int?               @map("current_year")
@@ -234,6 +236,10 @@ model Student {
   // Extended profile (employability + eligibility).
   dateOfBirth        DateTime?          @map("date_of_birth")
   gender             String?
+  // Self-declared, for eligibility/reporting purposes (e.g. reserved-category
+  // job criteria, institutional reporting) — never surfaced to recruiters.
+  hasDisability      Boolean?           @map("has_disability")
+  disabilityDetails  String?            @map("disability_details")
   personalEmail      String?            @map("personal_email")
   linkedinUrl        String?            @map("linkedin_url")
   tenthPercentage    Decimal?           @db.Decimal(5, 2) @map("tenth_percentage")
@@ -295,9 +301,10 @@ model Student {
   assessmentScores   AssessmentScore[]
   trainingAttendance TrainingAttendance[]
   trainingFeedback   TrainingFeedback[]
+  trainingBatches    TrainingBatchMember[]
 
   @@unique([collegeId, rollNumber])
-  @@index([collegeId, branch, graduationYear])
+  @@index([collegeId, programme, graduationYear])
   @@map("students")
 }
 
@@ -468,8 +475,8 @@ model Job {
   experienceMax       Int?      @map("experience_max")
   ctcMin              Decimal?  @db.Decimal(12, 2) @map("ctc_min")
   ctcMax              Decimal?  @db.Decimal(12, 2) @map("ctc_max")
-  eligibleCourses     String[]  @map("eligible_courses")
-  eligibleBranches    String[]  @map("eligible_branches")
+  eligibleSchools     String[]  @map("eligible_schools")
+  eligibleProgrammes  String[]  @map("eligible_programmes")
   minCgpa             Decimal?  @db.Decimal(4, 2) @map("min_cgpa")
   minTenthPercentage  Decimal?  @db.Decimal(5, 2) @map("min_tenth_percentage")
   minTwelfthPercentage Decimal? @db.Decimal(5, 2) @map("min_twelfth_percentage")
@@ -743,6 +750,11 @@ model Assessment {
   externalUrl String          @map("external_url")
   maxMarks    Int             @map("max_marks")
   isActive    Boolean         @default(true) @map("is_active")
+  // Targeting: empty on both = every active student at the college (the
+  // original default). Otherwise visible to a student if their branch is in
+  // targetProgrammes OR they're a member of one of targetBatchIds.
+  targetProgrammes String[]     @default([]) @map("target_programmes")
+  targetBatchIds String[]     @default([]) @map("target_batch_ids")
   createdById String          @map("created_by_id")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
@@ -785,6 +797,10 @@ model TrainingSession {
   startsAt    DateTime      @map("starts_at")
   endsAt      DateTime      @map("ends_at")
   status      SessionStatus @default(SCHEDULED)
+  // Targeting: empty on both = every active student at the college (the
+  // original default, and still how attendance/feedback treat the session).
+  targetProgrammes String[]   @default([]) @map("target_programmes")
+  targetBatchIds String[]   @default([]) @map("target_batch_ids")
   createdById String        @map("created_by_id")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
@@ -794,6 +810,38 @@ model TrainingSession {
 
   @@index([collegeId, status])
   @@map("training_sessions")
+}
+
+// A named, hand-picked group of students for training targeting — independent
+// of course/branch/graduation year (e.g. "Placement Prep — Aug batch").
+model TrainingBatch {
+  id          String   @id @default(uuid())
+  collegeId   String   @map("college_id")
+  name        String
+  description String?
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  members TrainingBatchMember[]
+
+  @@unique([collegeId, name])
+  @@index([collegeId])
+  @@map("training_batches")
+}
+
+model TrainingBatchMember {
+  id        String   @id @default(uuid())
+  batchId   String   @map("batch_id")
+  studentId String   @map("student_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  batch   TrainingBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId])
+  @@index([studentId])
+  @@map("training_batch_members")
 }
 
 // One student's attendance record for one session. Presence of a row = the

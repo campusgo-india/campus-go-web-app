@@ -23,6 +23,9 @@ export class CreateAssessmentDto {
   @IsEnum(AssessmentPhase) phase!: AssessmentPhase;
   @NormalizeUrl() @IsString() @MinLength(1) externalUrl!: string;
   @Type(() => Number) @IsInt() @Min(1) maxMarks!: number;
+  // Targeting: omit/empty both = every active student at the college.
+  @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
 }
 
 export class UpdateAssessmentDto {
@@ -32,6 +35,8 @@ export class UpdateAssessmentDto {
   @IsOptional() @NormalizeUrl() @IsString() @MinLength(1) externalUrl?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) maxMarks?: number;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
 }
 
 export class ManualScoreEntryDto {
@@ -53,6 +58,9 @@ export class CreateSessionDto {
   @IsOptional() @IsString() description?: string;
   @IsDateString() startsAt!: string;
   @IsDateString() endsAt!: string;
+  // Targeting: omit/empty both = every active student at the college.
+  @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
 }
 
 export class UpdateSessionDto {
@@ -63,6 +71,22 @@ export class UpdateSessionDto {
   @IsOptional() @IsDateString() startsAt?: string;
   @IsOptional() @IsDateString() endsAt?: string;
   @IsOptional() @IsEnum(SessionStatus) status?: SessionStatus;
+  @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
+}
+
+export class CreateBatchDto {
+  @IsString() @MinLength(2) name!: string;
+  @IsOptional() @IsString() description?: string;
+}
+
+export class UpdateBatchDto {
+  @IsOptional() @IsString() @MinLength(2) name?: string;
+  @IsOptional() @IsString() description?: string;
+}
+
+export class SetBatchMembersDto {
+  @IsArray() @IsString({ each: true }) studentIds!: string[];
 }
 
 export class AttendanceRowDto {
@@ -76,6 +100,12 @@ export class MarkAttendanceDto {
   @ValidateNested({ each: true })
   @Type(() => AttendanceRowDto)
   rows!: AttendanceRowDto[];
+}
+
+// Bulk attendance import — same base64 file shape as ImportScoresDto.
+export class ImportAttendanceDto {
+  @IsString() @MinLength(1) fileBase64!: string;
+  @IsString() @MinLength(1) fileName!: string;
 }
 
 export class SubmitFeedbackDto {

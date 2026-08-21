@@ -37,7 +37,7 @@ export interface FunnelStage {
 }
 
 export interface Breakdowns {
-  byBranch: { branch: string; total: number; placed: number; placementRate: number }[];
+  byProgramme: { programme: string; total: number; placed: number; placementRate: number }[];
   byBatch: { graduationYear: number; total: number; placed: number; placementRate: number }[];
   byCompany: { company: string; hires: number; avgPackage: number | null }[];
 }

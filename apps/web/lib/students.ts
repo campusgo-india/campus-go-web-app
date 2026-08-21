@@ -21,8 +21,8 @@ export interface Student {
   id: string;
   rollNumber: string;
   enrollmentNumber: string | null;
-  course: string;
-  branch: string;
+  school: string;
+  programme: string;
   graduationYear: number;
   currentYear: number | null;
   cgpa: number | null;
@@ -30,6 +30,8 @@ export interface Student {
   totalBacklogs: number;
   dateOfBirth: string | null;
   gender: string | null;
+  hasDisability: boolean | null;
+  disabilityDetails: string | null;
   personalEmail: string | null;
   linkedinUrl: string | null;
   tenthPercentage: number | null;
@@ -80,10 +82,10 @@ export interface Student {
   user: StudentUser;
 }
 
-// A cohort card on the officer's Students screen: one per (passout year, course).
+// A cohort card on the officer's Students screen: one per (passout year, school).
 export interface StudentBatch {
   graduationYear: number;
-  course: string;
+  school: string;
   count: number;
   loggedIn: number;
   detailsComplete: number;
@@ -100,6 +102,8 @@ export interface ListMeta {
 export interface ExtendedProfileFields {
   dateOfBirth?: string;
   gender?: string;
+  hasDisability?: boolean;
+  disabilityDetails?: string;
   personalEmail?: string;
   linkedinUrl?: string;
   tenthPercentage?: number;
@@ -141,8 +145,8 @@ export interface CreateStudentInput extends ExtendedProfileFields {
   fullName: string;
   email: string;
   rollNumber: string;
-  course: string;
-  branch: string;
+  school: string;
+  programme: string;
   graduationYear: number;
   currentYear?: number;
   enrollmentNumber?: string;
@@ -154,8 +158,8 @@ export interface CreateStudentInput extends ExtendedProfileFields {
 
 // Batch defaults shared by every row in a CSV import.
 export interface ImportDefaults {
-  course?: string;
-  branch?: string;
+  school?: string;
+  programme?: string;
   graduationYear?: number;
   currentYear?: number;
 }
@@ -169,8 +173,8 @@ export interface ImportResult {
 
 export interface ListParams {
   search?: string;
-  branch?: string;
-  course?: string;
+  programme?: string;
+  school?: string;
   graduationYear?: number;
   resumeComplete?: boolean;
   detailsComplete?: boolean;
@@ -196,7 +200,7 @@ export function getStudent(id: string): Promise<Student> {
   return api<Student>(`/students/${id}`);
 }
 
-/** Cohort cards (one per passout year + course) for the officer's Students screen. */
+/** Cohort cards (one per passout year + school) for the officer's Students screen. */
 export function listStudentBatches(): Promise<StudentBatch[]> {
   return api<StudentBatch[]>('/students/batches');
 }
@@ -233,14 +237,6 @@ export function updateStudent(id: string, input: Partial<CreateStudentInput>): P
   return api<Student>(`/students/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
-export function deleteStudent(id: string): Promise<{ success: boolean }> {
-  return api(`/students/${id}`, { method: 'DELETE' });
-}
-
-export function deleteStudents(ids: string[]): Promise<{ deleted: number }> {
-  return api(`/students/bulk-delete`, { method: 'POST', body: JSON.stringify({ ids }) });
-}
-
 export function setStudentActive(
   id: string,
   isActive: boolean,
@@ -268,8 +264,8 @@ export interface UpdateOwnProfileInput extends ExtendedProfileFields {
   fullName?: string;
   phone?: string;
   enrollmentNumber?: string;
-  course?: string;
-  branch?: string;
+  school?: string;
+  programme?: string;
   graduationYear?: number;
   cgpa?: number;
   activeBacklogs?: number;
@@ -288,11 +284,11 @@ export function submitOwnProfile(): Promise<Student> {
   return api(`/me/student/submit`, { method: 'POST' });
 }
 
-/** Downloads an XLSX with one sheet per department, résumé links included. */
-export async function downloadStudentsByDepartment(): Promise<void> {
+/** Downloads an XLSX with one sheet per programme, résumé links included. */
+export async function downloadStudentsByProgramme(): Promise<void> {
   const send = () => {
     const token = getAccessToken();
-    return fetch(`${API_URL}/students/export/by-department`, {
+    return fetch(`${API_URL}/students/export/by-programme`, {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
@@ -305,7 +301,7 @@ export async function downloadStudentsByDepartment(): Promise<void> {
   }
   const blob = await res.blob();
   const match = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] ?? 'students-by-department.xlsx';
+  const filename = match?.[1] ?? 'students-by-programme.xlsx';
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

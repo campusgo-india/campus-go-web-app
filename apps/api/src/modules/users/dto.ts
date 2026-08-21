@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEmail,
   IsIn,
@@ -33,11 +34,12 @@ export class CreateUserDto {
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
 
-  // PLACEMENT_COORDINATOR only: the single branch they're responsible for.
-  @EmptyToUndefined()
+  // PLACEMENT_COORDINATOR only: the programmes they're responsible
+  // for — may cover more than one (e.g. BBA & MBA).
   @IsOptional()
-  @IsString()
-  assignedBranch?: string;
+  @IsArray()
+  @IsString({ each: true })
+  assignedProgrammes?: string[];
 
   // Optional: set the teammate's password directly. If omitted, a random temp
   // password is generated and returned once.
@@ -56,9 +58,9 @@ export class UpdateUserDto {
   @IsOptional()
   @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR])
   role?: string;
-  @EmptyToUndefined()
   @IsOptional()
-  @IsString()
-  assignedBranch?: string;
+  @IsArray()
+  @IsString({ each: true })
+  assignedProgrammes?: string[];
   @IsOptional() @IsBoolean() isActive?: boolean;
 }

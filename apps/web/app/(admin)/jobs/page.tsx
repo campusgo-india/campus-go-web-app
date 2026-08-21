@@ -17,6 +17,20 @@ const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
 
 type ViewMode = 'tile' | 'list';
 
+const VIEW_STORAGE_KEY = 'campusgo:jobs-view';
+
+// Lazy initializer so the very first render already reflects the saved
+// preference — avoids a tile→list flash on mount.
+function initialView(): ViewMode {
+  if (typeof window === 'undefined') return 'tile';
+  try {
+    const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+    return saved === 'list' ? 'list' : 'tile';
+  } catch {
+    return 'tile';
+  }
+}
+
 export default function JobsPage() {
   const router = useRouter();
   const { user } = useSession();
@@ -25,7 +39,16 @@ export default function JobsPage() {
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [view, setView] = useState<ViewMode>('tile');
+  const [view, setViewState] = useState<ViewMode>(initialView);
+  // Remember the chosen view across navigation/reload.
+  const setView = (v: ViewMode) => {
+    setViewState(v);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, v);
+    } catch {
+      /* best-effort; view just won't persist this time */
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);

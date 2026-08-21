@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
+import { TrainingTargetPicker } from '../../../../../components/training-target-picker';
 import { createSession, PILLAR_LABEL, TRAINING_PILLARS } from '../../../../../lib/training';
 
 export default function NewSessionPage() {
@@ -14,6 +15,8 @@ export default function NewSessionPage() {
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  const [targetProgrammes, setTargetProgrammes] = useState<string[]>([]);
+  const [targetBatchIds, setTargetBatchIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +38,8 @@ export default function NewSessionPage() {
         description: description.trim() || undefined,
         startsAt: new Date(startsAt).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
+        targetProgrammes,
+        targetBatchIds,
       });
       router.push('/training/sessions');
     } catch (err) {
@@ -107,6 +112,13 @@ export default function NewSessionPage() {
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
+
+        <TrainingTargetPicker
+          programmes={targetProgrammes}
+          batchIds={targetBatchIds}
+          onChangeProgrammes={setTargetProgrammes}
+          onChangeBatchIds={setTargetBatchIds}
+        />
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

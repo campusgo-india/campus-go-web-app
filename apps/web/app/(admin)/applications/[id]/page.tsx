@@ -98,7 +98,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             {app.student?.fullName ?? 'Applicant'}
           </h1>
           <p className="text-sm text-subtle">
-            {app.student?.rollNumber} · {app.student?.branch} — applied to{' '}
+            {app.student?.rollNumber} · {app.student?.programme} — applied to{' '}
             <Link href={`/jobs/${app.job.id}`} className="text-primary-600 hover:underline">
               {app.job.title}
             </Link>{' '}

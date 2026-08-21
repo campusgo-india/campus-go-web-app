@@ -7,6 +7,8 @@ import { TrainingFeedbackController, MeTrainingFeedbackController } from './feed
 import { TrainingFeedbackService } from './feedback.service';
 import { TrainingDashboardController } from './dashboard.controller';
 import { TrainingDashboardService } from './dashboard.service';
+import { TrainingBatchesController } from './batches.controller';
+import { TrainingBatchesService } from './batches.service';
 
 @Module({
   controllers: [
@@ -17,12 +19,14 @@ import { TrainingDashboardService } from './dashboard.service';
     TrainingFeedbackController,
     MeTrainingFeedbackController,
     TrainingDashboardController,
+    TrainingBatchesController,
   ],
   providers: [
     AssessmentsService,
     TrainingSessionsService,
     TrainingFeedbackService,
     TrainingDashboardService,
+    TrainingBatchesService,
   ],
 })
 export class TrainingModule {}

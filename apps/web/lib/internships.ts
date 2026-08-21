@@ -34,7 +34,7 @@ export interface Internship {
   // Present only on the officer list (used to group batch by batch).
   studentName?: string;
   rollNumber?: string;
-  studentCourse?: string;
+  studentSchool?: string;
   graduationYear?: number;
 }
 

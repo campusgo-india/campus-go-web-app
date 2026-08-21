@@ -20,8 +20,8 @@ interface SampleJob {
   workMode: string;
   ctcMin: number;
   ctcMax: number;
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa: number | null;
   minTenthPercentage: number | null;
@@ -40,8 +40,8 @@ const SAMPLES: SampleJob[] = [
     workMode: 'HYBRID',
     ctcMin: 500000,
     ctcMax: 750000,
-    eligibleCourses: ['MBA'],
-    eligibleBranches: ['General', 'Finance', 'Marketing', 'HR'],
+    eligibleSchools: ['MBA'],
+    eligibleProgrammes: ['General', 'Finance', 'Marketing', 'HR'],
     graduationYears: [2026],
     minCgpa: 6,
     minTenthPercentage: 60,
@@ -58,8 +58,8 @@ const SAMPLES: SampleJob[] = [
     workMode: 'HYBRID',
     ctcMin: 450000,
     ctcMax: 650000,
-    eligibleCourses: ['MBA', 'BBA'],
-    eligibleBranches: ['General', 'Finance', 'Marketing'],
+    eligibleSchools: ['MBA', 'BBA'],
+    eligibleProgrammes: ['General', 'Finance', 'Marketing'],
     graduationYears: [2026],
     minCgpa: 6,
     minTenthPercentage: 60,
@@ -76,8 +76,8 @@ const SAMPLES: SampleJob[] = [
     workMode: 'ONSITE',
     ctcMin: 400000,
     ctcMax: 600000,
-    eligibleCourses: ['MBA'],
-    eligibleBranches: ['General', 'Operations', 'Marketing'],
+    eligibleSchools: ['MBA'],
+    eligibleProgrammes: ['General', 'Operations', 'Marketing'],
     graduationYears: [2026],
     minCgpa: 6,
     minTenthPercentage: 55,
@@ -94,8 +94,8 @@ const SAMPLES: SampleJob[] = [
     workMode: 'HYBRID',
     ctcMin: 450000,
     ctcMax: 650000,
-    eligibleCourses: ['MBA'],
-    eligibleBranches: ['HR', 'Finance'],
+    eligibleSchools: ['MBA'],
+    eligibleProgrammes: ['HR', 'Finance'],
     graduationYears: [2026],
     minCgpa: 6,
     minTenthPercentage: 60,
@@ -112,8 +112,8 @@ const SAMPLES: SampleJob[] = [
     workMode: 'HYBRID',
     ctcMin: 500000,
     ctcMax: 700000,
-    eligibleCourses: ['MBA'],
-    eligibleBranches: ['General', 'Consulting', 'Strategy'],
+    eligibleSchools: ['MBA'],
+    eligibleProgrammes: ['General', 'Consulting', 'Strategy'],
     graduationYears: [2026],
     minCgpa: 6,
     minTenthPercentage: 60,
@@ -173,8 +173,8 @@ async function main() {
         location: s.location,
         ctcMin: s.ctcMin,
         ctcMax: s.ctcMax,
-        eligibleCourses: s.eligibleCourses,
-        eligibleBranches: s.eligibleBranches,
+        eligibleSchools: s.eligibleSchools,
+        eligibleProgrammes: s.eligibleProgrammes,
         graduationYears: s.graduationYears,
         minCgpa: s.minCgpa != null ? new Prisma.Decimal(s.minCgpa) : null,
         minTenthPercentage:

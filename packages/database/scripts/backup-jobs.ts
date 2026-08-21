@@ -50,8 +50,8 @@ async function main() {
     ctcMax: j.ctcMax != null ? Number(j.ctcMax) : null,
 
     // Eligibility
-    eligibleCourses: j.eligibleCourses,
-    eligibleBranches: j.eligibleBranches,
+    eligibleSchools: j.eligibleSchools,
+    eligibleProgrammes: j.eligibleProgrammes,
     graduationYears: j.graduationYears,
     minCgpa: j.minCgpa != null ? Number(j.minCgpa) : null,
     minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,

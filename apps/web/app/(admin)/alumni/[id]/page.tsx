@@ -12,7 +12,7 @@ import {
   type Alumni,
   type AlumniInput,
 } from '../../../../lib/alumni';
-import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 
 export default function AlumniDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -89,9 +89,9 @@ export default function AlumniDetailPage({ params }: { params: Promise<{ id: str
             {!alumni.isActive && <span className="ml-2 text-sm text-subtle">(inactive)</span>}
           </h1>
           <p className="text-sm text-subtle">
-            {alumni.branch} · Batch {alumni.graduationYear}
+            {alumni.programme} · Batch {alumni.graduationYear}
             {alumni.joiningYear ? ` · Joined ${alumni.joiningYear}` : ''}
-            {alumni.course ? ` · ${alumni.course}` : ''}
+            {alumni.school ? ` · ${alumni.school}` : ''}
           </p>
           <div className="mt-2 flex flex-wrap gap-1">
             {alumni.isMentor && <Badge tint="lavender">Mentor</Badge>}
@@ -180,9 +180,9 @@ function EditAlumniForm({
     email: alumni.email,
     graduationYear: String(alumni.graduationYear),
     joiningYear: alumni.joiningYear ? String(alumni.joiningYear) : '',
-    branch: alumni.branch,
+    programme: alumni.programme,
     phone: alumni.phone ?? '',
-    course: alumni.course ?? '',
+    school: alumni.school ?? '',
     currentCompany: alumni.currentCompany ?? '',
     currentDesignation: alumni.currentDesignation ?? '',
     currentLocation: alumni.currentLocation ?? '',
@@ -195,13 +195,13 @@ function EditAlumniForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
 
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {
-        /* non-fatal: course/branch fields just fall back to free entry if this fails */
+        /* non-fatal: school/programme fields just fall back to free entry if this fails */
       });
   }, []);
 
@@ -209,9 +209,9 @@ function EditAlumniForm({
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  const setCourse = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, course: e.target.value, branch: '' }));
-  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
+  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, school: e.target.value, programme: '' }));
+  const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
 
   async function submit() {
     setSaving(true);
@@ -222,9 +222,9 @@ function EditAlumniForm({
         email: form.email,
         graduationYear: Number(form.graduationYear),
         joiningYear: form.joiningYear ? Number(form.joiningYear) : undefined,
-        branch: form.branch,
+        programme: form.programme,
         phone: form.phone || undefined,
-        course: form.course || undefined,
+        school: form.school || undefined,
         currentCompany: form.currentCompany || undefined,
         currentDesignation: form.currentDesignation || undefined,
         currentLocation: form.currentLocation || undefined,
@@ -256,13 +256,13 @@ function EditAlumniForm({
         <Field label="Email *">
           <input className={inputCls} value={form.email} onChange={set('email')} />
         </Field>
-        <Field label="Joining year / Course year">
+        <Field label="Joining year / School year">
           <input
             type="number"
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year they joined the course"
+            placeholder="Year they joined the school"
             min="0"
           />
         </Field>
@@ -275,25 +275,25 @@ function EditAlumniForm({
             min="0"
           />
         </Field>
-        <Field label="Course">
-          {courses.length > 0 ? (
-            <select className={inputCls} value={form.course} onChange={setCourse}>
-              <option value="">Select course</option>
-              {courses.map((c) => (
+        <Field label="School">
+          {schools.length > 0 ? (
+            <select className={inputCls} value={form.school} onChange={setSchool}>
+              <option value="">Select school</option>
+              {schools.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
                 </option>
               ))}
             </select>
           ) : (
-            <input className={inputCls} value={form.course} onChange={setCourse} />
+            <input className={inputCls} value={form.school} onChange={setSchool} />
           )}
         </Field>
-        <Field label="Branch *">
-          {branchesFor.length > 0 ? (
-            <select className={inputCls} value={form.branch} onChange={set('branch')}>
-              <option value="">Select branch</option>
-              {branchesFor.map((b) => (
+        <Field label="Programme *">
+          {programmesFor.length > 0 ? (
+            <select className={inputCls} value={form.programme} onChange={set('programme')}>
+              <option value="">Select programme</option>
+              {programmesFor.map((b) => (
                 <option key={b} value={b}>
                   {b}
                 </option>
@@ -302,9 +302,9 @@ function EditAlumniForm({
           ) : (
             <input
               className={inputCls}
-              value={form.branch}
-              onChange={set('branch')}
-              placeholder={form.course ? 'No sub-branches for this course' : 'e.g. Computer Science'}
+              value={form.programme}
+              onChange={set('programme')}
+              placeholder={form.school ? 'No sub-programmes for this school' : 'e.g. Computer Science'}
             />
           )}
         </Field>

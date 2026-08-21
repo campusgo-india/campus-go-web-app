@@ -1,11 +1,11 @@
 import { IsArray, IsOptional, IsString, MinLength } from 'class-validator';
 
-export class CreateCourseDto {
+export class CreateSchoolDto {
   @IsString() @MinLength(1) name!: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) branches?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) programmes?: string[];
 }
 
-export class UpdateCourseDto {
+export class UpdateSchoolDto {
   @IsOptional() @IsString() @MinLength(1) name?: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) branches?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) programmes?: string[];
 }

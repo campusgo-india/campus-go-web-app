@@ -33,8 +33,8 @@ export interface CreateCollegeInput {
   adminEmail: string;
   // Optional: set the admin's password directly. Omit to auto-generate one.
   adminPassword?: string;
-  // Optional initial course catalog.
-  courses?: { name: string; branches?: string[] }[];
+  // Optional initial school catalog.
+  schools?: { name: string; programmes?: string[] }[];
 }
 
 export interface CreateCollegeResult {

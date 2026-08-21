@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
 import { createStudent, type CreateStudentInput } from '../../../../lib/students';
-import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 import { CopyButton } from '../../../../components/copy-button';
 
 // Field set intentionally mirrors the bulk CSV import (students/import) so both
@@ -15,11 +15,10 @@ const EMPTY = {
   fullName: '',
   email: '',
   rollNumber: '',
-  course: '',
-  branch: '',
+  school: '',
+  programme: '',
   graduationYear: '',
   currentYear: '',
-  enrollmentNumber: '',
   phone: '',
   cgpa: '',
   activeBacklogs: '',
@@ -40,17 +39,17 @@ export default function NewStudentPage() {
     tempPassword: string;
   } | null>(null);
 
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {});
   }, []);
 
   const set = (k: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
-  // Reset branch whenever the course changes.
-  const setCourse = (v: string) => setForm((f) => ({ ...f, course: v, branch: '' }));
-  const branchesFor = courses.find((c) => c.name === form.course)?.branches ?? [];
+  // Reset programme whenever the school changes.
+  const setSchool = (v: string) => setForm((f) => ({ ...f, school: v, programme: '' }));
+  const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,11 +60,10 @@ export default function NewStudentPage() {
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         rollNumber: form.rollNumber.trim(),
-        course: form.course.trim(),
-        branch: form.branch.trim(),
+        school: form.school.trim(),
+        programme: form.programme.trim(),
         graduationYear: Number(form.graduationYear),
         currentYear: form.currentYear === '' ? undefined : Number(form.currentYear),
-        enrollmentNumber: form.enrollmentNumber.trim() || undefined,
         phone: form.phone.trim() || undefined,
         cgpa: form.cgpa === '' ? undefined : Number(form.cgpa),
         activeBacklogs: form.activeBacklogs === '' ? undefined : Number(form.activeBacklogs),
@@ -147,44 +145,39 @@ export default function NewStudentPage() {
             value={form.rollNumber}
             onChange={set('rollNumber')}
           />
-          <Field
-            label="Enrollment number"
-            value={form.enrollmentNumber}
-            onChange={set('enrollmentNumber')}
-          />
-          {courses.length > 0 ? (
+          {schools.length > 0 ? (
             <SelectField
-              label="Course"
+              label="School"
               required
-              value={form.course}
-              onChange={setCourse}
-              options={courses.map((c) => c.name)}
-              placeholder="Select a course…"
+              value={form.school}
+              onChange={setSchool}
+              options={schools.map((c) => c.name)}
+              placeholder="Select a school…"
             />
           ) : (
             <Field
-              label="Course"
+              label="School"
               required
-              value={form.course}
-              onChange={setCourse}
+              value={form.school}
+              onChange={setSchool}
               placeholder="B.Tech"
             />
           )}
-          {branchesFor.length > 0 ? (
+          {programmesFor.length > 0 ? (
             <SelectField
-              label="Branch"
+              label="Programme"
               required
-              value={form.branch}
-              onChange={set('branch')}
-              options={branchesFor}
-              placeholder="Select a branch…"
+              value={form.programme}
+              onChange={set('programme')}
+              options={programmesFor}
+              placeholder="Select a programme…"
             />
           ) : (
             <Field
-              label="Branch"
-              value={form.branch}
-              onChange={set('branch')}
-              placeholder={form.course ? 'No branches for this course' : 'CSE'}
+              label="Programme"
+              value={form.programme}
+              onChange={set('programme')}
+              placeholder={form.school ? 'No programmes for this school' : 'CSE'}
             />
           )}
           <Field
@@ -244,7 +237,7 @@ export default function NewStudentPage() {
             placeholder="70"
           />
           <p className="text-xs text-subtle sm:col-span-2">
-            &ldquo;Percentage&rdquo; is the current/PG course; UG % is the undergraduate degree (for
+            &ldquo;Percentage&rdquo; is the current/PG programme; UG % is the undergraduate degree (for
             PG students).
           </p>
 

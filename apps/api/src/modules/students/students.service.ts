@@ -70,19 +70,20 @@ export class StudentsService {
     private readonly config: ConfigService,
   ) {}
 
-  // A Placement Coordinator only ever sees their assigned branch — resolved fresh
-  // from the DB (not trusted from the JWT) so a branch reassignment takes effect
-  // without requiring re-login. Returns null for every other role (no restriction).
-  private async branchRestriction(viewer?: Viewer): Promise<string | null> {
+  // A Placement Coordinator only ever sees their assigned programmes (one or
+  // more) — resolved fresh from the DB (not trusted from the JWT) so a
+  // reassignment takes effect without requiring re-login. Returns null for
+  // every other role (no restriction).
+  private async programmeRestriction(viewer?: Viewer): Promise<string[] | null> {
     if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
     const u = await this.prisma.user.findUnique({
       where: { id: viewer.userId },
-      select: { assignedBranch: true },
+      select: { assignedProgrammes: true },
     });
-    if (!u?.assignedBranch) {
-      throw new ForbiddenException('No branch assigned to this account yet');
+    if (!u?.assignedProgrammes.length) {
+      throw new ForbiddenException('No programme assigned to this account yet');
     }
-    return u.assignedBranch;
+    return u.assignedProgrammes;
   }
 
   async create(collegeId: string, dto: CreateStudentDto) {
@@ -109,8 +110,8 @@ export class StudentsService {
           userId: user.id,
           rollNumber: dto.rollNumber,
           enrollmentNumber: dto.enrollmentNumber,
-          course: dto.course,
-          branch: dto.branch,
+          school: dto.school,
+          programme: dto.programme,
           graduationYear: dto.graduationYear,
           currentYear: dto.currentYear ?? null,
           cgpa: dto.cgpa != null ? new Prisma.Decimal(dto.cgpa) : null,
@@ -210,8 +211,8 @@ export class StudentsService {
         userId,
         rollNumber: d.rollNumber,
         enrollmentNumber: d.enrollmentNumber,
-        course: d.course,
-        branch: d.branch,
+        school: d.school,
+        programme: d.programme,
         graduationYear: d.graduationYear,
         currentYear: d.currentYear ?? null,
         cgpa: d.cgpa != null ? new Prisma.Decimal(d.cgpa) : null,
@@ -274,8 +275,8 @@ export class StudentsService {
         email: s.user.email,
         registerNumber: s.rollNumber,
         graduationYear: s.graduationYear,
-        course: s.course,
-        branch: s.branch,
+        school: s.school,
+        programme: s.programme,
         tags: [],
         selfRegistered: false,
         isApproved: true,
@@ -305,7 +306,7 @@ export class StudentsService {
   async list(collegeId: string, q: ListStudentsQuery, viewer?: Viewer) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 25;
-    const branchRestriction = await this.branchRestriction(viewer);
+    const programmeRestriction = await this.programmeRestriction(viewer);
 
     const loginWhere: Prisma.StudentWhereInput =
       q.loginStatus === 'logged_in'
@@ -327,9 +328,13 @@ export class StudentsService {
       collegeId,
       // Graduated students live in the Alumni directory — hide them here.
       graduatedAt: null,
-      // A Placement Coordinator's branch overrides whatever the query asked for.
-      ...(branchRestriction ? { branch: branchRestriction } : q.branch ? { branch: q.branch } : {}),
-      ...(q.course ? { course: q.course } : {}),
+      // A Placement Coordinator's programmes override whatever the query asked for.
+      ...(programmeRestriction
+        ? { programme: { in: programmeRestriction } }
+        : q.programme
+          ? { programme: q.programme }
+          : {}),
+      ...(q.school ? { school: q.school } : {}),
       ...(q.graduationYear ? { graduationYear: q.graduationYear } : {}),
       ...(q.verificationStatus ? { verificationStatus: q.verificationStatus } : {}),
       ...(q.active !== undefined ? { isActive: q.active } : {}),
@@ -381,18 +386,18 @@ export class StudentsService {
   }
 
   /**
-   * Full active roster, one ReportDataset per department (branch), for a
-   * multi-sheet XLSX — includes a résumé link per student, unlike the generic
-   * Reports "students" export.
+   * Full active roster, one ReportDataset per programme, for a multi-sheet
+   * XLSX — includes a résumé link per student, unlike the generic Reports
+   * "students" export.
    */
-  async exportByDepartment(collegeId: string): Promise<ReportDataset[]> {
+  async exportByProgramme(collegeId: string): Promise<ReportDataset[]> {
     const students = await this.prisma.student.findMany({
       where: { collegeId, graduatedAt: null },
       include: {
         user: { select: { fullName: true, email: true, phone: true } },
         resume: { select: { publicSlug: true, isPublished: true } },
       },
-      orderBy: [{ branch: 'asc' }, { rollNumber: 'asc' }],
+      orderBy: [{ programme: 'asc' }, { rollNumber: 'asc' }],
     });
 
     const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
@@ -405,8 +410,8 @@ export class StudentsService {
       { key: 'email', label: 'Institute Email' },
       { key: 'personalEmail', label: 'Personal Email' },
       { key: 'phone', label: 'Phone' },
-      { key: 'course', label: 'Course' },
-      { key: 'branch', label: 'Branch' },
+      { key: 'school', label: 'School/Department' },
+      { key: 'programme', label: 'Programme' },
       { key: 'graduationYear', label: 'Graduation Year' },
       { key: 'cgpa', label: 'CGPA' },
       { key: 'activeBacklogs', label: 'Active Backlogs' },
@@ -452,7 +457,7 @@ export class StudentsService {
       { key: 'ugPercentage', label: 'UG %' },
       // Skills & preferences
       { key: 'languagesKnown', label: 'Languages Known' },
-      { key: 'communicationSkillRating', label: 'Communication Skill (1-5)' },
+      { key: 'communicationSkillRating', label: 'Communication Rating (English) (1-5)' },
       { key: 'higherStudiesPlanned', label: 'Higher Studies Planned' },
       { key: 'entrepreneurshipInterest', label: 'Entrepreneurship Interest' },
     ];
@@ -461,7 +466,7 @@ export class StudentsService {
     const dec = (v: Prisma.Decimal | null) => (v != null ? Number(v) : '');
     const date = (v: Date | null) => (v ? v.toISOString().slice(0, 10) : '');
 
-    const byBranch = new Map<string, Record<string, unknown>[]>();
+    const byProgramme = new Map<string, Record<string, unknown>[]>();
     for (const s of students) {
       const row = {
         rollNumber: s.rollNumber,
@@ -469,8 +474,8 @@ export class StudentsService {
         email: s.user.email,
         personalEmail: s.personalEmail ?? '',
         phone: s.user.phone ?? '',
-        course: s.course,
-        branch: s.branch,
+        school: s.school,
+        programme: s.programme,
         graduationYear: s.graduationYear,
         cgpa: dec(s.cgpa),
         activeBacklogs: s.activeBacklogs,
@@ -515,26 +520,26 @@ export class StudentsService {
         higherStudiesPlanned: yesNo(s.higherStudiesPlanned),
         entrepreneurshipInterest: yesNo(s.entrepreneurshipInterest),
       };
-      const bucket = byBranch.get(s.branch) ?? [];
+      const bucket = byProgramme.get(s.programme) ?? [];
       bucket.push(row);
-      byBranch.set(s.branch, bucket);
+      byProgramme.set(s.programme, bucket);
     }
 
-    return [...byBranch.entries()].map(([branch, rows]) => ({
-      filename: `students-${branch}`,
-      title: branch,
+    return [...byProgramme.entries()].map(([programme, rows]) => ({
+      filename: `students-${programme}`,
+      title: programme,
       columns,
       rows,
     }));
   }
 
   // Batch cards for the officer's students screen: one entry per (passout year,
-  // course), with how many have logged in and how many have complete details.
+  // school), with how many have logged in and how many have complete details.
   async batches(collegeId: string) {
     const rows = await this.prisma.student.findMany({
       where: { collegeId, graduatedAt: null },
       select: {
-        course: true,
+        school: true,
         graduationYear: true,
         tenthPercentage: true,
         twelfthPercentage: true,
@@ -547,7 +552,7 @@ export class StudentsService {
     const map = new Map<
       string,
       {
-        course: string;
+        school: string;
         graduationYear: number;
         count: number;
         loggedIn: number;
@@ -555,11 +560,11 @@ export class StudentsService {
       }
     >();
     for (const s of rows) {
-      const key = `${s.graduationYear}|${s.course}`;
+      const key = `${s.graduationYear}|${s.school}`;
       let b = map.get(key);
       if (!b) {
         b = {
-          course: s.course,
+          school: s.school,
           graduationYear: s.graduationYear,
           count: 0,
           loggedIn: 0,
@@ -571,9 +576,9 @@ export class StudentsService {
       if (s.user.lastLoginAt) b.loggedIn++;
       if (detailsStatus(s).complete) b.detailsComplete++;
     }
-    // Newest passout first, then course alphabetically.
+    // Newest passout first, then school alphabetically.
     return [...map.values()].sort(
-      (a, b) => b.graduationYear - a.graduationYear || a.course.localeCompare(b.course),
+      (a, b) => b.graduationYear - a.graduationYear || a.school.localeCompare(b.school),
     );
   }
 
@@ -583,10 +588,10 @@ export class StudentsService {
       include: { user: true, resume: { select: { fileUrl: true } } },
     });
     if (!student) throw new NotFoundException('Student not found');
-    const branchRestriction = await this.branchRestriction(viewer);
-    // A Coordinator asking for a student outside their branch gets the same
-    // "not found" as a genuinely missing id — no confirming who else exists.
-    if (branchRestriction && student.branch !== branchRestriction) {
+    const programmeRestriction = await this.programmeRestriction(viewer);
+    // A Coordinator asking for a student outside their programmes gets the
+    // same "not found" as a genuinely missing id — no confirming who else exists.
+    if (programmeRestriction && !programmeRestriction.includes(student.programme)) {
       throw new NotFoundException('Student not found');
     }
     return this.publicStudent(student);
@@ -818,9 +823,11 @@ export class StudentsService {
   }
 
   // Maps one CSV row to a CreateStudentDto. The per-row CSV only carries the
-  // identity columns (reg no / name / email); course, branch, passout year and
-  // current year come from the batch defaults set on the import form. A row may
-  // still override any of those by including the column.
+  // identity columns (reg no / name / email); school, programme, passout year
+  // and current year come from the batch defaults set on the import form. A
+  // row may still override any of those by including the column. Accepts
+  // both the current "school"/"programme" headers and the old "course"/
+  // "branch" headers, so nominal rolls colleges already have on file keep working.
   private rowToDto(row: Record<string, string>, defaults: ImportStudentsDto): CreateStudentDto {
     const get = (k: string) => (row[k] ?? '').trim();
     // Accept friendly aliases: "regno"/"registrationnumber" → rollNumber, "name" → fullName.
@@ -849,9 +856,9 @@ export class StudentsService {
     const rollNumber = first('rollnumber', 'regno', 'registrationnumber', 'regno.');
     if (rollNumber === '') throw new BadRequestException('reg no is required');
 
-    const course = first('course') || (defaults.course ?? '').trim();
-    if (course === '') throw new BadRequestException('course is required (set it on the form)');
-    const branch = first('branch') || (defaults.branch ?? '').trim() || course;
+    const school = first('school', 'course') || (defaults.school ?? '').trim();
+    if (school === '') throw new BadRequestException('school is required (set it on the form)');
+    const programme = first('programme', 'program', 'branch') || (defaults.programme ?? '').trim() || school;
     const gradYear = num('graduationyear', 'graduationYear') ?? defaults.graduationYear;
     if (gradYear == null)
       throw new BadRequestException('passout year is required (set it on the form)');
@@ -861,8 +868,8 @@ export class StudentsService {
       fullName,
       email,
       rollNumber,
-      course,
-      branch,
+      school,
+      programme,
       graduationYear: gradYear,
       currentYear,
       enrollmentNumber: get('enrollmentnumber') || undefined,
@@ -874,27 +881,6 @@ export class StudentsService {
       activeBacklogs: num('activebacklogs', 'activeBacklogs'),
       totalBacklogs: num('totalbacklogs', 'totalBacklogs'),
     };
-  }
-
-  /** Permanently delete a student and the linked login account (cascades). */
-  async remove(collegeId: string, id: string) {
-    const student = await this.prisma.student.findFirst({ where: { id, collegeId } });
-    if (!student) throw new NotFoundException('Student not found');
-    // Deleting the User cascades to Student, Resume, applications, etc.
-    await this.prisma.user.delete({ where: { id: student.userId } });
-    return { success: true };
-  }
-
-  /** Bulk delete — only students in the caller's college are touched. */
-  async removeMany(collegeId: string, ids: string[]) {
-    const students = await this.prisma.student.findMany({
-      where: { id: { in: ids }, collegeId },
-      select: { userId: true },
-    });
-    const userIds = students.map((s) => s.userId);
-    if (userIds.length === 0) return { deleted: 0 };
-    await this.prisma.user.deleteMany({ where: { id: { in: userIds } } });
-    return { deleted: userIds.length };
   }
 
   // Builds the prisma write data for the extended profile fields that need
@@ -935,8 +921,8 @@ export class StudentsService {
     id: string;
     rollNumber: string;
     enrollmentNumber: string | null;
-    course: string;
-    branch: string;
+    school: string;
+    programme: string;
     graduationYear: number;
     currentYear: number | null;
     cgpa: Prisma.Decimal | null;
@@ -944,6 +930,8 @@ export class StudentsService {
     totalBacklogs: number;
     dateOfBirth: Date | null;
     gender: string | null;
+    hasDisability: boolean | null;
+    disabilityDetails: string | null;
     personalEmail: string | null;
     linkedinUrl: string | null;
     tenthPercentage: Prisma.Decimal | null;
@@ -1000,8 +988,8 @@ export class StudentsService {
       id: s.id,
       rollNumber: s.rollNumber,
       enrollmentNumber: s.enrollmentNumber,
-      course: s.course,
-      branch: s.branch,
+      school: s.school,
+      programme: s.programme,
       graduationYear: s.graduationYear,
       currentYear: s.currentYear,
       cgpa: s.cgpa != null ? Number(s.cgpa) : null,
@@ -1009,6 +997,8 @@ export class StudentsService {
       totalBacklogs: s.totalBacklogs,
       dateOfBirth: s.dateOfBirth,
       gender: s.gender,
+      hasDisability: s.hasDisability,
+      disabilityDetails: s.disabilityDetails,
       personalEmail: s.personalEmail,
       linkedinUrl: s.linkedinUrl,
       tenthPercentage: s.tenthPercentage != null ? Number(s.tenthPercentage) : null,
@@ -1070,6 +1060,7 @@ function computeCompletion(s: {
   user: { fullName: string; phone: string | null };
   personalEmail: string | null;
   gender: string | null;
+  hasDisability: boolean | null;
   dateOfBirth: Date | null;
   nationality: string | null;
   panNumber: string | null;
@@ -1082,8 +1073,8 @@ function computeCompletion(s: {
   fatherName: string | null;
   fatherOccupation: string | null;
   fatherPhone: string | null;
-  course: string;
-  branch: string;
+  school: string;
+  programme: string;
   department: string | null;
   specialization: string | null;
   admissionYear: number | null;
@@ -1116,6 +1107,7 @@ function computeCompletion(s: {
     phone: s.user.phone,
     personalEmail: s.personalEmail,
     gender: s.gender,
+    hasDisability: s.hasDisability,
     dateOfBirth: s.dateOfBirth ? s.dateOfBirth.toISOString().slice(0, 10) : null,
     nationality: s.nationality,
     panNumber: s.panNumber,
@@ -1128,8 +1120,8 @@ function computeCompletion(s: {
     fatherName: s.fatherName,
     fatherOccupation: s.fatherOccupation,
     fatherPhone: s.fatherPhone,
-    course: s.course,
-    branch: s.branch,
+    school: s.school,
+    programme: s.programme,
     department: s.department,
     specialization: s.specialization,
     admissionYear: s.admissionYear,

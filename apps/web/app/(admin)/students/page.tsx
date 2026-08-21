@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { Breadcrumbs } from '../../../components/breadcrumbs';
-import { useConfirm } from '../../../components/confirm-provider';
 import { useSession } from '../../../lib/session';
 import { BatchCards } from '../../../components/batch-cards';
 import { InlineSkeleton, ListSkeleton } from '../../../components/page-skeleton';
 import {
-  deleteStudents,
-  downloadStudentsByDepartment,
+  downloadStudentsByProgramme,
   graduateBatch,
   listStudentBatches,
   listStudents,
@@ -32,8 +30,8 @@ export default function StudentsPage() {
 
 type ViewState =
   | { mode: 'years' }
-  | { mode: 'courses'; year: number }
-  | { mode: 'table'; year: number; course: string };
+  | { mode: 'schools'; year: number }
+  | { mode: 'table'; year: number; school: string };
 
 interface Year {
   key: string;
@@ -41,20 +39,19 @@ interface Year {
   count: number;
   loggedIn: number;
   detailsComplete: number;
-  courses: number;
+  schools: number;
 }
 
-interface Course {
+interface School {
   key: string;
   year: number;
-  course: string;
+  school: string;
   count: number;
   loggedIn: number;
   detailsComplete: number;
 }
 
 function StudentsList() {
-  const confirm = useConfirm();
   const { user } = useSession();
   const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
   const router = useRouter();
@@ -73,26 +70,22 @@ function StudentsList() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [detailsFilter, setDetailsFilter] = useState<'' | 'complete' | 'incomplete'>('');
   const [resumeFilter, setResumeFilter] = useState<'' | 'uploaded' | 'missing'>('');
-  const [loginFilter, setLoginFilter] = useState<'' | 'logged_in' | 'never' | 'disabled'>('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  async function onExportByDepartment() {
+  async function onExportByProgramme() {
     setExporting(true);
     setError(null);
     try {
-      await downloadStudentsByDepartment();
+      await downloadStudentsByProgramme();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
     } finally {
       setExporting(false);
     }
   }
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [deleting, setDeleting] = useState(false);
-
   const loadBatches = useCallback(async () => {
     setBatchesLoading(true);
     setError(null);
@@ -125,23 +118,21 @@ function StudentsList() {
     try {
       const res = await listStudents({
         search: debouncedSearch || undefined,
-        course: view.course,
+        school: view.school,
         graduationYear: view.year,
         detailsComplete: detailsFilter === '' ? undefined : detailsFilter === 'complete',
         resumeComplete: resumeFilter === '' ? undefined : resumeFilter === 'uploaded',
-        loginStatus: loginFilter || undefined,
         page,
         limit: 10,
       });
       setItems(res.items);
       setMeta(res.meta);
-      setSelected(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load students');
     } finally {
       setLoading(false);
     }
-  }, [view, debouncedSearch, detailsFilter, resumeFilter, loginFilter, page]);
+  }, [view, debouncedSearch, detailsFilter, resumeFilter, page]);
 
   useEffect(() => {
     if (view.mode === 'table') load();
@@ -159,7 +150,7 @@ function StudentsList() {
         existing.count += b.count;
         existing.loggedIn += b.loggedIn;
         existing.detailsComplete += b.detailsComplete;
-        existing.courses += 1;
+        existing.schools += 1;
       } else {
         map.set(b.graduationYear, {
           key: String(b.graduationYear),
@@ -167,47 +158,45 @@ function StudentsList() {
           count: b.count,
           loggedIn: b.loggedIn,
           detailsComplete: b.detailsComplete,
-          courses: 1,
+          schools: 1,
         });
       }
     }
     return [...map.values()].sort((a, b) => b.year - a.year);
   }, [batches]);
 
-  const coursesForYear = useMemo<Course[]>(() => {
+  const schoolsForYear = useMemo<School[]>(() => {
     if (view.mode === 'years') return [];
     return batches
       .filter((b) => b.graduationYear === view.year)
       .map((b) => ({
-        key: `${b.graduationYear}|${b.course}`,
+        key: `${b.graduationYear}|${b.school}`,
         year: b.graduationYear,
-        course: b.course,
+        school: b.school,
         count: b.count,
         loggedIn: b.loggedIn,
         detailsComplete: b.detailsComplete,
       }))
-      .sort((a, b) => a.course.localeCompare(b.course));
+      .sort((a, b) => a.school.localeCompare(b.school));
   }, [batches, view]);
 
   function selectYear(year: number) {
-    setView({ mode: 'courses', year });
+    setView({ mode: 'schools', year });
     setSearch('');
     setDebouncedSearch('');
     setDetailsFilter('');
     setResumeFilter('');
-    setLoginFilter('');
     setPage(1);
     setItems([]);
     setMeta(undefined);
   }
 
-  function selectCourse(year: number, course: string) {
-    setView({ mode: 'table', year, course });
+  function selectSchool(year: number, school: string) {
+    setView({ mode: 'table', year, school });
     setSearch('');
     setDebouncedSearch('');
     setDetailsFilter('');
     setResumeFilter('');
-    setLoginFilter('');
     setPage(1);
     setItems([]);
     setMeta(undefined);
@@ -215,14 +204,12 @@ function StudentsList() {
 
   function backToYears() {
     setView({ mode: 'years' });
-    setSelected(new Set());
     loadBatches();
   }
 
-  function backToCourses() {
+  function backToSchools() {
     if (view.mode !== 'table') return;
-    setView({ mode: 'courses', year: view.year });
-    setSelected(new Set());
+    setView({ mode: 'schools', year: view.year });
   }
 
   function dismissImported() {
@@ -240,93 +227,36 @@ function StudentsList() {
     }
   }
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    setSelected((prev) =>
-      prev.size === items.length ? new Set() : new Set(items.map((s) => s.id)),
-    );
-  }
-
-  async function removeOne(s: Student) {
-    const ok = await confirm({
-      title: `Delete ${s.user.fullName}?`,
-      message: 'This permanently removes the student and their login. This cannot be undone.',
-      confirmLabel: 'Delete',
-      destructive: true,
-      acknowledgement: 'I understand this is permanent.',
-    });
-    if (!ok) return;
-    setError(null);
-    try {
-      await deleteStudents([s.id]);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
-    }
-  }
-
-  async function deleteSelected() {
-    if (selected.size === 0) return;
-    const ok = await confirm({
-      title: `Delete ${selected.size} student${selected.size === 1 ? '' : 's'}?`,
-      message:
-        'This permanently removes the selected students and their logins. This cannot be undone.',
-      confirmLabel: `Delete ${selected.size}`,
-      destructive: true,
-      acknowledgement: 'I understand this is permanent.',
-    });
-    if (!ok) return;
-    setDeleting(true);
-    setError(null);
-    try {
-      await deleteStudents([...selected]);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  const allSelected = items.length > 0 && selected.size === items.length;
   const totalStudents = batches.reduce((n, b) => n + b.count, 0);
 
   const title = useMemo(() => {
     if (view.mode === 'years') return 'Students';
-    if (view.mode === 'courses') return `Students · ${view.year}`;
-    return `Students · ${view.year} · ${view.course}`;
+    if (view.mode === 'schools') return `Students · ${view.year}`;
+    return `Students · ${view.year} · ${view.school}`;
   }, [view]);
 
   const subtitle = useMemo(() => {
     if (view.mode === 'years') {
       return `${totalStudents} registered · ${years.length} ${years.length === 1 ? 'year' : 'years'}`;
     }
-    if (view.mode === 'courses') {
-      const yearTotal = coursesForYear.reduce((n, c) => n + c.count, 0);
-      return `${yearTotal} students · ${coursesForYear.length} ${coursesForYear.length === 1 ? 'course' : 'courses'} in ${view.year}`;
+    if (view.mode === 'schools') {
+      const yearTotal = schoolsForYear.reduce((n, c) => n + c.count, 0);
+      return `${yearTotal} students · ${schoolsForYear.length} ${schoolsForYear.length === 1 ? 'school' : 'schools'} in ${view.year}`;
     }
     return meta
       ? `${meta.total} students · ${meta.detailsCompleteCount ?? 0} details complete`
-      : `${view.year} ${view.course}`;
-  }, [view, years, coursesForYear, totalStudents, meta]);
+      : `${view.year} ${view.school}`;
+  }, [view, years, schoolsForYear, totalStudents, meta]);
 
   const breadcrumbCrumbs = useMemo(() => {
     const crumbs: Array<{ label: string; onClick?: () => void }> = [
       { label: 'Students', onClick: backToYears },
     ];
-    if (view.mode === 'courses') {
+    if (view.mode === 'schools') {
       crumbs.push({ label: String(view.year) });
     } else if (view.mode === 'table') {
-      crumbs.push({ label: String(view.year), onClick: backToCourses });
-      crumbs.push({ label: view.course });
+      crumbs.push({ label: String(view.year), onClick: backToSchools });
+      crumbs.push({ label: view.school });
     }
     return crumbs;
   }, [view]);
@@ -367,8 +297,8 @@ function StudentsList() {
         </div>
         {!readOnly && (
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" onClick={onExportByDepartment} loading={exporting}>
-              Export by department
+            <Button variant="ghost" onClick={onExportByProgramme} loading={exporting}>
+              Export by programme
             </Button>
             <Link href="/students/import">
               <Button variant="ghost">Import CSV</Button>
@@ -421,7 +351,7 @@ function StudentsList() {
                       | 'success'
                       | 'warn',
                   },
-                  { label: y.courses === 1 ? 'course' : 'courses', value: y.courses },
+                  { label: y.schools === 1 ? 'school' : 'schools', value: y.schools },
                 ],
               }))}
               onSelect={(key) => {
@@ -433,14 +363,14 @@ function StudentsList() {
         </>
       )}
 
-      {/* ── Course picker ── */}
-      {view.mode === 'courses' && (
+      {/* ── School picker ── */}
+      {view.mode === 'schools' && (
         <>
           <BatchCards
-            items={coursesForYear.map((c) => ({
+            items={schoolsForYear.map((c) => ({
               key: c.key,
-              title: c.course,
-              category: `${c.year} · Course`,
+              title: c.school,
+              category: `${c.year} · School`,
               stats: [
                 { label: c.count === 1 ? 'student' : 'students', value: c.count },
                 {
@@ -456,8 +386,8 @@ function StudentsList() {
               ],
             }))}
             onSelect={(key) => {
-              const course = coursesForYear.find((c) => c.key === key)?.course ?? '';
-              selectCourse(view.year, course);
+              const school = schoolsForYear.find((c) => c.key === key)?.school ?? '';
+              selectSchool(view.year, school);
             }}
           />
         </>
@@ -468,10 +398,10 @@ function StudentsList() {
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button
-              onClick={backToCourses}
+              onClick={backToSchools}
               className="text-sm font-medium text-primary-600 hover:underline"
             >
-              ← All courses in {view.year}
+              ← All schools in {view.year}
             </button>
             <div className="flex flex-wrap items-center gap-2">
               <select
@@ -494,22 +424,9 @@ function StudentsList() {
                 }}
                 className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
               >
-                <option value="">All resumes</option>
+                <option value="">All Students</option>
                 <option value="uploaded">Resume uploaded</option>
                 <option value="missing">Resume missing</option>
-              </select>
-              <select
-                value={loginFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setLoginFilter(e.target.value as typeof loginFilter);
-                }}
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
-              >
-                <option value="">All login</option>
-                <option value="logged_in">Logged in</option>
-                <option value="never">Never logged in</option>
-                <option value="disabled">Disabled</option>
               </select>
               <input
                 type="search"
@@ -524,36 +441,10 @@ function StudentsList() {
             </div>
           </div>
 
-          {selected.size > 0 && (
-            <div className="flex items-center justify-between rounded-md border border-primary-200 bg-primary-50 px-4 py-2">
-              <span className="text-sm font-medium text-primary-700">{selected.size} selected</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setSelected(new Set())}
-                  className="text-xs text-subtle hover:underline"
-                >
-                  Clear
-                </button>
-                <Button variant="danger" size="sm" onClick={deleteSelected} loading={deleting}>
-                  {deleting ? 'Deleting…' : 'Delete selected'}
-                </Button>
-              </div>
-            </div>
-          )}
-
           <Card className="overflow-x-auto p-0">
             <table className="w-full min-w-[680px] text-left text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
                 <tr>
-                  <th className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      aria-label="Select all"
-                      className="h-4 w-4 cursor-pointer accent-primary-600"
-                    />
-                  </th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Reg No.</th>
                   <th className="px-4 py-3 font-medium">Resume</th>
@@ -565,33 +456,19 @@ function StudentsList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8">
+                    <td colSpan={6} className="px-4 py-8">
                       <InlineSkeleton width="w-full" height="h-32" />
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-subtle">
+                    <td colSpan={6} className="px-4 py-8 text-center text-subtle">
                       No students match your search.
                     </td>
                   </tr>
                 ) : (
                   items.map((s) => (
-                    <tr
-                      key={s.id}
-                      className={`border-b border-border last:border-0 hover:bg-app/60 ${
-                        selected.has(s.id) ? 'bg-primary-50/50' : ''
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(s.id)}
-                          onChange={() => toggleSelect(s.id)}
-                          aria-label={`Select ${s.user.fullName}`}
-                          className="h-4 w-4 cursor-pointer accent-primary-600"
-                        />
-                      </td>
+                    <tr key={s.id} className="border-b border-border last:border-0 hover:bg-app/60">
                       <td className="px-4 py-3">
                         <Link
                           href={`/students/${s.id}`}
@@ -620,11 +497,7 @@ function StudentsList() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end">
-                          <RowMenu
-                            student={s}
-                            onToggle={() => toggleActive(s)}
-                            onDelete={() => removeOne(s)}
-                          />
+                          <RowMenu student={s} onToggle={() => toggleActive(s)} />
                         </div>
                       </td>
                     </tr>
@@ -821,11 +694,9 @@ function DetailsStatus({ steps, complete }: { steps: Student['profileSteps']; co
 function RowMenu({
   student,
   onToggle,
-  onDelete,
 }: {
   student: Student;
   onToggle: () => void;
-  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -894,16 +765,6 @@ function RowMenu({
             role="menuitem"
           >
             {student.isActive ? 'Disable login' : 'Enable login'}
-          </button>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-            className={`${item} text-danger`}
-            role="menuitem"
-          >
-            Delete
           </button>
         </div>
       )}

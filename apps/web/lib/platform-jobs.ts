@@ -20,8 +20,8 @@ export interface CreatePlatformJobInput {
   experienceMax?: number;
   ctcMin?: number;
   ctcMax?: number;
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa?: number;
   maxActiveBacklogs?: number;

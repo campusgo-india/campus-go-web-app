@@ -65,10 +65,10 @@ function RegisterForm({
     email: '',
     phone: '',
     graduationYear: String(new Date().getFullYear()),
-    branch: '',
+    programme: '',
     registerNumber: '',
     joiningYear: '',
-    course: '',
+    school: '',
     currentCompany: '',
     currentDesignation: '',
     currentLocation: '',
@@ -85,7 +85,7 @@ function RegisterForm({
   const ready =
     form.fullName.trim() &&
     isValidEmail(form.email) &&
-    form.branch.trim() &&
+    form.programme.trim() &&
     form.graduationYear &&
     form.phone.trim() &&
     phoneOk;
@@ -98,11 +98,11 @@ function RegisterForm({
         fullName: form.fullName.trim(),
         email: form.email.trim(),
         graduationYear: Number(form.graduationYear),
-        branch: form.branch.trim(),
+        programme: form.programme.trim(),
         phone: form.phone.trim(),
         registerNumber: form.registerNumber.trim() || undefined,
         joiningYear: form.joiningYear ? Number(form.joiningYear) : undefined,
-        course: form.course.trim() || undefined,
+        school: form.school.trim() || undefined,
         currentCompany: form.currentCompany.trim() || undefined,
         currentDesignation: form.currentDesignation.trim() || undefined,
         currentLocation: form.currentLocation.trim() || undefined,
@@ -145,7 +145,7 @@ function RegisterForm({
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year you joined the course"
+            placeholder="Year you joined the school"
             min="0"
           />
         </Field>
@@ -158,16 +158,16 @@ function RegisterForm({
             min="0"
           />
         </Field>
-        <Field label="Branch *">
-          <input className={inputCls} value={form.branch} onChange={set('branch')} />
+        <Field label="Programme *">
+          <input className={inputCls} value={form.programme} onChange={set('programme')} />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Course">
+        <Field label="School">
           <input
             className={inputCls}
-            value={form.course}
-            onChange={set('course')}
+            value={form.school}
+            onChange={set('school')}
             placeholder="B.Tech"
           />
         </Field>

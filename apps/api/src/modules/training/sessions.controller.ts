@@ -3,7 +3,7 @@ import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { TrainingSessionsService } from './sessions.service';
-import { CreateSessionDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
+import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
 
 @Controller('training/sessions')
 @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
@@ -51,6 +51,15 @@ export class TrainingSessionsController {
     @Body() dto: MarkAttendanceDto,
   ) {
     return { data: await this.sessions.markAttendance(this.collegeId(user), id, user.sub, dto) };
+  }
+
+  @Post(':id/attendance/import')
+  async importAttendance(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: ImportAttendanceDto,
+  ) {
+    return { data: await this.sessions.importAttendance(this.collegeId(user), id, user.sub, dto) };
   }
 }
 

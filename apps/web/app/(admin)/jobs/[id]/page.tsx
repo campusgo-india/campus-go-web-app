@@ -333,7 +333,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         {s.fullName} <span className="text-subtle">· {s.rollNumber}</span>
                       </span>
                       <span className="text-xs text-subtle">
-                        {s.branch} · {s.cgpa != null ? `${s.cgpa}%` : '—'}
+                        {s.programme} · {s.cgpa != null ? `${s.cgpa}%` : '—'}
                       </span>
                     </div>
                   ))}
@@ -348,8 +348,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <Card className="space-y-3 p-5">
             <h2 className="text-sm font-semibold text-strong">Who can apply</h2>
             <dl className="space-y-2.5">
-              <Criteria label="Courses" value={job.eligibleCourses.join(', ') || 'Any'} />
-              <Criteria label="Branches" value={job.eligibleBranches.join(', ') || 'Any'} />
+              <Criteria label="Schools" value={job.eligibleSchools.join(', ') || 'Any'} />
+              <Criteria label="Programmes" value={job.eligibleProgrammes.join(', ') || 'Any'} />
               <Criteria label="Batch" value={job.graduationYears.join(', ') || 'Any'} />
               <Criteria
                 label="Min UG %"

@@ -423,14 +423,16 @@ function toForm(s: Student): UpdateOwnProfileInput {
     fullName: s.user.fullName,
     phone: s.user.phone ?? '',
     enrollmentNumber: str(s.enrollmentNumber),
-    course: s.course,
-    branch: s.branch,
+    school: s.school,
+    programme: s.programme,
     graduationYear: s.graduationYear,
     cgpa: num(s.cgpa),
     activeBacklogs: s.activeBacklogs,
     totalBacklogs: s.totalBacklogs,
     dateOfBirth: s.dateOfBirth ? s.dateOfBirth.slice(0, 10) : '',
     gender: str(s.gender),
+    hasDisability: bool(s.hasDisability),
+    disabilityDetails: str(s.disabilityDetails),
     personalEmail: str(s.personalEmail),
     linkedinUrl: str(s.linkedinUrl),
     tenthPercentage: num(s.tenthPercentage),
@@ -494,14 +496,16 @@ function clean(form: UpdateOwnProfileInput): UpdateOwnProfileInput {
   str('fullName');
   phoneStr('phone');
   str('enrollmentNumber');
-  str('course');
-  str('branch');
+  str('school');
+  str('programme');
   if (form.graduationYear != null) out.graduationYear = form.graduationYear;
   num('cgpa');
   if (form.activeBacklogs != null) out.activeBacklogs = form.activeBacklogs;
   if (form.totalBacklogs != null) out.totalBacklogs = form.totalBacklogs;
   str('dateOfBirth');
   str('gender');
+  bool('hasDisability');
+  str('disabilityDetails');
   str('personalEmail');
   str('linkedinUrl');
   num('tenthPercentage');

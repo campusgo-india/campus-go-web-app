@@ -16,7 +16,7 @@ const DESCRIPTIONS: Record<string, string> = {
   companies: 'Recruiting companies, jobs posted & primary contacts.',
   placement: 'One row per placed student — company, role & CTC.',
   offers: 'Every released, accepted & joined offer.',
-  branch: 'Branch-wise placement rate, offers & average package.',
+  programme: 'Programme-wise placement rate, offers & average package.',
   batch: 'Batch-wise (graduation year) placement rate, offers & average package.',
   funnel: 'Application counts by outcome status.',
   summary:

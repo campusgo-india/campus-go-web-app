@@ -118,7 +118,7 @@ export class ApplicationsService {
         id: a.student.id,
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
-        branch: a.student.branch,
+        programme: a.student.programme,
         cgpa: a.student.cgpa != null ? Number(a.student.cgpa) : null,
       },
     }));
@@ -404,7 +404,7 @@ export class ApplicationsService {
         note: string | null;
         createdAt: Date;
       }>;
-      student?: { id: string; rollNumber: string; user: { fullName: string }; branch: string };
+      student?: { id: string; rollNumber: string; user: { fullName: string }; programme: string };
     },
     withStudent = false,
   ) {
@@ -448,7 +448,7 @@ export class ApplicationsService {
               id: a.student.id,
               rollNumber: a.student.rollNumber,
               fullName: a.student.user.fullName,
-              branch: a.student.branch,
+              programme: a.student.programme,
             },
           }
         : {}),

@@ -17,9 +17,9 @@ import { EmptyToUndefined, TitleCase } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
 
-export class CourseInputDto {
+export class SchoolInputDto {
   @IsString() @MinLength(1) name!: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) branches?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) programmes?: string[];
 }
 
 export class CreateCollegeDto {
@@ -63,12 +63,12 @@ export class CreateCollegeDto {
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   adminPassword?: string;
 
-  // Optional initial course catalog (courses + their branches).
+  // Optional initial school catalog (schools + their programmes).
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CourseInputDto)
-  courses?: CourseInputDto[];
+  @Type(() => SchoolInputDto)
+  schools?: SchoolInputDto[];
 }
 
 export class ResetAdminPasswordDto {

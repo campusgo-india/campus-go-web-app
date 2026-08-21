@@ -2,12 +2,9 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
-import { useConfirm } from '../../../../components/confirm-provider';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
 import {
-  deleteStudent,
   getStudent,
   setStudentActive,
   updateStudent,
@@ -17,8 +14,6 @@ import {
 
 export default function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
-  const confirm = useConfirm();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -50,27 +45,6 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
     } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    if (!student) return;
-    const ok = await confirm({
-      title: `Delete ${student.user.fullName}?`,
-      message: 'This permanently removes the student and their login. This cannot be undone.',
-      confirmLabel: 'Delete',
-      destructive: true,
-      acknowledgement: 'I understand this is permanent.',
-    });
-    if (!ok) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await deleteStudent(student.id);
-      router.push('/students');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
       setBusy(false);
     }
   }
@@ -107,9 +81,6 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
             disabled={busy}
           >
             {busy ? 'Saving…' : student.isActive ? 'Disable login' : 'Enable login'}
-          </Button>
-          <Button variant="danger" onClick={remove} disabled={busy}>
-            Delete
           </Button>
         </div>
       </div>
@@ -261,8 +232,8 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Detail label="Name" value={student.user.fullName} />
             <Detail label="Reg no." value={student.rollNumber} />
-            <Detail label="Course" value={student.course || '—'} />
-            <Detail label="Branch" value={student.branch || '—'} />
+            <Detail label="School" value={student.school || '—'} />
+            <Detail label="Programme" value={student.programme || '—'} />
             <Detail label="Passout year" value={String(student.graduationYear)} />
             <Detail
               label="Current year"
@@ -271,7 +242,6 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
             <Detail label="Percentage" value={student.cgpa != null ? `${student.cgpa}%` : '—'} />
             <Detail label="Active backlogs" value={String(student.activeBacklogs)} />
             <Detail label="Total backlogs" value={String(student.totalBacklogs)} />
-            <Detail label="Enrollment no." value={student.enrollmentNumber ?? '—'} />
             <Detail label="Phone" value={student.user.phone ?? '—'} />
             <Detail label="Personal email" value={student.personalEmail ?? '—'} />
             <Detail label="LinkedIn" value={student.linkedinUrl ?? '—'} />
@@ -307,6 +277,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
           <div className="space-y-5 border-t border-line pt-4">
             <DetailSection title="Personal">
               <Detail label="Gender" value={student.gender ?? '—'} />
+              <Detail label="Disability status" value={yesNo(student.hasDisability)} />
               <Detail label="Nationality" value={student.nationality ?? '—'} />
               <Detail label="PAN number" value={student.panNumber ?? '—'} />
             </DetailSection>
@@ -424,13 +395,12 @@ function EditStudentForm({
     fullName: student.user.fullName,
     phone: student.user.phone ?? '',
     rollNumber: student.rollNumber,
-    course: student.course,
-    branch: student.branch,
+    school: student.school,
+    programme: student.programme,
     graduationYear: String(student.graduationYear),
     currentYear: student.currentYear != null ? String(student.currentYear) : '',
     cgpa: student.cgpa != null ? String(student.cgpa) : '',
     ugPercentage: student.ugPercentage != null ? String(student.ugPercentage) : '',
-    enrollmentNumber: student.enrollmentNumber ?? '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -446,13 +416,12 @@ function EditStudentForm({
         fullName: form.fullName.trim(),
         phone: form.phone.trim() || undefined,
         rollNumber: form.rollNumber.trim(),
-        course: form.course.trim(),
-        branch: form.branch.trim(),
+        school: form.school.trim(),
+        programme: form.programme.trim(),
         graduationYear: Number(form.graduationYear),
         currentYear: form.currentYear === '' ? undefined : Number(form.currentYear),
         cgpa: form.cgpa === '' ? undefined : Number(form.cgpa),
         ugPercentage: form.ugPercentage === '' ? undefined : Number(form.ugPercentage),
-        enrollmentNumber: form.enrollmentNumber.trim() || undefined,
       });
       onSaved(updated);
     } catch (err) {
@@ -467,8 +436,8 @@ function EditStudentForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <EditField label="Name" value={form.fullName} onChange={set('fullName')} />
         <EditField label="Reg no." value={form.rollNumber} onChange={set('rollNumber')} />
-        <EditField label="Course" value={form.course} onChange={set('course')} />
-        <EditField label="Branch" value={form.branch} onChange={set('branch')} />
+        <EditField label="School" value={form.school} onChange={set('school')} />
+        <EditField label="Programme" value={form.programme} onChange={set('programme')} />
         <EditField
           label="Passout year"
           type="number"
@@ -496,11 +465,6 @@ function EditStudentForm({
           type="number"
           value={form.ugPercentage}
           onChange={set('ugPercentage')}
-        />
-        <EditField
-          label="Enrollment no."
-          value={form.enrollmentNumber}
-          onChange={set('enrollmentNumber')}
         />
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}

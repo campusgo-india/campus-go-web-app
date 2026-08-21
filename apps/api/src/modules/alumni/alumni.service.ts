@@ -75,8 +75,8 @@ export class AlumniService {
     const limit = q.limit ?? 25;
     const where: Prisma.AlumniWhereInput = {
       collegeId,
-      ...(q.branch ? { branch: q.branch } : {}),
-      ...(q.course ? { course: q.course } : {}),
+      ...(q.programme ? { programme: q.programme } : {}),
+      ...(q.school ? { school: q.school } : {}),
       ...(q.graduationYear ? { graduationYear: q.graduationYear } : {}),
       ...(q.company ? { currentCompany: { contains: q.company, mode: 'insensitive' } } : {}),
       ...(q.tag ? { tags: { has: q.tag } } : {}),
@@ -130,13 +130,13 @@ export class AlumniService {
 
   /**
    * Dashboard metrics + segmentation facets for the alumni network. Facets
-   * (branches, years, companies) drive the filter UI; counts give the overview.
+   * (programmes, years, companies) drive the filter UI; counts give the overview.
    */
   async stats(collegeId: string) {
     // Scoped to approved entries only, so these headline numbers match what the
     // default directory view actually shows (pending ones are excluded there).
     const approved = { collegeId, isApproved: true };
-    const [total, mentors, hiring, pending, byYearRaw, byYearCourseRaw, byBranchRaw, byCompanyRaw] =
+    const [total, mentors, hiring, pending, byYearRaw, byYearSchoolRaw, byProgrammeRaw, byCompanyRaw] =
       await Promise.all([
         this.prisma.alumni.count({ where: approved }),
         this.prisma.alumni.count({ where: { ...approved, isMentor: true } }),
@@ -149,13 +149,13 @@ export class AlumniService {
           orderBy: { graduationYear: 'desc' },
         }),
         this.prisma.alumni.groupBy({
-          by: ['graduationYear', 'course'],
-          where: { ...approved, course: { not: null } },
+          by: ['graduationYear', 'school'],
+          where: { ...approved, school: { not: null } },
           _count: { _all: true },
           orderBy: { graduationYear: 'desc' },
         }),
         this.prisma.alumni.groupBy({
-          by: ['branch'],
+          by: ['programme'],
           where: approved,
           _count: { _all: true },
         }),
@@ -166,16 +166,16 @@ export class AlumniService {
         }),
       ]);
 
-    const byBranch = byBranchRaw
-      .map((b) => ({ branch: b.branch, count: b._count._all }))
+    const byProgramme = byProgrammeRaw
+      .map((b) => ({ programme: b.programme, count: b._count._all }))
       .sort((a, b) => b.count - a.count);
-    const byYearCourse = byYearCourseRaw
-      .map((yc) => ({
-        graduationYear: yc.graduationYear,
-        course: yc.course as string,
-        count: yc._count._all,
+    const byYearSchool = byYearSchoolRaw
+      .map((ys) => ({
+        graduationYear: ys.graduationYear,
+        school: ys.school as string,
+        count: ys._count._all,
       }))
-      .sort((a, b) => (a.course || '').localeCompare(b.course || ''));
+      .sort((a, b) => (a.school || '').localeCompare(b.school || ''));
     const topCompanies = byCompanyRaw
       .map((c) => ({ company: c.currentCompany as string, count: c._count._all }))
       .sort((a, b) => b.count - a.count)
@@ -190,11 +190,11 @@ export class AlumniService {
         graduationYear: y.graduationYear,
         count: y._count._all,
       })),
-      byYearCourse,
-      byBranch,
+      byYearSchool,
+      byProgramme,
       topCompanies,
       facets: {
-        branches: byBranch.map((b) => b.branch),
+        programmes: byProgramme.map((b) => b.programme),
         graduationYears: byYearRaw.map((y) => y.graduationYear),
         companies: byCompanyRaw
           .map((c) => c.currentCompany as string)

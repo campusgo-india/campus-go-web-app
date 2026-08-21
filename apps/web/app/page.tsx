@@ -41,7 +41,7 @@ const STUDENT_FEATURES = [
   },
   {
     title: 'Apply in one tap',
-    body: 'Eligibility (course, CGPA, backlogs, branch) is checked automatically, so the jobs you see are the jobs you can actually apply to.',
+    body: 'Eligibility (school, CGPA, backlogs, programme) is checked automatically, so the jobs you see are the jobs you can actually apply to.',
   },
   {
     title: 'Know where you stand',

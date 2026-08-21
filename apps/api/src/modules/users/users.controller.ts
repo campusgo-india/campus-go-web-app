@@ -70,6 +70,18 @@ export class UsersController {
     return { data: result };
   }
 
+  @Post(':id/reset-password')
+  async resetPassword(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Ip() ip: string) {
+    const result = await this.users.resetPassword(this.collegeId(user), id);
+    await this.audit.record(user, {
+      action: 'USER_PASSWORD_RESET',
+      targetType: 'user',
+      targetId: id,
+      ip,
+    });
+    return { data: result };
+  }
+
   @Delete(':id')
   async deactivate(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Ip() ip: string) {
     const result = await this.users.deactivate(this.collegeId(user), id);

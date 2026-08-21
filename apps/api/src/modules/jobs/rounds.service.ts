@@ -20,7 +20,7 @@ interface FunnelStudent {
   studentId: string;
   rollNumber: string;
   fullName: string;
-  branch: string;
+  programme: string;
   email: string;
   resumeSlug: string | null;
   appliedAt: Date;
@@ -458,7 +458,7 @@ export class RoundsService {
     offerLetterUrl: string | null;
     student: {
       rollNumber: string;
-      branch: string;
+      programme: string;
       user: { fullName: string; email: string };
       resume: { publicSlug: string; isPublished: boolean } | null;
     };
@@ -468,7 +468,7 @@ export class RoundsService {
       studentId: a.studentId,
       rollNumber: a.student.rollNumber,
       fullName: a.student.user.fullName,
-      branch: a.student.branch,
+      programme: a.student.programme,
       email: a.student.user.email,
       // Present whenever a resume row exists — the officer views it via an
       // authenticated route, so publish state doesn't matter here.

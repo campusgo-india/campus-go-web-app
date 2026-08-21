@@ -12,23 +12,13 @@ import { EligibilityCheckModal } from '../../../../components/eligibility-check-
 import { InlineSkeleton, ListSkeleton } from '../../../../components/page-skeleton';
 import { useApi } from '../../../../lib/use-api';
 
-type Category = 'ALL' | 'APPLIED' | 'CLOSING_SOON' | 'CLOSED';
+type Category = 'ALL' | 'APPLIED' | 'CLOSED';
 
 const CATEGORIES: { key: Category; label: string }[] = [
   { key: 'ALL', label: 'Open' },
   { key: 'APPLIED', label: 'Applied' },
-  { key: 'CLOSING_SOON', label: 'Closing soon' },
   { key: 'CLOSED', label: 'Closed' },
 ];
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function isClosingSoon(job: Job): boolean {
-  if (!job.applicationDeadline || job.applied) return false;
-  const deadline = new Date(job.applicationDeadline).getTime();
-  const daysLeft = (deadline - Date.now()) / MS_PER_DAY;
-  return daysLeft >= 0 && daysLeft <= 7;
-}
 
 function isClosed(job: Job): boolean {
   if (job.status === 'CLOSED') return true;
@@ -44,8 +34,6 @@ function matchesCategory(job: Job, category: Category): boolean {
       return !isClosed(job) && !job.applied;
     case 'APPLIED':
       return job.applied === true;
-    case 'CLOSING_SOON':
-      return isClosingSoon(job);
     case 'CLOSED':
       return isClosed(job);
     default:
@@ -57,8 +45,6 @@ function emptyMessage(category: Category): string {
   switch (category) {
     case 'APPLIED':
       return "You haven't applied to any jobs yet.";
-    case 'CLOSING_SOON':
-      return 'No jobs closing in the next 7 days.';
     case 'CLOSED':
       return 'No closed jobs to show.';
     default:

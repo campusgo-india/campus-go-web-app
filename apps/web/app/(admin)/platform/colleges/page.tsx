@@ -6,7 +6,7 @@ import { Badge, Button, Card } from '@campusgo/ui';
 import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
 import { PasswordInput } from '../../../../components/password-input';
 import { CopyButton } from '../../../../components/copy-button';
-import { CoursesPanel } from '../../../../components/courses-panel';
+import { SchoolsPanel } from '../../../../components/courses-panel';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
 import {
@@ -31,7 +31,7 @@ export default function PlatformCollegesPage() {
   const [created, setCreated] = useState<CreateCollegeResult | null>(null);
   const [reset, setReset] = useState<ResetAdminPasswordResult | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [coursesFor, setCoursesFor] = useState<string | null>(null);
+  const [schoolsFor, setSchoolsFor] = useState<string | null>(null);
   const [logoFor, setLogoFor] = useState<string | null>(null);
 
   async function load() {
@@ -244,10 +244,10 @@ export default function PlatformCollegesPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <button
-                          onClick={() => setCoursesFor((id) => (id === c.id ? null : c.id))}
+                          onClick={() => setSchoolsFor((id) => (id === c.id ? null : c.id))}
                           className="text-xs font-medium text-primary-600 hover:underline"
                         >
-                          {coursesFor === c.id ? 'Hide courses' : 'Courses'}
+                          {schoolsFor === c.id ? 'Hide schools' : 'Schools'}
                         </button>
                         <button
                           onClick={() => setLogoFor((id) => (id === c.id ? null : c.id))}
@@ -277,10 +277,10 @@ export default function PlatformCollegesPage() {
                       </div>
                     </td>
                   </tr>
-                  {coursesFor === c.id && (
+                  {schoolsFor === c.id && (
                     <tr className="border-b border-border">
                       <td colSpan={5} className="px-4 py-3">
-                        <CoursesPanel collegeId={c.id} />
+                        <SchoolsPanel collegeId={c.id} />
                       </td>
                     </tr>
                   )}
@@ -401,25 +401,25 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
   const [slugTouched, setSlugTouched] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Local course catalog defined during onboarding.
-  const [courses, setCourses] = useState<{ name: string; branches: string[] }[]>([]);
-  const [courseName, setCourseName] = useState('');
-  const [courseBranches, setCourseBranches] = useState('');
+  // Local school catalog defined during onboarding.
+  const [schools, setSchools] = useState<{ name: string; programmes: string[] }[]>([]);
+  const [schoolName, setSchoolName] = useState('');
+  const [schoolProgrammes, setSchoolProgrammes] = useState('');
 
-  function addCourse() {
-    const name = courseName.trim();
-    if (!name || courses.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
-    const branches = [
+  function addSchool() {
+    const name = schoolName.trim();
+    if (!name || schools.some((c) => c.name.toLowerCase() === name.toLowerCase())) return;
+    const programmes = [
       ...new Set(
-        courseBranches
+        schoolProgrammes
           .split(',')
           .map((b) => b.trim())
           .filter(Boolean),
       ),
     ];
-    setCourses((cs) => [...cs, { name, branches }]);
-    setCourseName('');
-    setCourseBranches('');
+    setSchools((cs) => [...cs, { name, programmes }]);
+    setSchoolName('');
+    setSchoolProgrammes('');
   }
 
   function setField(k: keyof typeof form, v: string) {
@@ -446,7 +446,7 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
         adminFullName: form.adminFullName.trim(),
         adminEmail: form.adminEmail.trim(),
         adminPassword: form.adminPassword.trim() || undefined,
-        courses: courses.length ? courses : undefined,
+        schools: schools.length ? schools : undefined,
       });
       onCreated(result);
     } catch (err) {
@@ -566,25 +566,25 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-strong">Courses offered</h2>
+        <h2 className="text-sm font-semibold text-strong">Schools offered</h2>
         <p className="text-xs text-subtle">
-          The courses + branches this college runs. Students and jobs pick from these. You can edit
-          them later from the Courses action.
+          The schools + programmes this college runs. Students and jobs pick from these. You can edit
+          them later from the Schools action.
         </p>
-        {courses.length > 0 && (
+        {schools.length > 0 && (
           <div className="mt-3 space-y-1">
-            {courses.map((co, i) => (
+            {schools.map((co, i) => (
               <div
                 key={co.name}
                 className="flex items-center gap-2 rounded-md bg-app px-3 py-1.5 text-sm"
               >
                 <span className="font-medium text-strong">{co.name}</span>
                 <span className="flex-1 text-xs text-subtle">
-                  {co.branches.length ? co.branches.join(' · ') : 'no branches'}
+                  {co.programmes.length ? co.programmes.join(' · ') : 'no programmes'}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setCourses((cs) => cs.filter((_, j) => j !== i))}
+                  onClick={() => setSchools((cs) => cs.filter((_, j) => j !== i))}
                   className="text-xs font-medium text-danger hover:underline"
                 >
                   Remove
@@ -594,21 +594,21 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
           </div>
         )}
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <Field label="Course">
+          <Field label="School">
             <input
               className={`${inputCls} w-40`}
-              value={courseName}
-              onChange={(e) => setCourseName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCourse())}
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSchool())}
               placeholder="B.Tech"
             />
           </Field>
-          <Field label="Branches (comma-separated)">
+          <Field label="Programmes (comma-separated)">
             <input
               className={`${inputCls} w-72`}
-              value={courseBranches}
-              onChange={(e) => setCourseBranches(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCourse())}
+              value={schoolProgrammes}
+              onChange={(e) => setSchoolProgrammes(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSchool())}
               placeholder="CSE, ECE, Mechanical (blank if none)"
             />
           </Field>
@@ -616,10 +616,10 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
             type="button"
             variant="outline"
             size="sm"
-            onClick={addCourse}
-            disabled={!courseName.trim()}
+            onClick={addSchool}
+            disabled={!schoolName.trim()}
           >
-            Add course
+            Add school
           </Button>
         </div>
       </div>

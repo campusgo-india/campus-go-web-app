@@ -215,12 +215,12 @@ export class AnalyticsService {
 
   // ─────────────── Breakdowns ───────────────
   async breakdowns(collegeId: string) {
-    const [byBranch, byBatch, byCompany] = await Promise.all([
-      this.branchBreakdown(collegeId),
+    const [byProgramme, byBatch, byCompany] = await Promise.all([
+      this.programmeBreakdown(collegeId),
       this.batchBreakdown(collegeId),
       this.companyBreakdown(collegeId),
     ]);
-    return { byBranch, byBatch, byCompany };
+    return { byProgramme, byBatch, byCompany };
   }
 
   // ─────────────── Platform-wide (PLATFORM_ADMIN, all colleges) ───────────────
@@ -308,36 +308,36 @@ export class AnalyticsService {
       .map(([graduationYear, placements]) => ({ graduationYear, placements }));
   }
 
-  private async branchBreakdown(collegeId: string) {
+  private async programmeBreakdown(collegeId: string) {
     const students = await this.prisma.student.findMany({
       where: { collegeId, isActive: true },
-      select: { branch: true },
+      select: { programme: true },
     });
     const placed = await this.prisma.application.findMany({
       where: { collegeId, stage: { in: [...PLACING_STAGES] } },
-      select: { studentId: true, student: { select: { branch: true } } },
+      select: { studentId: true, student: { select: { programme: true } } },
       distinct: ['studentId'],
     });
-    const placedByBranch = new Map<string, Set<string>>();
+    const placedByProgramme = new Map<string, Set<string>>();
     for (const a of placed) {
-      const b = a.student.branch;
-      const set = placedByBranch.get(b) ?? new Set<string>();
+      const b = a.student.programme;
+      const set = placedByProgramme.get(b) ?? new Set<string>();
       set.add(a.studentId);
-      placedByBranch.set(b, set);
+      placedByProgramme.set(b, set);
     }
     const map = new Map<string, { total: number; placed: number }>();
     for (const s of students) {
-      const row = map.get(s.branch) ?? { total: 0, placed: 0 };
+      const row = map.get(s.programme) ?? { total: 0, placed: 0 };
       row.total++;
-      map.set(s.branch, row);
+      map.set(s.programme, row);
     }
-    for (const [branch, set] of placedByBranch) {
-      const row = map.get(branch) ?? { total: 0, placed: 0 };
+    for (const [programme, set] of placedByProgramme) {
+      const row = map.get(programme) ?? { total: 0, placed: 0 };
       row.placed = set.size;
-      map.set(branch, row);
+      map.set(programme, row);
     }
-    return [...map.entries()].map(([branch, { total, placed }]) => ({
-      branch,
+    return [...map.entries()].map(([programme, { total, placed }]) => ({
+      programme,
       total,
       placed,
       placementRate: total > 0 ? Math.round((placed / total) * 1000) / 10 : 0,

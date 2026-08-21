@@ -8,7 +8,7 @@ export interface TeamMember {
   fullName: string;
   role: string;
   phone: string | null;
-  assignedBranch: string | null;
+  assignedProgrammes: string[];
   isActive: boolean;
   lastLoginAt: string | null;
 }
@@ -18,8 +18,9 @@ export interface CreateUserInput {
   email: string;
   role: string; // COLLEGE_ADMIN | PLACEMENT_OFFICER | PLACEMENT_COORDINATOR
   phone?: string;
-  // PLACEMENT_COORDINATOR only: the single branch they're responsible for.
-  assignedBranch?: string;
+  // PLACEMENT_COORDINATOR only: the programmes they're responsible
+  // for — may cover more than one (e.g. BBA & MBA).
+  assignedProgrammes?: string[];
   // Optional: set the password directly. Omit to auto-generate a temp password.
   password?: string;
 }
@@ -34,7 +35,7 @@ export interface UpdateUserInput {
   fullName?: string;
   phone?: string;
   role?: string;
-  assignedBranch?: string;
+  assignedProgrammes?: string[];
   isActive?: boolean;
 }
 
@@ -48,5 +49,10 @@ export const updateUser = (id: string, input: UpdateUserInput) =>
 
 export const deactivateUser = (id: string) =>
   api<{ success: boolean }>(`/users/${id}`, { method: 'DELETE' });
+
+// Generates a fresh temp password (shown once) — the original is never
+// recoverable, only reset.
+export const resetUserPassword = (id: string) =>
+  api<{ tempPassword: string }>(`/users/${id}/reset-password`, { method: 'POST' });
 
 export const reactivateUser = (id: string) => updateUser(id, { isActive: true });

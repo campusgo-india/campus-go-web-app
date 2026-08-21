@@ -28,8 +28,8 @@ export class CreateAlumniDto {
   @IsOptional() @IsString() registerNumber?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) joiningYear?: number;
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
-  @IsString() @MinLength(1) branch!: string;
-  @IsOptional() @IsString() course?: string;
+  @IsString() @MinLength(1) programme!: string;
+  @IsOptional() @IsString() school?: string;
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
@@ -50,8 +50,8 @@ export class SelfRegisterAlumniDto {
   @IsOptional() @IsString() registerNumber?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) joiningYear?: number;
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
-  @IsString() @MinLength(1) branch!: string;
-  @IsOptional() @IsString() course?: string;
+  @IsString() @MinLength(1) programme!: string;
+  @IsOptional() @IsString() school?: string;
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
@@ -68,8 +68,8 @@ export class UpdateAlumniDto {
   @IsOptional() @IsString() registerNumber?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) joiningYear?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear?: number;
-  @IsOptional() @IsString() @MinLength(1) branch?: string;
-  @IsOptional() @IsString() course?: string;
+  @IsOptional() @IsString() @MinLength(1) programme?: string;
+  @IsOptional() @IsString() school?: string;
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
@@ -83,8 +83,8 @@ export class UpdateAlumniDto {
 
 export class ListAlumniQuery {
   @IsOptional() @IsString() search?: string;
-  @IsOptional() @IsString() branch?: string;
-  @IsOptional() @IsString() course?: string;
+  @IsOptional() @IsString() programme?: string;
+  @IsOptional() @IsString() school?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) graduationYear?: number;
   @IsOptional() @IsString() company?: string;
   @IsOptional() @IsString() tag?: string;

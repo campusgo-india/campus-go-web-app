@@ -23,6 +23,13 @@ export const PROFILE_STEPS: ProfileStep[] = [
       { key: 'phone', label: 'Personal mobile number', type: 'phone', required: true },
       { key: 'personalEmail', label: 'Personal email ID', type: 'email', required: true },
       { key: 'gender', label: 'Gender', type: 'string', required: true },
+      {
+        key: 'hasDisability',
+        label: 'Disability status',
+        type: 'boolean',
+        required: false,
+        placeholder: 'Optional — self-declared',
+      },
       { key: 'dateOfBirth', label: 'Date of birth', type: 'string', required: true },
       { key: 'nationality', label: 'Nationality', type: 'string', required: true },
       {
@@ -53,8 +60,8 @@ export const PROFILE_STEPS: ProfileStep[] = [
     key: 'academic',
     label: 'Academic Details',
     fields: [
-      { key: 'course', label: 'Programme', type: 'string', required: true },
-      { key: 'branch', label: 'Department / Branch', type: 'string', required: true },
+      { key: 'school', label: 'School/Department', type: 'string', required: true },
+      { key: 'programme', label: 'Programme', type: 'string', required: true },
       { key: 'department', label: 'Department', type: 'string', required: true },
       { key: 'specialization', label: 'Specialization', type: 'string', required: true },
       { key: 'admissionYear', label: 'Admission year', type: 'year', required: true },
@@ -98,7 +105,7 @@ export const PROFILE_STEPS: ProfileStep[] = [
       },
       {
         key: 'communicationSkillRating',
-        label: 'Communication skill rating',
+        label: 'Communication Rating (English)',
         type: 'number',
         required: true,
         placeholder: '1–5',

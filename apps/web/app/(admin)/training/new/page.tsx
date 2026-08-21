@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
+import { TrainingTargetPicker } from '../../../../components/training-target-picker';
 import { createAssessment, PILLAR_LABEL, TRAINING_PILLARS } from '../../../../lib/training';
 
 export default function NewAssessmentPage() {
@@ -13,6 +14,8 @@ export default function NewAssessmentPage() {
   const [phase, setPhase] = useState<'PRE' | 'POST'>('PRE');
   const [externalUrl, setExternalUrl] = useState('');
   const [maxMarks, setMaxMarks] = useState('100');
+  const [targetProgrammes, setTargetProgrammes] = useState<string[]>([]);
+  const [targetBatchIds, setTargetBatchIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +31,15 @@ export default function NewAssessmentPage() {
 
     setLoading(true);
     try {
-      await createAssessment({ name: name.trim(), pillar, phase, externalUrl: externalUrl.trim(), maxMarks: marks });
+      await createAssessment({
+        name: name.trim(),
+        pillar,
+        phase,
+        externalUrl: externalUrl.trim(),
+        maxMarks: marks,
+        targetProgrammes,
+        targetBatchIds,
+      });
       router.push('/training');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create assessment');
@@ -97,6 +108,13 @@ export default function NewAssessmentPage() {
             onChange={(e) => setMaxMarks(e.target.value)}
           />
         </label>
+
+        <TrainingTargetPicker
+          programmes={targetProgrammes}
+          batchIds={targetBatchIds}
+          onChangeProgrammes={setTargetProgrammes}
+          onChangeBatchIds={setTargetBatchIds}
+        />
 
         {error && <p className="text-sm text-danger">{error}</p>}
 

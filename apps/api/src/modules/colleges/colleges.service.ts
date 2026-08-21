@@ -47,15 +47,15 @@ export class CollegesService {
           isCollegeHead: true,
         },
       });
-      // Optional initial course catalog.
-      const courses = (dto.courses ?? [])
-        .map((co) => ({
+      // Optional initial school catalog.
+      const schools = (dto.schools ?? [])
+        .map((sc) => ({
           collegeId: c.id,
-          name: co.name.trim(),
-          branches: [...new Set((co.branches ?? []).map((b) => b.trim()).filter(Boolean))],
+          name: sc.name.trim(),
+          programmes: [...new Set((sc.programmes ?? []).map((p) => p.trim()).filter(Boolean))],
         }))
-        .filter((co) => co.name);
-      if (courses.length) await tx.collegeCourse.createMany({ data: courses });
+        .filter((sc) => sc.name);
+      if (schools.length) await tx.collegeSchool.createMany({ data: schools });
       return c;
     });
 

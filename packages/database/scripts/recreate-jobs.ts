@@ -32,8 +32,8 @@ interface BackupJob {
   experienceMax: number | null;
   ctcMin: number | null;
   ctcMax: number | null;
-  eligibleCourses: string[];
-  eligibleBranches: string[];
+  eligibleSchools: string[];
+  eligibleProgrammes: string[];
   graduationYears: number[];
   minCgpa: number | null;
   minTenthPercentage: number | null;
@@ -119,8 +119,8 @@ async function main() {
         experienceMax: j.experienceMax,
         ctcMin: j.ctcMin != null ? new Prisma.Decimal(j.ctcMin) : null,
         ctcMax: j.ctcMax != null ? new Prisma.Decimal(j.ctcMax) : null,
-        eligibleCourses: j.eligibleCourses,
-        eligibleBranches: j.eligibleBranches,
+        eligibleSchools: j.eligibleSchools,
+        eligibleProgrammes: j.eligibleProgrammes,
         graduationYears: j.graduationYears,
         minCgpa: j.minCgpa != null ? new Prisma.Decimal(j.minCgpa) : null,
         minTenthPercentage:

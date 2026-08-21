@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
 import { importStudents, type ImportDefaults, type ImportResult } from '../../../../lib/students';
-import { listMyCourses, type CollegeCourse } from '../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 
-// The nominal roll only lists reg no / name / email per row — course, branch,
+// The nominal roll only lists reg no / name / email per row — school, programme,
 // passout year and current year are set once on the form for the whole batch.
 const TEMPLATE = 'regNo,name,email\nP03ZW24M015001,Nishank G,nishankg_001@sfscollege.in';
 
@@ -16,23 +16,23 @@ const CURRENT_YEAR = new Date().getFullYear();
 export default function ImportStudentsPage() {
   const router = useRouter();
   const [csv, setCsv] = useState('');
-  const [course, setCourse] = useState('');
-  const [branch, setBranch] = useState('');
+  const [school, setSchool] = useState('');
+  const [programme, setProgramme] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [currentYear, setCurrentYear] = useState('');
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    listMyCourses()
-      .then(setCourses)
+    listMySchools()
+      .then(setSchools)
       .catch(() => {});
   }, []);
 
-  const branchesFor = courses.find((c) => c.name === course)?.branches ?? [];
+  const programmesFor = schools.find((c) => c.name === school)?.programmes ?? [];
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -47,8 +47,8 @@ export default function ImportStudentsPage() {
       setError('Paste CSV content or choose a file first.');
       return;
     }
-    if (!course.trim()) {
-      setError('Pick the course this batch belongs to.');
+    if (!school.trim()) {
+      setError('Pick the school this batch belongs to.');
       return;
     }
     if (!graduationYear.trim()) {
@@ -58,8 +58,8 @@ export default function ImportStudentsPage() {
     setLoading(true);
     try {
       const defaults: ImportDefaults = {
-        course: course.trim(),
-        branch: branch.trim() || undefined,
+        school: school.trim(),
+        programme: programme.trim() || undefined,
         graduationYear: Number(graduationYear),
         currentYear: currentYear ? Number(currentYear) : undefined,
       };
@@ -101,18 +101,18 @@ export default function ImportStudentsPage() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-subtle">Course *</span>
-              {courses.length > 0 ? (
+              <span className="text-xs font-medium text-subtle">School *</span>
+              {schools.length > 0 ? (
                 <select
                   className={inputCls}
-                  value={course}
+                  value={school}
                   onChange={(e) => {
-                    setCourse(e.target.value);
-                    setBranch('');
+                    setSchool(e.target.value);
+                    setProgramme('');
                   }}
                 >
-                  <option value="">Select a course…</option>
-                  {courses.map((c) => (
+                  <option value="">Select a school…</option>
+                  {schools.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
                     </option>
@@ -121,22 +121,22 @@ export default function ImportStudentsPage() {
               ) : (
                 <input
                   className={inputCls}
-                  value={course}
-                  onChange={(e) => setCourse(e.target.value)}
+                  value={school}
+                  onChange={(e) => setSchool(e.target.value)}
                   placeholder="MBA"
                 />
               )}
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-subtle">Branch (optional)</span>
-              {branchesFor.length > 0 ? (
+              <span className="text-xs font-medium text-subtle">Programme (optional)</span>
+              {programmesFor.length > 0 ? (
                 <select
                   className={inputCls}
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
+                  value={programme}
+                  onChange={(e) => setProgramme(e.target.value)}
                 >
                   <option value="">All / none</option>
-                  {branchesFor.map((b) => (
+                  {programmesFor.map((b) => (
                     <option key={b} value={b}>
                       {b}
                     </option>
@@ -145,8 +145,8 @@ export default function ImportStudentsPage() {
               ) : (
                 <input
                   className={inputCls}
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
+                  value={programme}
+                  onChange={(e) => setProgramme(e.target.value)}
                   placeholder="e.g. Finance"
                 />
               )}
@@ -188,8 +188,8 @@ export default function ImportStudentsPage() {
             First row is the header. Required columns: <b>regNo, name, email</b>. Optional:
             <b>
               {' '}
-              enrollmentNumber, phone, cgpa, ugPercentage, tenthPercentage, twelfthPercentage,
-              activeBacklogs, totalBacklogs
+              phone, cgpa, ugPercentage, tenthPercentage, twelfthPercentage, activeBacklogs,
+              totalBacklogs
             </b>
             . Everyone is created with the password <b>password123</b> — students can change it
             later.

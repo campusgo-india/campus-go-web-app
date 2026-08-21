@@ -14,7 +14,7 @@ import {
   type Job,
 } from '../../../../../lib/jobs';
 import { PageSkeleton } from '../../../../../components/page-skeleton';
-import { listMyCourses, type CollegeCourse } from '../../../../../lib/courses';
+import { listMySchools, type CollegeSchool } from '../../../../../lib/courses';
 
 const JOB_TYPES = ['FULL_TIME', 'INTERNSHIP', 'INTERNSHIP_PPO'];
 const WORK_MODES = ['ONSITE', 'HYBRID', 'REMOTE'];
@@ -61,20 +61,20 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       setDetails((d) => ({ ...d, [k]: e.target.value }));
   const [formFields, setFormFields] = useState<ApplicationField[]>([]);
 
-  // Eligibility courses/branches — catalog chip selection + free-text fallback.
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
-  const [pickedCourses, setPickedCourses] = useState<string[]>([]);
-  const [pickedBranches, setPickedBranches] = useState<string[]>([]);
-  const [coursesText, setCoursesText] = useState('');
-  const [branchesText, setBranchesText] = useState('');
+  // Eligibility schools/programmes — catalog chip selection + free-text fallback.
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
+  const [pickedSchools, setPickedSchools] = useState<string[]>([]);
+  const [pickedProgrammes, setPickedProgrammes] = useState<string[]>([]);
+  const [schoolsText, setSchoolsText] = useState('');
+  const [programmesText, setProgrammesText] = useState('');
 
   useEffect(() => {
     (async () => {
       try {
         const [j] = await Promise.all([
           getJob(id),
-          listMyCourses()
-            .then(setCourses)
+          listMySchools()
+            .then(setSchools)
             .catch(() => {}),
         ]);
         setJob(j);
@@ -102,10 +102,10 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           minPg: numStr(j.minCgpa),
         });
         setFormFields(j.applicationFormFields ?? []);
-        setPickedCourses(j.eligibleCourses);
-        setPickedBranches(j.eligibleBranches);
-        setCoursesText(j.eligibleCourses.join(', '));
-        setBranchesText(j.eligibleBranches.join(', '));
+        setPickedSchools(j.eligibleSchools);
+        setPickedProgrammes(j.eligibleProgrammes);
+        setSchoolsText(j.eligibleSchools.join(', '));
+        setProgrammesText(j.eligibleProgrammes.join(', '));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load job');
       } finally {
@@ -114,14 +114,14 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     })();
   }, [id]);
 
-  const hasCatalog = courses.length > 0;
-  const availableBranches = useMemo(() => {
+  const hasCatalog = schools.length > 0;
+  const availableProgrammes = useMemo(() => {
     const set = new Set<string>();
-    for (const name of pickedCourses) {
-      courses.find((c) => c.name === name)?.branches.forEach((b) => set.add(b));
+    for (const name of pickedSchools) {
+      schools.find((c) => c.name === name)?.programmes.forEach((b) => set.add(b));
     }
     return [...set];
-  }, [pickedCourses, courses]);
+  }, [pickedSchools, schools]);
 
   // Chip options = the standard window ∪ any years already on the job (so an older
   // batch stays visible/removable instead of silently dropping off).
@@ -130,18 +130,18 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     [gradYears],
   );
 
-  function toggleCourse(name: string) {
-    setPickedCourses((cs) => {
+  function toggleSchool(name: string) {
+    setPickedSchools((cs) => {
       const next = cs.includes(name) ? cs.filter((x) => x !== name) : [...cs, name];
       const allowed = new Set(
-        next.flatMap((n) => courses.find((c) => c.name === n)?.branches ?? []),
+        next.flatMap((n) => schools.find((c) => c.name === n)?.programmes ?? []),
       );
-      setPickedBranches((bs) => bs.filter((b) => allowed.has(b)));
+      setPickedProgrammes((bs) => bs.filter((b) => allowed.has(b)));
       return next;
     });
   }
-  const toggleBranch = (b: string) =>
-    setPickedBranches((bs) => (bs.includes(b) ? bs.filter((x) => x !== b) : [...bs, b]));
+  const toggleProgramme = (b: string) =>
+    setPickedProgrammes((bs) => (bs.includes(b) ? bs.filter((x) => x !== b) : [...bs, b]));
 
   const splitList = (v: string) =>
     v
@@ -149,11 +149,11 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       .map((s) => s.trim())
       .filter(Boolean);
   const num = (v: string) => (v.trim() === '' ? undefined : Number(v));
-  const eligibleCourses = hasCatalog ? pickedCourses : splitList(coursesText);
-  const eligibleBranches = hasCatalog ? pickedBranches : splitList(branchesText);
+  const eligibleSchools = hasCatalog ? pickedSchools : splitList(schoolsText);
+  const eligibleProgrammes = hasCatalog ? pickedProgrammes : splitList(programmesText);
 
   const valid =
-    title.trim() && eligibleCourses.length && gradYears.length > 0 && details.ctc.trim() !== '';
+    title.trim() && eligibleSchools.length && gradYears.length > 0 && details.ctc.trim() !== '';
 
   async function submit() {
     setSaving(true);
@@ -174,8 +174,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
       const input: Partial<CreateJobInput> = {
         title: title.trim(),
         companyName: companyName.trim() || undefined,
-        eligibleCourses,
-        eligibleBranches,
+        eligibleSchools,
+        eligibleProgrammes,
         graduationYears: gradYears.map(Number),
         description: details.description.trim() || undefined,
         jobType: details.jobType,
@@ -311,43 +311,43 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         <div className="border-t border-border pt-4">
           <p className="mb-1 text-sm font-semibold text-strong">Who can apply</p>
           <p className="mb-3 text-xs text-subtle">
-            Only students in the selected courses/branches can apply.
+            Only students in the selected schools/programmes can apply.
           </p>
           <div className="space-y-3">
             {hasCatalog ? (
               <>
-                <Field label="Eligible courses *">
+                <Field label="Eligible schools *">
                   <ChipPicker
-                    options={courses.map((c) => c.name)}
-                    selected={pickedCourses}
-                    onToggle={toggleCourse}
+                    options={schools.map((c) => c.name)}
+                    selected={pickedSchools}
+                    onToggle={toggleSchool}
                   />
                 </Field>
-                {availableBranches.length > 0 && (
-                  <Field label="Eligible branches (leave empty = all branches of the selected courses)">
+                {availableProgrammes.length > 0 && (
+                  <Field label="Eligible programmes (leave empty = all programmes of the selected schools)">
                     <ChipPicker
-                      options={availableBranches}
-                      selected={pickedBranches}
-                      onToggle={toggleBranch}
+                      options={availableProgrammes}
+                      selected={pickedProgrammes}
+                      onToggle={toggleProgramme}
                     />
                   </Field>
                 )}
               </>
             ) : (
               <>
-                <Field label="Eligible courses * (comma-separated)">
+                <Field label="Eligible schools * (comma-separated)">
                   <input
                     className={inputCls}
-                    value={coursesText}
-                    onChange={(e) => setCoursesText(e.target.value)}
+                    value={schoolsText}
+                    onChange={(e) => setSchoolsText(e.target.value)}
                     placeholder="B.Tech, MBA"
                   />
                 </Field>
-                <Field label="Eligible branches (comma-separated, optional)">
+                <Field label="Eligible programmes (comma-separated, optional)">
                   <input
                     className={inputCls}
-                    value={branchesText}
-                    onChange={(e) => setBranchesText(e.target.value)}
+                    value={programmesText}
+                    onChange={(e) => setProgrammesText(e.target.value)}
                     placeholder="CSE, ECE"
                   />
                 </Field>

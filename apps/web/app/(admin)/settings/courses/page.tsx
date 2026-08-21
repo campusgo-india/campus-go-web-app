@@ -4,22 +4,22 @@ import { useEffect, useState } from 'react';
 import { Button, Card, SectionCard } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import {
-  createMyCourse,
-  deleteMyCourse,
-  listMyCourses,
-  updateMyCourse,
-  type CollegeCourse,
+  createMySchool,
+  deleteMySchool,
+  listMySchools,
+  updateMySchool,
+  type CollegeSchool,
 } from '../../../../lib/courses';
 
-const parseBranches = (raw: string): string[] =>
+const parseProgrammes = (raw: string): string[] =>
   raw
     .split(',')
     .map((b) => b.trim())
     .filter(Boolean);
 
-export default function CoursesSettingsPage() {
+export default function SchoolsSettingsPage() {
   const confirm = useConfirm();
-  const [courses, setCourses] = useState<CollegeCourse[]>([]);
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -29,9 +29,9 @@ export default function CoursesSettingsPage() {
   async function load() {
     setError(null);
     try {
-      setCourses(await listMyCourses());
+      setSchools(await listMySchools());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load courses');
+      setError(err instanceof Error ? err.message : 'Failed to load schools');
     } finally {
       setLoading(false);
     }
@@ -41,11 +41,11 @@ export default function CoursesSettingsPage() {
     load();
   }, []);
 
-  async function onDelete(c: CollegeCourse) {
+  async function onDelete(c: CollegeSchool) {
     const ok = await confirm({
       title: `Delete ${c.name}?`,
       message:
-        'Students and forms that already reference this course/branch keep their existing values — only the dropdown option is removed.',
+        'Students and forms that already reference this school/programme keep their existing values — only the dropdown option is removed.',
       confirmLabel: 'Delete',
       destructive: true,
     });
@@ -53,7 +53,7 @@ export default function CoursesSettingsPage() {
     setBusyId(c.id);
     setError(null);
     try {
-      await deleteMyCourse(c.id);
+      await deleteMySchool(c.id);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete');
@@ -66,19 +66,19 @@ export default function CoursesSettingsPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-strong">Courses &amp; branches</h1>
+          <h1 className="text-2xl font-semibold text-strong">Schools &amp; programmes</h1>
           <p className="text-sm text-subtle">
-            {courses.length} course{courses.length === 1 ? '' : 's'} · populates the Course/Branch
+            {schools.length} school{schools.length === 1 ? '' : 's'} · populates the School/Programme
             dropdowns on Students, Alumni and Team forms
           </p>
         </div>
         <Button onClick={() => setShowForm((s) => !s)} variant={showForm ? 'outline' : 'primary'}>
-          {showForm ? 'Cancel' : 'Add course'}
+          {showForm ? 'Cancel' : 'Add school'}
         </Button>
       </header>
 
       {showForm && (
-        <NewCourseForm
+        <NewSchoolForm
           onCreated={() => {
             setShowForm(false);
             load();
@@ -91,17 +91,17 @@ export default function CoursesSettingsPage() {
       <SectionCard flush>
         {loading ? (
           <p className="p-5 text-sm text-subtle">Loading…</p>
-        ) : courses.length === 0 ? (
+        ) : schools.length === 0 ? (
           <p className="p-5 text-sm text-subtle">
-            No courses yet. Add one so it appears in Course/Branch dropdowns.
+            No schools yet. Add one so it appears in School/Programme dropdowns.
           </p>
         ) : (
           <ul>
-            {courses.map((c) =>
+            {schools.map((c) =>
               editingId === c.id ? (
                 <li key={c.id} className="border-b border-border p-5 last:border-0">
-                  <EditCourseForm
-                    course={c}
+                  <EditSchoolForm
+                    school={c}
                     onCancel={() => setEditingId(null)}
                     onSaved={() => {
                       setEditingId(null);
@@ -117,12 +117,12 @@ export default function CoursesSettingsPage() {
                   <div>
                     <p className="font-medium text-strong">{c.name}</p>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {c.branches.length === 0 ? (
+                      {c.programmes.length === 0 ? (
                         <span className="text-xs text-subtle">
-                          No sub-branches — the course name itself is used as the branch.
+                          No sub-programmes — the school name itself is used as the programme.
                         </span>
                       ) : (
-                        c.branches.map((b) => (
+                        c.programmes.map((b) => (
                           <span
                             key={b}
                             className="rounded-pill bg-app px-2.5 py-0.5 text-xs font-medium text-body"
@@ -158,24 +158,24 @@ export default function CoursesSettingsPage() {
   );
 }
 
-function NewCourseForm({ onCreated }: { onCreated: () => void }) {
+function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState('');
-  const [branches, setBranches] = useState('');
+  const [programmes, setProgrammes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     setError(null);
     if (!name.trim()) {
-      setError('Course name is required.');
+      setError('School name is required.');
       return;
     }
     setSaving(true);
     try {
-      await createMyCourse({ name: name.trim(), branches: parseBranches(branches) });
+      await createMySchool({ name: name.trim(), programmes: parseProgrammes(programmes) });
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add course');
+      setError(err instanceof Error ? err.message : 'Could not add school');
     } finally {
       setSaving(false);
     }
@@ -183,51 +183,51 @@ function NewCourseForm({ onCreated }: { onCreated: () => void }) {
 
   return (
     <Card className="space-y-3 p-5">
-      <p className="text-sm font-semibold text-strong">Add a course</p>
+      <p className="text-sm font-semibold text-strong">Add a school</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Course name *">
+        <Field label="School name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. MBA" />
         </Field>
-        <Field label="Branches (comma-separated)">
+        <Field label="Programmes (comma-separated)">
           <input
             className={inputCls}
-            value={branches}
-            onChange={(e) => setBranches(e.target.value)}
-            placeholder="e.g. CSE, ECE, Mechanical — leave blank if the course has none"
+            value={programmes}
+            onChange={(e) => setProgrammes(e.target.value)}
+            placeholder="e.g. CSE, ECE, Mechanical — leave blank if the school has none"
           />
         </Field>
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button onClick={submit} disabled={saving}>
-        {saving ? 'Adding…' : 'Add course'}
+        {saving ? 'Adding…' : 'Add school'}
       </Button>
     </Card>
   );
 }
 
-function EditCourseForm({
-  course,
+function EditSchoolForm({
+  school,
   onCancel,
   onSaved,
 }: {
-  course: CollegeCourse;
+  school: CollegeSchool;
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState(course.name);
-  const [branches, setBranches] = useState(course.branches.join(', '));
+  const [name, setName] = useState(school.name);
+  const [programmes, setProgrammes] = useState(school.programmes.join(', '));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     setError(null);
     if (!name.trim()) {
-      setError('Course name is required.');
+      setError('School name is required.');
       return;
     }
     setSaving(true);
     try {
-      await updateMyCourse(course.id, { name: name.trim(), branches: parseBranches(branches) });
+      await updateMySchool(school.id, { name: name.trim(), programmes: parseProgrammes(programmes) });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save changes');
@@ -239,15 +239,15 @@ function EditCourseForm({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Course name *">
+        <Field label="School name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label="Branches (comma-separated)">
+        <Field label="Programmes (comma-separated)">
           <input
             className={inputCls}
-            value={branches}
-            onChange={(e) => setBranches(e.target.value)}
-            placeholder="Leave blank if the course has none"
+            value={programmes}
+            onChange={(e) => setProgrammes(e.target.value)}
+            placeholder="Leave blank if the school has none"
           />
         </Field>
       </div>

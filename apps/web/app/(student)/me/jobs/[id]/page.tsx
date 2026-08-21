@@ -180,8 +180,8 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
       <Card className="animate-rise space-y-2 p-4" style={{ animationDelay: '120ms' }}>
         <p className="text-sm font-semibold text-strong">Who can apply</p>
         <dl className="space-y-2">
-          <Row label="Courses" value={job.eligibleCourses.join(', ') || 'Any'} />
-          <Row label="Branches" value={job.eligibleBranches.join(', ') || 'Any'} />
+          <Row label="Schools" value={job.eligibleSchools.join(', ') || 'Any'} />
+          <Row label="Programmes" value={job.eligibleProgrammes.join(', ') || 'Any'} />
           <Row label="Batch" value={job.graduationYears.join(', ') || 'Any'} />
           {job.minUgPercentage != null && (
             <Row label="Min UG %" value={`${job.minUgPercentage}%`} />
