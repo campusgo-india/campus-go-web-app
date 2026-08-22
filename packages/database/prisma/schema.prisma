@@ -34,17 +34,26 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+// Used to split the placement dashboard by track. Defaults to UG since most
+// schools are undergraduate; a College Admin corrects PG schools (MBA, M.Tech,
+// etc.) once from the school catalog — see CollegeSchool.degreeLevel.
+enum DegreeLevel {
+  UG
+  PG
+}
+
 // A school/department offered by a college (e.g. "B.Tech"), with its
 // programmes/specialisations (e.g. ["CSE","ECE","Mechanical"]). Managed by the
 // Platform Admin. Student school/programme and job eligibleSchools/
 // eligibleProgrammes reference these names.
 model CollegeSchool {
-  id        String   @id @default(uuid())
-  collegeId String   @map("college_id")
-  name      String
-  programmes String[]
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String      @id @default(uuid())
+  collegeId   String      @map("college_id")
+  name        String
+  programmes  String[]
+  degreeLevel DegreeLevel @default(UG) @map("degree_level")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Card, SectionCard } from '@campusgo/ui';
+import { Badge, Button, Card, SectionCard } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import {
   createMySchool,
@@ -9,6 +9,7 @@ import {
   listMySchools,
   updateMySchool,
   type CollegeSchool,
+  type DegreeLevel,
 } from '../../../../lib/courses';
 
 const parseProgrammes = (raw: string): string[] =>
@@ -115,7 +116,12 @@ export default function SchoolsSettingsPage() {
                   className="flex items-start justify-between gap-4 border-b border-border p-5 last:border-0"
                 >
                   <div>
-                    <p className="font-medium text-strong">{c.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-strong">{c.name}</p>
+                      <Badge tint={c.degreeLevel === 'PG' ? 'cream' : 'mint'}>
+                        {c.degreeLevel === 'PG' ? 'Postgraduate' : 'Undergraduate'}
+                      </Badge>
+                    </div>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       {c.programmes.length === 0 ? (
                         <span className="text-xs text-subtle">
@@ -161,6 +167,7 @@ export default function SchoolsSettingsPage() {
 function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState('');
   const [programmes, setProgrammes] = useState('');
+  const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>('UG');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -172,7 +179,11 @@ function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
     }
     setSaving(true);
     try {
-      await createMySchool({ name: name.trim(), programmes: parseProgrammes(programmes) });
+      await createMySchool({
+        name: name.trim(),
+        programmes: parseProgrammes(programmes),
+        degreeLevel,
+      });
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add school');
@@ -188,6 +199,16 @@ function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
         <Field label="School/Department name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. MBA" />
         </Field>
+        <Field label="Level *">
+          <select
+            className={inputCls}
+            value={degreeLevel}
+            onChange={(e) => setDegreeLevel(e.target.value as DegreeLevel)}
+          >
+            <option value="UG">Undergraduate</option>
+            <option value="PG">Postgraduate</option>
+          </select>
+        </Field>
         <Field label="Programmes (comma-separated)">
           <input
             className={inputCls}
@@ -197,6 +218,9 @@ function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
           />
         </Field>
       </div>
+      <p className="text-xs text-subtle">
+        Level feeds the Placement dashboard&apos;s undergraduate / postgraduate breakdown.
+      </p>
       {error && <p className="text-sm text-danger">{error}</p>}
       <Button onClick={submit} disabled={saving}>
         {saving ? 'Adding…' : 'Add school'}
@@ -216,6 +240,7 @@ function EditSchoolForm({
 }) {
   const [name, setName] = useState(school.name);
   const [programmes, setProgrammes] = useState(school.programmes.join(', '));
+  const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>(school.degreeLevel);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -227,7 +252,11 @@ function EditSchoolForm({
     }
     setSaving(true);
     try {
-      await updateMySchool(school.id, { name: name.trim(), programmes: parseProgrammes(programmes) });
+      await updateMySchool(school.id, {
+        name: name.trim(),
+        programmes: parseProgrammes(programmes),
+        degreeLevel,
+      });
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save changes');
@@ -241,6 +270,16 @@ function EditSchoolForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="School/Department name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="Level *">
+          <select
+            className={inputCls}
+            value={degreeLevel}
+            onChange={(e) => setDegreeLevel(e.target.value as DegreeLevel)}
+          >
+            <option value="UG">Undergraduate</option>
+            <option value="PG">Postgraduate</option>
+          </select>
         </Field>
         <Field label="Programmes (comma-separated)">
           <input

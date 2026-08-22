@@ -236,6 +236,120 @@ export class AnalyticsService {
     };
   }
 
+  // ─────────────── Placement dashboard (Overall + UG/PG) ───────────────
+  // Track (UG/PG) comes from CollegeSchool.degreeLevel, matched by school
+  // name. A student whose school isn't in the catalog (or predates it)
+  // defaults to UG, same as the column default, so nobody silently drops out
+  // of the totals.
+  async placementDashboard(collegeId: string) {
+    const [schools, students, placingApps, internships] = await Promise.all([
+      this.prisma.collegeSchool.findMany({
+        where: { collegeId },
+        select: { name: true, degreeLevel: true },
+      }),
+      this.prisma.student.findMany({
+        where: { collegeId },
+        select: { id: true, school: true, isActive: true },
+      }),
+      this.prisma.application.findMany({
+        where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        select: {
+          studentId: true,
+          offerCtc: true,
+          job: {
+            select: {
+              ctcMin: true,
+              ctcMax: true,
+              companyName: true,
+              company: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.internship.findMany({
+        where: { collegeId },
+        select: { studentId: true, isPpo: true },
+      }),
+    ]);
+
+    const levelByName = new Map(schools.map((s) => [s.name, s.degreeLevel]));
+    const levelByStudent = new Map(
+      students.map((s) => [s.id, levelByName.get(s.school) ?? 'UG']),
+    );
+    const bucketOf = (studentId: string) => levelByStudent.get(studentId) ?? 'UG';
+
+    function makeBucket() {
+      return {
+        finalYearStudents: 0,
+        placedIds: new Set<string>(),
+        packages: [] as number[],
+        internships: 0,
+        ppos: 0,
+      };
+    }
+    const buckets = { UG: makeBucket(), PG: makeBucket() };
+
+    for (const s of students) {
+      if (!s.isActive) continue;
+      buckets[bucketOf(s.id)].finalYearStudents++;
+    }
+
+    const companies = new Set<string>();
+    for (const a of placingApps) {
+      const bucket = buckets[bucketOf(a.studentId)];
+      bucket.placedIds.add(a.studentId);
+      const ctc = effectiveCtc(a.offerCtc, a.job);
+      if (ctc != null) bucket.packages.push(ctc);
+      companies.add(a.job.company?.name ?? a.job.companyName ?? 'Unknown');
+    }
+
+    for (const i of internships) {
+      const bucket = buckets[bucketOf(i.studentId)];
+      bucket.internships++;
+      if (i.isPpo === true) bucket.ppos++;
+    }
+
+    function summarize(b: ReturnType<typeof makeBucket>) {
+      const placed = b.placedIds.size;
+      return {
+        finalYearStudents: b.finalYearStudents,
+        placed,
+        placementRate:
+          b.finalYearStudents > 0 ? Math.round((placed / b.finalYearStudents) * 1000) / 10 : 0,
+        offers: b.packages.length,
+        highestCtc: b.packages.length ? Math.max(...b.packages) : null,
+        averageCtc: b.packages.length ? Math.round(mean(b.packages) * 100) / 100 : null,
+        internships: b.internships,
+        ppos: b.ppos,
+      };
+    }
+
+    const ug = summarize(buckets.UG);
+    const pg = summarize(buckets.PG);
+    const allPackages = [...buckets.UG.packages, ...buckets.PG.packages];
+
+    return {
+      overall: {
+        finalYearStudents: ug.finalYearStudents + pg.finalYearStudents,
+        placed: ug.placed + pg.placed,
+        placementRate:
+          ug.finalYearStudents + pg.finalYearStudents > 0
+            ? Math.round(
+                ((ug.placed + pg.placed) / (ug.finalYearStudents + pg.finalYearStudents)) * 1000,
+              ) / 10
+            : 0,
+        companies: companies.size,
+        offers: ug.offers + pg.offers,
+        highestCtc: allPackages.length ? Math.max(...allPackages) : null,
+        averageCtc: allPackages.length ? Math.round(mean(allPackages) * 100) / 100 : null,
+        internships: ug.internships + pg.internships,
+        ppos: ug.ppos + pg.ppos,
+      },
+      ug,
+      pg,
+    };
+  }
+
   // ─────────────── Breakdowns ───────────────
   async breakdowns(collegeId: string) {
     const [byProgramme, byBatch, byCompany] = await Promise.all([

@@ -19,6 +19,11 @@ export class AnalyticsController {
     return { data: await this.analytics.placement(this.collegeId(user)) };
   }
 
+  @Get('placement-dashboard')
+  async placementDashboard(@CurrentUser() user: JwtPayload) {
+    return { data: await this.analytics.placementDashboard(this.collegeId(user)) };
+  }
+
   @Get('jobs')
   async jobs(@CurrentUser() user: JwtPayload) {
     return { data: await this.analytics.jobs(this.collegeId(user)) };

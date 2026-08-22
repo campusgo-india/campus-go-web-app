@@ -55,7 +55,26 @@ export interface Insights {
   repeatRecruiters: { company: string; hires: number }[];
 }
 
+export interface PlacementTrack {
+  finalYearStudents: number;
+  placed: number;
+  placementRate: number;
+  offers: number;
+  highestCtc: number | null;
+  averageCtc: number | null;
+  internships: number;
+  ppos: number;
+}
+
+export interface PlacementDashboard {
+  overall: PlacementTrack & { companies: number };
+  ug: PlacementTrack;
+  pg: PlacementTrack;
+}
+
 export const getPlacementMetrics = () => api<PlacementMetrics>('/analytics/placement');
+export const getPlacementDashboard = () =>
+  api<PlacementDashboard>('/analytics/placement-dashboard');
 export const getJobMetrics = () => api<JobMetrics>('/analytics/jobs');
 export const getStudentMetrics = () => api<StudentMetrics>('/analytics/students');
 export const getFunnel = () => api<FunnelStage[]>('/analytics/funnel');

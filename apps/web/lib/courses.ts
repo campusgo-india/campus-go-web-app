@@ -2,16 +2,20 @@
 
 import { api } from './api';
 
+export type DegreeLevel = 'UG' | 'PG';
+
 export interface CollegeSchool {
   id: string;
   collegeId: string;
   name: string;
   programmes: string[];
+  degreeLevel: DegreeLevel;
 }
 
 export interface SchoolInput {
   name?: string;
   programmes?: string[];
+  degreeLevel?: DegreeLevel;
 }
 
 // ─── Tenant (College Admin / Officer): own college catalog for forms ───

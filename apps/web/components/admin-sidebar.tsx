@@ -29,6 +29,7 @@ const COLLEGE_NAV: NavItem[] = [
   { href: '/alumni', label: 'Alumni' },
   { href: '/internships', label: 'Internships' },
   { href: '/training', label: 'Training' },
+  { href: '/placement', label: 'Placement' },
   { href: '/reports', label: 'Reports' },
 ];
 

@@ -36,7 +36,12 @@ export class SchoolsService {
     const dup = await this.prisma.collegeSchool.findFirst({ where: { collegeId, name } });
     if (dup) throw new BadRequestException(`School already exists: ${name}`);
     return this.prisma.collegeSchool.create({
-      data: { collegeId, name, programmes: cleanList(dto.programmes) },
+      data: {
+        collegeId,
+        name,
+        programmes: cleanList(dto.programmes),
+        ...(dto.degreeLevel ? { degreeLevel: dto.degreeLevel } : {}),
+      },
     });
   }
 
@@ -55,6 +60,7 @@ export class SchoolsService {
       data: {
         ...(name ? { name } : {}),
         ...(dto.programmes ? { programmes: cleanList(dto.programmes) } : {}),
+        ...(dto.degreeLevel ? { degreeLevel: dto.degreeLevel } : {}),
       },
     });
   }

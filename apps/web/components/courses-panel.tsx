@@ -8,6 +8,7 @@ import {
   listCollegeSchools,
   updateCollegeSchool,
   type CollegeSchool,
+  type DegreeLevel,
 } from '../lib/courses';
 
 const parseList = (s: string) =>
@@ -23,6 +24,7 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
   const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [name, setName] = useState('');
   const [programmes, setProgrammes] = useState('');
+  const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>('UG');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,9 +46,14 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
     setBusy(true);
     setError(null);
     try {
-      await createCollegeSchool(collegeId, { name: name.trim(), programmes: parseList(programmes) });
+      await createCollegeSchool(collegeId, {
+        name: name.trim(),
+        programmes: parseList(programmes),
+        degreeLevel,
+      });
       setName('');
       setProgrammes('');
+      setDegreeLevel('UG');
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not add school');
@@ -100,6 +107,17 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
             placeholder="B.Tech"
           />
         </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-subtle">Level</span>
+          <select
+            className={`${inputCls} w-36`}
+            value={degreeLevel}
+            onChange={(e) => setDegreeLevel(e.target.value as DegreeLevel)}
+          >
+            <option value="UG">Undergraduate</option>
+            <option value="PG">Postgraduate</option>
+          </select>
+        </label>
         <label className="flex-1 space-y-1">
           <span className="text-xs font-medium text-subtle">Programmes (comma-separated)</span>
           <input
@@ -132,6 +150,9 @@ function SchoolRow({
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm">
       <span className="font-medium text-strong">{school.name}</span>
+      <span className="rounded-pill bg-app px-2 py-0.5 text-[10px] font-medium text-subtle">
+        {school.degreeLevel === 'PG' ? 'PG' : 'UG'}
+      </span>
       {!editing ? (
         <>
           <span className="flex-1 text-xs text-subtle">
