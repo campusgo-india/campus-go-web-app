@@ -691,12 +691,13 @@ model Internship {
   domain          String?
   skills          String?
   location        String
-  isPaid          Boolean          @default(false) @map("is_paid")
+  // Null = not yet answered (kept distinct from an explicit "No").
+  isPaid          Boolean?         @map("is_paid")
   stipend         Decimal?         @db.Decimal(12, 2)
   startDate       DateTime?        @map("start_date")
   endDate         DateTime?        @map("end_date")
-  // Converted into a pre-placement offer (PPO).
-  isPpo           Boolean          @default(false) @map("is_ppo")
+  // Converted into a pre-placement offer (PPO). Null = not yet answered.
+  isPpo           Boolean?         @map("is_ppo")
   description     String?
   // Point-of-contact at the company (students self-report internships they found).
   pocName         String           @map("poc_name")

@@ -147,7 +147,7 @@ export default function NewStudentPage() {
           />
           {schools.length > 0 ? (
             <SelectField
-              label="School"
+              label="School/Department"
               required
               value={form.school}
               onChange={setSchool}
@@ -156,7 +156,7 @@ export default function NewStudentPage() {
             />
           ) : (
             <Field
-              label="School"
+              label="School/Department"
               required
               value={form.school}
               onChange={setSchool}

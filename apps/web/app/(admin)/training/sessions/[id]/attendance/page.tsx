@@ -46,9 +46,12 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
   }
 
   // Mark everyone present in one click, then flip the odd absentee off
-  // individually — faster than toggling every row by hand.
-  function markAllPresent() {
-    setPending(Object.fromEntries(rows.map((r) => [r.studentId, true])));
+  // individually — faster than toggling every row by hand. Once everyone is
+  // present, the same button flips to "mark all absent" so it can undo itself
+  // instead of being a dead end.
+  const allPresent = rows.length > 0 && rows.every((r) => effectivePresent(r));
+  function toggleAll() {
+    setPending(Object.fromEntries(rows.map((r) => [r.studentId, !allPresent])));
   }
 
   async function saveAll() {
@@ -156,8 +159,8 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
 
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-strong">Or mark manually</p>
-        <button onClick={markAllPresent} className="text-sm font-medium text-primary-600 hover:underline">
-          Mark all present
+        <button onClick={toggleAll} className="text-sm font-medium text-primary-600 hover:underline">
+          {allPresent ? 'Mark all absent' : 'Mark all present'}
         </button>
       </div>
 

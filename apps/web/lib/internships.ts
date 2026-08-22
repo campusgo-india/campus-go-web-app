@@ -19,11 +19,12 @@ export interface Internship {
   domain: string | null;
   skills: string | null;
   location: string;
-  isPaid: boolean;
+  // Null = not yet answered (kept visually distinct from an explicit "No").
+  isPaid: boolean | null;
   stipend: number | null;
   startDate: string | null;
   endDate: string | null;
-  isPpo: boolean;
+  isPpo: boolean | null;
   description: string | null;
   // Point-of-contact at the company.
   pocName: string;

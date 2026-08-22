@@ -92,7 +92,7 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
 
       <div className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
         <label className="space-y-1">
-          <span className="text-xs font-medium text-subtle">School</span>
+          <span className="text-xs font-medium text-subtle">School/Department</span>
           <input
             className={`${inputCls} w-40`}
             value={name}

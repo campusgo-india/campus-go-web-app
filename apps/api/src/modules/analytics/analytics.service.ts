@@ -14,7 +14,21 @@ const APPLICATION_STATUSES = [
   'WITHDRAWN',
 ] as const;
 
-const num = (x: unknown): number | null => (x == null ? null : Number(x));
+// The officer isn't required to type a CTC every time they place a student —
+// so package stats fall back to the job's own JD figure (average of its
+// min/max, or whichever bound is set) when Application.offerCtc wasn't
+// explicitly entered. An explicit offerCtc (typically entered alongside the
+// offer letter upload) always wins over the JD estimate.
+function effectiveCtc(
+  offerCtc: unknown,
+  job: { ctcMin: unknown; ctcMax: unknown } | null | undefined,
+): number | null {
+  if (offerCtc != null) return Number(offerCtc);
+  const min = job?.ctcMin != null ? Number(job.ctcMin) : null;
+  const max = job?.ctcMax != null ? Number(job.ctcMax) : null;
+  if (min != null && max != null) return (min + max) / 2;
+  return min ?? max ?? null;
+}
 
 /**
  * Read-only analytics over Phase 2/3 data. Every query is tenant-scoped via the
@@ -38,12 +52,14 @@ export class AnalyticsService {
         })
         .then((g) => g.length),
       this.prisma.application.findMany({
-        where: { collegeId, stage: { in: [...PLACING_STAGES] }, offerCtc: { not: null } },
-        select: { offerCtc: true },
+        where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        select: { offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
       }),
     ]);
 
-    const packages = offers.map((o) => Number(o.offerCtc)).filter((n) => !Number.isNaN(n));
+    const packages = offers
+      .map((o) => effectiveCtc(o.offerCtc, o.job))
+      .filter((n): n is number => n != null);
     const placementRate =
       verifiedCount > 0 ? Math.round((placedCount / verifiedCount) * 1000) / 10 : 0;
 
@@ -154,7 +170,12 @@ export class AnalyticsService {
         offerCtc: true,
         student: { select: { rollNumber: true, user: { select: { fullName: true } } } },
         job: {
-          select: { companyName: true, company: { select: { name: true } } },
+          select: {
+            companyName: true,
+            ctcMin: true,
+            ctcMax: true,
+            company: { select: { name: true } },
+          },
         },
       },
     });
@@ -172,7 +193,7 @@ export class AnalyticsService {
         best: null,
       };
       entry.jobIds.add(a.jobId);
-      const ctc = num(a.offerCtc);
+      const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) entry.best = entry.best == null ? ctc : Math.max(entry.best, ctc);
       byStudent.set(a.studentId, entry);
     }
@@ -187,7 +208,9 @@ export class AnalyticsService {
       .sort((a, b) => b.offers - a.offers);
 
     // ── Dream offers: packages ≥ 1.5× the average package ──
-    const packages = offerApps.map((a) => num(a.offerCtc)).filter((n): n is number => n != null);
+    const packages = offerApps
+      .map((a) => effectiveCtc(a.offerCtc, a.job))
+      .filter((n): n is number => n != null);
     const avg = packages.length ? mean(packages) : 0;
     const dreamThreshold = avg > 0 ? Math.round(avg * 1.5) : null;
     const dreamOffers =
@@ -388,7 +411,14 @@ export class AnalyticsService {
       where: { collegeId, stage: { in: [...PLACING_STAGES] } },
       select: {
         offerCtc: true,
-        job: { select: { companyName: true, company: { select: { name: true } } } },
+        job: {
+          select: {
+            companyName: true,
+            ctcMin: true,
+            ctcMax: true,
+            company: { select: { name: true } },
+          },
+        },
       },
     });
     const map = new Map<string, { hires: number; packages: number[] }>();
@@ -396,7 +426,7 @@ export class AnalyticsService {
       const name = a.job.company?.name ?? a.job.companyName ?? 'Unknown';
       const row = map.get(name) ?? { hires: 0, packages: [] };
       row.hires++;
-      const ctc = num(a.offerCtc);
+      const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) row.packages.push(ctc);
       map.set(name, row);
     }

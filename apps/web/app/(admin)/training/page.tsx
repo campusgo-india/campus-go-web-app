@@ -8,9 +8,11 @@ import { useConfirm } from '../../../components/confirm-provider';
 import {
   deleteAssessment,
   listAssessments,
+  listBatches,
   PILLAR_LABEL,
   updateAssessment,
   type Assessment,
+  type TrainingBatch,
 } from '../../../lib/training';
 
 const PHASE_TINT: Record<string, 'lavender' | 'mint'> = { PRE: 'lavender', POST: 'mint' };
@@ -18,6 +20,7 @@ const PHASE_TINT: Record<string, 'lavender' | 'mint'> = { PRE: 'lavender', POST:
 export default function TrainingAssessmentsPage() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Assessment[]>([]);
+  const [batches, setBatches] = useState<TrainingBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +28,9 @@ export default function TrainingAssessmentsPage() {
     setLoading(true);
     setError(null);
     try {
-      setItems(await listAssessments());
+      const [assessments, batchList] = await Promise.all([listAssessments(), listBatches()]);
+      setItems(assessments);
+      setBatches(batchList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load assessments');
     } finally {
@@ -36,6 +41,16 @@ export default function TrainingAssessmentsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Human-readable summary of who an assessment is visible to, so an officer
+  // isn't left guessing why it didn't show up for a particular student.
+  function audienceSummary(a: Assessment): string {
+    if (a.targetProgrammes.length === 0 && a.targetBatchIds.length === 0) return 'Everyone';
+    const batchNames = a.targetBatchIds
+      .map((id) => batches.find((b) => b.id === id)?.name ?? 'Unknown batch')
+      .join(', ');
+    return [...a.targetProgrammes, ...(batchNames ? [batchNames] : [])].join(' · ');
+  }
 
   async function toggleActive(a: Assessment) {
     try {
@@ -107,6 +122,7 @@ export default function TrainingAssessmentsPage() {
                 <th className="px-4 py-3">Pillar</th>
                 <th className="px-4 py-3">Phase</th>
                 <th className="px-4 py-3">Max marks</th>
+                <th className="px-4 py-3">Visible to</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -120,6 +136,15 @@ export default function TrainingAssessmentsPage() {
                     <Badge tint={PHASE_TINT[a.phase]}>{a.phase}</Badge>
                   </td>
                   <td className="px-4 py-3 text-body">{a.maxMarks}</td>
+                  <td
+                    className={`px-4 py-3 ${
+                      a.targetProgrammes.length === 0 && a.targetBatchIds.length === 0
+                        ? 'text-subtle'
+                        : 'font-medium text-primary-600'
+                    }`}
+                  >
+                    {audienceSummary(a)}
+                  </td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => toggleActive(a)}

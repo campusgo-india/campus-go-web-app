@@ -163,7 +163,7 @@ function RegisterForm({
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="School">
+        <Field label="School/Department">
           <input
             className={inputCls}
             value={form.school}

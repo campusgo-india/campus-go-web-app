@@ -275,10 +275,10 @@ function EditAlumniForm({
             min="0"
           />
         </Field>
-        <Field label="School">
+        <Field label="School/Department">
           {schools.length > 0 ? (
             <select className={inputCls} value={form.school} onChange={setSchool}>
-              <option value="">Select school</option>
+              <option value="">Select school/department</option>
               {schools.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}

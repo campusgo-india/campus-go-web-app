@@ -594,7 +594,7 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
           </div>
         )}
         <div className="mt-3 flex flex-wrap items-end gap-2">
-          <Field label="School">
+          <Field label="School/Department">
             <input
               className={`${inputCls} w-40`}
               value={schoolName}

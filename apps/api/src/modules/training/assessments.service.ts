@@ -10,6 +10,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { Assessment, PrismaClient } from '@campusgo/database';
 import { CreateAssessmentDto, ImportScoresDto, ManualScoreEntryDto, UpdateAssessmentDto } from './dto';
+import { targetedStudentWhere } from './sessions.service';
 
 const dec = (v: Prisma.Decimal) => Number(v);
 
@@ -89,13 +90,20 @@ export class AssessmentsService {
     return { success: true };
   }
 
-  // One row per scored student, plus the roster so the officer can see who's
-  // still ungraded. Ordered by roll number for a stable, scannable sheet.
+  // One row per scored student, plus the roster (scoped to the assessment's
+  // own targeting) so the officer can see who's still ungraded. Ordered by
+  // roll number for a stable, scannable sheet.
   async listScores(collegeId: string, assessmentId: string) {
-    await this.findOneOrThrow(collegeId, assessmentId);
+    const assessment = await this.findOneOrThrow(collegeId, assessmentId);
+    const where = await targetedStudentWhere(
+      this.prisma,
+      collegeId,
+      assessment.targetProgrammes,
+      assessment.targetBatchIds,
+    );
     const [students, scores] = await Promise.all([
       this.prisma.student.findMany({
-        where: { collegeId, graduatedAt: null },
+        where,
         select: { id: true, rollNumber: true, user: { select: { fullName: true } } },
         orderBy: { rollNumber: 'asc' },
       }),

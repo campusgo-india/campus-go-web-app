@@ -338,7 +338,7 @@ export default function AlumniPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Batch</th>
-                  <th className="px-4 py-3 font-medium">School</th>
+                  <th className="px-4 py-3 font-medium">School/Department</th>
                   <th className="px-4 py-3 font-medium">Programme</th>
                   <th className="px-4 py-3 font-medium">Now at</th>
                   <th className="px-4 py-3 font-medium">LinkedIn</th>
@@ -594,10 +594,10 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             min="0"
           />
         </Field>
-        <Field label="School">
+        <Field label="School/Department">
           {schools.length > 0 ? (
             <select className={inputCls} value={form.school} onChange={setSchool}>
-              <option value="">Select school</option>
+              <option value="">Select school/department</option>
               {schools.map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}

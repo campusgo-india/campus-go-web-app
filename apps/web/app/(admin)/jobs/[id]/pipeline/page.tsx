@@ -313,10 +313,11 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
         <PeopleList people={funnel.pool} empty="No new applicants." />
       )}
 
-      {placing && (
+      {placing && job && (
         <PlaceModal
           jobId={id}
           student={placing}
+          job={job}
           onClose={() => setPlacing(null)}
           onDone={async () => {
             setPlacing(null);
@@ -848,19 +849,30 @@ function AddRoundForm({
   );
 }
 
+// The JD's own CTC (average of min/max, or whichever bound is set) — used to
+// pre-fill the offer amount so the officer only has to type something when
+// the actual offer differs from the posted range.
+function jdCtc(job: Job): number | null {
+  if (job.ctcMin != null && job.ctcMax != null) return Math.round((job.ctcMin + job.ctcMax) / 2);
+  return job.ctcMin ?? job.ctcMax ?? null;
+}
+
 function PlaceModal({
   jobId,
   student,
+  job,
   onClose,
   onDone,
 }: {
   jobId: string;
   student: FunnelStudent;
+  job: Job;
   onClose: () => void;
   onDone: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [ctc, setCtc] = useState(student.offerCtc != null ? String(student.offerCtc) : '');
+  const defaultCtc = student.offerCtc ?? jdCtc(job);
+  const [ctc, setCtc] = useState(defaultCtc != null ? String(defaultCtc) : '');
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -897,7 +909,7 @@ function PlaceModal({
           <p className="text-sm text-subtle">{student.rollNumber} · marks them placed</p>
         </div>
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-subtle">Offer CTC (₹/yr, optional)</span>
+          <span className="text-xs font-medium text-subtle">Offer CTC (₹/yr)</span>
           <input
             type="number"
             className={cls}
@@ -906,6 +918,9 @@ function PlaceModal({
             placeholder="600000"
             min="0"
           />
+          <span className="text-xs text-subtle">
+            Pre-filled from the job&apos;s posted CTC — change it if the actual offer differs.
+          </span>
         </label>
         <div className="space-y-1">
           <span className="text-xs font-medium text-subtle">Offer letter PDF (optional)</span>

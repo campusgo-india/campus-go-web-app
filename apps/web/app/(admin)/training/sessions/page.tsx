@@ -7,9 +7,11 @@ import { ListSkeleton } from '../../../../components/page-skeleton';
 import { useConfirm } from '../../../../components/confirm-provider';
 import {
   deleteSession,
+  listBatches,
   listSessions,
   updateSession,
   type SessionStatus,
+  type TrainingBatch,
   type TrainingSession,
 } from '../../../../lib/training';
 
@@ -26,6 +28,7 @@ const fmt = (d: string) =>
 export default function TrainingSessionsPage() {
   const confirm = useConfirm();
   const [items, setItems] = useState<TrainingSession[]>([]);
+  const [batches, setBatches] = useState<TrainingBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +36,9 @@ export default function TrainingSessionsPage() {
     setLoading(true);
     setError(null);
     try {
-      setItems(await listSessions());
+      const [sessions, batchList] = await Promise.all([listSessions(), listBatches()]);
+      setItems(sessions);
+      setBatches(batchList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load sessions');
     } finally {
@@ -44,6 +49,18 @@ export default function TrainingSessionsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Human-readable summary of who a session is visible to, so an officer
+  // isn't left guessing why it didn't show up for a particular student.
+  function audienceSummary(s: TrainingSession): string {
+    if (s.targetProgrammes.length === 0 && s.targetBatchIds.length === 0) {
+      return 'Everyone';
+    }
+    const batchNames = s.targetBatchIds
+      .map((id) => batches.find((b) => b.id === id)?.name ?? 'Unknown batch')
+      .join(', ');
+    return [...s.targetProgrammes, ...(batchNames ? [batchNames] : [])].join(' · ');
+  }
 
   async function setStatus(s: TrainingSession, status: SessionStatus) {
     try {
@@ -113,6 +130,18 @@ export default function TrainingSessionsPage() {
                 <p className="text-xs text-subtle">
                   {fmt(s.startsAt)} – {fmt(s.endsAt)}
                   {s.trainerName ? ` · ${s.trainerName}` : ''}
+                </p>
+                <p className="text-xs text-subtle">
+                  Visible to:{' '}
+                  <span
+                    className={
+                      s.targetProgrammes.length === 0 && s.targetBatchIds.length === 0
+                        ? ''
+                        : 'font-medium text-primary-600'
+                    }
+                  >
+                    {audienceSummary(s)}
+                  </span>
                 </p>
               </div>
               <div className="flex items-center gap-3">

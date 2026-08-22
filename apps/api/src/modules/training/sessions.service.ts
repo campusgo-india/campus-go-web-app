@@ -33,6 +33,39 @@ export function visibilityFilter(programme: string, batchIds: string[]) {
   };
 }
 
+// The reverse of visibilityFilter: given one assessment/session's own
+// targeting, build the Student `where` clause matching every student who can
+// see it — untargeted (both empty) means every active student, otherwise
+// only those in a target programme or a target batch. Shared by the
+// assessment score sheet and the session attendance roster so an officer
+// marking/scoring never sees students outside the intended audience.
+export async function targetedStudentWhere(
+  prisma: PrismaClient,
+  collegeId: string,
+  targetProgrammes: string[],
+  targetBatchIds: string[],
+) {
+  if (targetProgrammes.length === 0 && targetBatchIds.length === 0) {
+    return { collegeId, graduatedAt: null };
+  }
+  const memberIds = targetBatchIds.length
+    ? (
+        await prisma.trainingBatchMember.findMany({
+          where: { batchId: { in: targetBatchIds } },
+          select: { studentId: true },
+        })
+      ).map((m) => m.studentId)
+    : [];
+  const or = [
+    ...(targetProgrammes.length ? [{ programme: { in: targetProgrammes } }] : []),
+    ...(memberIds.length ? [{ id: { in: memberIds } }] : []),
+  ];
+  // Targeted at programmes/batches that (so far) match nobody — e.g. a batch
+  // with no members yet. `id: { in: [] }` deterministically matches zero
+  // rows, vs. an empty OR[] which Prisma doesn't allow.
+  return { collegeId, graduatedAt: null, ...(or.length ? { OR: or } : { id: { in: [] } }) };
+}
+
 @Injectable()
 export class TrainingSessionsService {
   constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
@@ -96,12 +129,19 @@ export class TrainingSessionsService {
     return { success: true };
   }
 
-  // Full active roster with each student's attendance flag (null = not marked).
+  // Roster scoped to the session's own targeting (or every active student, if
+  // untargeted), each with their attendance flag (null = not marked).
   async listAttendance(collegeId: string, sessionId: string) {
-    await this.findOneOrThrow(collegeId, sessionId);
+    const session = await this.findOneOrThrow(collegeId, sessionId);
+    const where = await targetedStudentWhere(
+      this.prisma,
+      collegeId,
+      session.targetProgrammes,
+      session.targetBatchIds,
+    );
     const [students, attendance] = await Promise.all([
       this.prisma.student.findMany({
-        where: { collegeId, graduatedAt: null },
+        where,
         select: { id: true, rollNumber: true, user: { select: { fullName: true } } },
         orderBy: { rollNumber: 'asc' },
       }),

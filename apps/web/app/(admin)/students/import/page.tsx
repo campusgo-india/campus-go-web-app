@@ -101,7 +101,7 @@ export default function ImportStudentsPage() {
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-subtle">School *</span>
+              <span className="text-xs font-medium text-subtle">School/Department *</span>
               {schools.length > 0 ? (
                 <select
                   className={inputCls}

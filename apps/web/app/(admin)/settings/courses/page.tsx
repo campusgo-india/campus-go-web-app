@@ -66,10 +66,10 @@ export default function SchoolsSettingsPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-strong">Schools &amp; programmes</h1>
+          <h1 className="text-2xl font-semibold text-strong">Schools/Departments &amp; programmes</h1>
           <p className="text-sm text-subtle">
-            {schools.length} school{schools.length === 1 ? '' : 's'} · populates the School/Programme
-            dropdowns on Students, Alumni and Team forms
+            {schools.length} school{schools.length === 1 ? '' : 's'} · populates the
+            School/Department and Programme dropdowns on Students, Alumni and Team forms
           </p>
         </div>
         <Button onClick={() => setShowForm((s) => !s)} variant={showForm ? 'outline' : 'primary'}>
@@ -93,7 +93,7 @@ export default function SchoolsSettingsPage() {
           <p className="p-5 text-sm text-subtle">Loading…</p>
         ) : schools.length === 0 ? (
           <p className="p-5 text-sm text-subtle">
-            No schools yet. Add one so it appears in School/Programme dropdowns.
+            No schools/departments yet. Add one so it appears in the dropdowns.
           </p>
         ) : (
           <ul>
@@ -185,7 +185,7 @@ function NewSchoolForm({ onCreated }: { onCreated: () => void }) {
     <Card className="space-y-3 p-5">
       <p className="text-sm font-semibold text-strong">Add a school</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="School name *">
+        <Field label="School/Department name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. MBA" />
         </Field>
         <Field label="Programmes (comma-separated)">
@@ -239,7 +239,7 @@ function EditSchoolForm({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="School name *">
+        <Field label="School/Department name *">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Programmes (comma-separated)">

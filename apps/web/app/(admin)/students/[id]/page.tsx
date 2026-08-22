@@ -232,7 +232,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Detail label="Name" value={student.user.fullName} />
             <Detail label="Reg no." value={student.rollNumber} />
-            <Detail label="School" value={student.school || '—'} />
+            <Detail label="School/Department" value={student.school || '—'} />
             <Detail label="Programme" value={student.programme || '—'} />
             <Detail label="Passout year" value={String(student.graduationYear)} />
             <Detail
@@ -436,7 +436,7 @@ function EditStudentForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <EditField label="Name" value={form.fullName} onChange={set('fullName')} />
         <EditField label="Reg no." value={form.rollNumber} onChange={set('rollNumber')} />
-        <EditField label="School" value={form.school} onChange={set('school')} />
+        <EditField label="School/Department" value={form.school} onChange={set('school')} />
         <EditField label="Programme" value={form.programme} onChange={set('programme')} />
         <EditField
           label="Passout year"

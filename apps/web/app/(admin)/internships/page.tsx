@@ -285,11 +285,13 @@ export default function InternshipsPage() {
                         {i.endDate ? ` → ${fmt(i.endDate)}` : i.startDate ? ' → Present' : ''}
                       </td>
                       <td className="px-4 py-3 align-top">
-                        {i.isPaid
+                        {i.isPaid === true
                           ? i.stipend
                             ? `₹${i.stipend.toLocaleString()}`
                             : 'Paid'
-                          : 'Unpaid'}
+                          : i.isPaid === false
+                            ? 'Unpaid'
+                            : '—'}
                       </td>
                       <td className="max-w-[220px] px-4 py-3 align-top">
                         <div className="whitespace-normal text-xs leading-relaxed">
@@ -446,11 +448,11 @@ function InternshipForm({
     domain: internship?.domain ?? '',
     skills: internship?.skills ?? '',
     location: internship?.location ?? '',
-    isPaid: internship?.isPaid ?? false,
+    isPaid: internship?.isPaid ?? (null as boolean | null),
     stipend: internship?.stipend != null ? String(internship.stipend) : '',
     startDate: internship?.startDate ? toDateInput(internship.startDate) : '',
     endDate: internship?.endDate ? toDateInput(internship.endDate) : '',
-    isPpo: internship?.isPpo ?? false,
+    isPpo: internship?.isPpo ?? (null as boolean | null),
     description: internship?.description ?? '',
     pocName: internship?.pocName ?? '',
     pocEmail: internship?.pocEmail ?? '',
@@ -462,8 +464,13 @@ function InternshipForm({
   const set =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  const setBool = (k: 'isPaid' | 'isPpo') => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.checked }));
+  // Tri-state Yes/No/(not answered) — keeps "unanswered" visually distinct
+  // from an explicit "No".
+  const setTri = (k: 'isPaid' | 'isPpo') => (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setForm((f) => ({
+      ...f,
+      [k]: e.target.value === '' ? null : e.target.value === 'yes',
+    }));
 
   async function submit() {
     setSaving(true);
@@ -480,11 +487,11 @@ function InternshipForm({
         domain: form.domain.trim() || undefined,
         skills: form.skills.trim() || undefined,
         location: form.location.trim(),
-        isPaid: form.isPaid,
+        isPaid: form.isPaid ?? undefined,
         stipend: form.stipend.trim() ? Number(form.stipend) : undefined,
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
-        isPpo: form.isPpo,
+        isPpo: form.isPpo ?? undefined,
         description: form.description.trim() || undefined,
         pocName: form.pocName.trim(),
         pocEmail: form.pocEmail.trim(),
@@ -593,11 +600,16 @@ function InternshipForm({
         </Labeled>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Labeled label="Paid?">
-          <label className="flex items-center gap-2 text-sm text-body">
-            <input type="checkbox" checked={form.isPaid} onChange={setBool('isPaid')} />
-            This internship is paid
-          </label>
+        <Labeled label="Is the internship paid?">
+          <select
+            className={inputCls}
+            value={form.isPaid === null ? '' : form.isPaid ? 'yes' : 'no'}
+            onChange={setTri('isPaid')}
+          >
+            <option value="">Not answered</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
         </Labeled>
         <Labeled label="Stipend (₹/month)">
           <input
@@ -606,15 +618,22 @@ function InternshipForm({
             value={form.stipend}
             onChange={set('stipend')}
             placeholder="15000"
-            disabled={!form.isPaid}
+            disabled={form.isPaid !== true}
             min="0"
           />
         </Labeled>
       </div>
-      <label className="flex items-center gap-2 text-sm text-body">
-        <input type="checkbox" checked={form.isPpo} onChange={setBool('isPpo')} />
-        Converted into a PPO
-      </label>
+      <Labeled label="Has the internship been converted to a PPO?">
+        <select
+          className={inputCls}
+          value={form.isPpo === null ? '' : form.isPpo ? 'yes' : 'no'}
+          onChange={setTri('isPpo')}
+        >
+          <option value="">Not answered</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </Labeled>
       <Labeled label="Short description">
         <textarea
           className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"

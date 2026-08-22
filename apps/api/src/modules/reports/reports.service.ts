@@ -38,6 +38,22 @@ const lpa = (v: unknown): number | null =>
   v == null ? null : Math.round((Number(v) / 100000) * 100) / 100;
 const dec = (v: unknown): number | null => (v == null ? null : Number(v));
 
+// The officer isn't required to type a CTC every time they place a student —
+// so salary stats fall back to the job's own JD figure (average of its
+// min/max, or whichever bound is set) when Application.offerCtc wasn't
+// explicitly entered. An explicit offerCtc (typically entered alongside the
+// offer letter upload) always wins over the JD estimate.
+function effectiveCtc(
+  offerCtc: unknown,
+  job: { ctcMin: unknown; ctcMax: unknown } | null | undefined,
+): number | null {
+  if (offerCtc != null) return Number(offerCtc);
+  const min = job?.ctcMin != null ? Number(job.ctcMin) : null;
+  const max = job?.ctcMax != null ? Number(job.ctcMax) : null;
+  if (min != null && max != null) return (min + max) / 2;
+  return min ?? max ?? null;
+}
+
 /**
  * Builds normalized, tenant-scoped report datasets. Every query filters by the
  * collegeId taken from the caller's JWT — never request input. The controller
@@ -192,7 +208,13 @@ export class ReportsService {
           },
         },
         job: {
-          select: { title: true, companyName: true, company: { select: { name: true } } },
+          select: {
+            title: true,
+            companyName: true,
+            ctcMin: true,
+            ctcMax: true,
+            company: { select: { name: true } },
+          },
         },
       },
     });
@@ -218,7 +240,7 @@ export class ReportsService {
         graduationYear: a.student.graduationYear,
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
-        ctcLpa: lpa(a.offerCtc),
+        ctcLpa: lpa(effectiveCtc(a.offerCtc, a.job)),
         stage: a.stage,
         placedOn: a.updatedAt,
       })),
@@ -247,6 +269,8 @@ export class ReportsService {
             title: true,
             jobType: true,
             companyName: true,
+            ctcMin: true,
+            ctcMax: true,
             company: { select: { name: true } },
           },
         },
@@ -276,7 +300,7 @@ export class ReportsService {
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
         jobType: a.job.jobType,
-        ctcLpa: lpa(a.offerCtc),
+        ctcLpa: lpa(effectiveCtc(a.offerCtc, a.job)),
         stage: a.stage,
         updatedOn: a.updatedAt,
       })),
@@ -296,6 +320,7 @@ export class ReportsService {
         offerCtc: true,
         studentId: true,
         student: { select: { programme: true } },
+        job: { select: { ctcMin: true, ctcMax: true } },
       },
       distinct: ['studentId'],
     });
@@ -320,7 +345,7 @@ export class ReportsService {
       const row = get(a.student.programme);
       row.placed++;
       row.offers++;
-      const ctc = dec(a.offerCtc);
+      const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) row.packages.push(ctc);
     }
 
@@ -401,6 +426,7 @@ export class ReportsService {
         offerCtc: true,
         studentId: true,
         student: { select: { graduationYear: true } },
+        job: { select: { ctcMin: true, ctcMax: true } },
       },
       distinct: ['studentId'],
     });
@@ -422,7 +448,7 @@ export class ReportsService {
       const row = get(a.student.graduationYear);
       row.placed++;
       row.offers++;
-      const ctc = dec(a.offerCtc);
+      const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) row.packages.push(ctc);
     }
 
@@ -479,8 +505,8 @@ export class ReportsService {
           where: { collegeId, stage: { in: [...PLACING_STAGES] } },
         }),
         this.prisma.application.findMany({
-          where: { collegeId, stage: { in: [...PLACING_STAGES] }, offerCtc: { not: null } },
-          select: { offerCtc: true },
+          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+          select: { offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
         }),
         this.prisma.internship.count({ where: { collegeId } }),
         this.prisma.student.count({ where: { collegeId, isActive: true, higherStudiesPlanned: true } }),
@@ -488,7 +514,9 @@ export class ReportsService {
       ]);
 
     const placed = placedGroups.length;
-    const packages = offerRows.map((o) => dec(o.offerCtc)).filter((n): n is number => n != null);
+    const packages = offerRows
+      .map((o) => effectiveCtc(o.offerCtc, o.job))
+      .filter((n): n is number => n != null);
     const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 1000) / 10 : 0);
 
     const rows = [
