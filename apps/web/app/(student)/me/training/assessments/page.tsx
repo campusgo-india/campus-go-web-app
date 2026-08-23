@@ -36,7 +36,14 @@ export default function MyAssessmentsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-semibold text-strong">{a.name}</p>
-                  <p className="text-xs text-subtle">{PILLAR_LABEL[a.pillar]}</p>
+                  <p className="text-xs text-subtle">
+                    {PILLAR_LABEL[a.pillar]}
+                    {a.scheduledAt &&
+                      ` · ${new Date(a.scheduledAt).toLocaleString(undefined, {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}`}
+                  </p>
                 </div>
                 <Badge tint={PHASE_TINT[a.phase]}>{a.phase}</Badge>
               </div>

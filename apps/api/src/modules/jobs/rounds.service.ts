@@ -29,12 +29,29 @@ interface FunnelStudent {
   offerLetterUrl: string | null;
 }
 
+interface Viewer {
+  role: string;
+  userId: string;
+}
+
 @Injectable()
 export class RoundsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
   ) {}
+
+  // A Placement Coordinator only ever sees their assigned programmes —
+  // resolved fresh from the DB so a reassignment takes effect without
+  // requiring re-login. Returns null for every other role (no restriction).
+  private async programmeRestriction(viewer?: Viewer): Promise<string[] | null> {
+    if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
+    const u = await this.prisma.user.findUnique({
+      where: { id: viewer.userId },
+      select: { assignedProgrammes: true },
+    });
+    return u?.assignedProgrammes ?? [];
+  }
 
   // A job the officer's college can run rounds on: its own college job, OR a
   // PLATFORM-broadcast job targeted to the college. Each college keeps its own
@@ -61,10 +78,16 @@ export class RoundsService {
   }
 
   // ─────────────── The whole funnel for the officer screen ───────────────
-  async funnel(collegeId: string, jobId: string) {
+  // A Placement Coordinator sees the same funnel shape but only their own
+  // programmes' applicants — everyone else outside their remit is filtered
+  // out of every bucket (pool, rounds, finalists, placed).
+  async funnel(collegeId: string, jobId: string, viewer?: Viewer) {
     await this.resolveJob(collegeId, jobId);
+    const programmeRestriction = await this.programmeRestriction(viewer);
+    const inScope = (programme: string) =>
+      !programmeRestriction || programmeRestriction.includes(programme);
 
-    const [rounds, apps] = await Promise.all([
+    const [roundsRaw, appsRaw] = await Promise.all([
       this.prisma.jobRound.findMany({
         where: { jobId, collegeId },
         orderBy: { seq: 'asc' },
@@ -80,6 +103,12 @@ export class RoundsService {
         include: { student: STUDENT_INCLUDE },
       }),
     ]);
+
+    const apps = appsRaw.filter((a) => inScope(a.student.programme));
+    const rounds = roundsRaw.map((r) => ({
+      ...r,
+      participants: r.participants.filter((p) => inScope(p.application.student.programme)),
+    }));
 
     const openRoundIds = new Set(rounds.filter((r) => r.status === 'OPEN').map((r) => r.id));
     // Applications currently waiting in an open round can't be "finalists".

@@ -27,6 +27,7 @@ export interface Assessment {
   phase: AssessmentPhase;
   externalUrl: string;
   maxMarks: number;
+  scheduledAt: string | null;
   isActive: boolean;
   // Empty on both = every active student at the college.
   targetProgrammes: string[];
@@ -41,6 +42,7 @@ export interface AssessmentInput {
   phase: AssessmentPhase;
   externalUrl: string;
   maxMarks: number;
+  scheduledAt?: string;
   isActive?: boolean;
   targetProgrammes?: string[];
   targetBatchIds?: string[];
@@ -168,6 +170,34 @@ export interface FeedbackAnalytics {
   trainers: Array<{ trainerName: string; avgRating: number | null }>;
 }
 
+export interface OfficerTrainingDashboard {
+  studentCount: number;
+  readiness: {
+    average: number;
+    assessedCount: number;
+    notYetAssessedCount: number;
+    tierCounts: Record<EmployabilityTier, number>;
+  };
+  pillars: Array<{ pillar: TrainingPillar; label: string; prePct: number | null; postPct: number | null }>;
+  overallAttendancePct: number;
+  sessions: Array<{
+    id: string;
+    title: string;
+    startsAt: string;
+    status: SessionStatus;
+    attendancePct: number | null;
+    markedCount: number;
+  }>;
+  assessments: Array<{
+    id: string;
+    name: string;
+    pillar: TrainingPillar;
+    phase: AssessmentPhase;
+    averagePct: number | null;
+    scoredCount: number;
+  }>;
+}
+
 /** Reads a File into a base64 string (strips the data: URL prefix). */
 async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
@@ -176,6 +206,10 @@ async function fileToBase64(file: File): Promise<string> {
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i] ?? 0);
   return btoa(binary);
 }
+
+// ─── Officer / College Admin (+ Coordinator, programme-scoped): dashboard ───
+export const getOfficerTrainingDashboard = () =>
+  api<OfficerTrainingDashboard>('/training/dashboard');
 
 // ─── Officer / College Admin: assessments ───
 export const listAssessments = () => api<Assessment[]>('/training/assessments');
@@ -192,10 +226,13 @@ export const deleteAssessment = (id: string) =>
 export const listScores = (assessmentId: string) =>
   api<ScoreRow[]>(`/training/assessments/${assessmentId}/scores`);
 
-export const enterScore = (assessmentId: string, studentId: string, marksObtained: number) =>
-  api<{ studentId: string; marksObtained: number }>(`/training/assessments/${assessmentId}/scores`, {
+export const bulkEnterScores = (
+  assessmentId: string,
+  rows: Array<{ studentId: string; marksObtained: number }>,
+) =>
+  api<{ success: boolean; updated: number }>(`/training/assessments/${assessmentId}/scores`, {
     method: 'POST',
-    body: JSON.stringify({ studentId, marksObtained }),
+    body: JSON.stringify({ rows }),
   });
 
 export async function importScores(assessmentId: string, file: File): Promise<ImportResult> {

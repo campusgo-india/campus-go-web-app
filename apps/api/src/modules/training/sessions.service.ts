@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient, TrainingSession } from '@campusgo/database';
 import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 function toPublic(s: TrainingSession) {
   return {
@@ -21,13 +22,17 @@ function toPublic(s: TrainingSession) {
 }
 
 // Untargeted (the default) OR targets this student's programme OR one of their
-// batches. Exported so dashboard.service.ts can apply the identical rule to
-// track-status counts.
-export function visibilityFilter(programme: string, batchIds: string[]) {
+// batches. `targetProgrammes` entries may also hold a *school* name — the
+// picker falls back to the school's own name when that school has no
+// sub-programme catalog configured (see TrainingTargetPicker) — so a student
+// is also matched by their school. Exported so dashboard.service.ts can apply
+// the identical rule to track-status counts.
+export function visibilityFilter(school: string, programme: string, batchIds: string[]) {
   return {
     OR: [
       { targetProgrammes: { isEmpty: true }, targetBatchIds: { isEmpty: true } },
       { targetProgrammes: { has: programme } },
+      { targetProgrammes: { has: school } },
       ...(batchIds.length ? [{ targetBatchIds: { hasSome: batchIds } }] : []),
     ],
   };
@@ -36,7 +41,7 @@ export function visibilityFilter(programme: string, batchIds: string[]) {
 // The reverse of visibilityFilter: given one assessment/session's own
 // targeting, build the Student `where` clause matching every student who can
 // see it — untargeted (both empty) means every active student, otherwise
-// only those in a target programme or a target batch. Shared by the
+// only those in a target programme/school or a target batch. Shared by the
 // assessment score sheet and the session attendance roster so an officer
 // marking/scoring never sees students outside the intended audience.
 export async function targetedStudentWhere(
@@ -57,7 +62,11 @@ export async function targetedStudentWhere(
       ).map((m) => m.studentId)
     : [];
   const or = [
-    ...(targetProgrammes.length ? [{ programme: { in: targetProgrammes } }] : []),
+    // targetProgrammes may hold real programme values or (for a school with
+    // no sub-programme catalog) the school's own name — match either field.
+    ...(targetProgrammes.length
+      ? [{ programme: { in: targetProgrammes } }, { school: { in: targetProgrammes } }]
+      : []),
     ...(memberIds.length ? [{ id: { in: memberIds } }] : []),
   ];
   // Targeted at programmes/batches that (so far) match nobody — e.g. a batch
@@ -68,7 +77,10 @@ export async function targetedStudentWhere(
 
 @Injectable()
 export class TrainingSessionsService {
-  constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ─────────────── Officer / Admin ───────────────
 
@@ -157,23 +169,34 @@ export class TrainingSessionsService {
   }
 
   async markAttendance(collegeId: string, sessionId: string, userId: string, dto: MarkAttendanceDto) {
-    await this.findOneOrThrow(collegeId, sessionId);
+    const session = await this.findOneOrThrow(collegeId, sessionId);
     const studentIds = dto.rows.map((r) => r.studentId);
     const validStudents = await this.prisma.student.findMany({
       where: { id: { in: studentIds }, collegeId },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
-    const validIds = new Set(validStudents.map((s) => s.id));
+    const validById = new Map(validStudents.map((s) => [s.id, s]));
 
+    const notifyUserIds: string[] = [];
     for (const row of dto.rows) {
-      if (!validIds.has(row.studentId)) continue;
+      const student = validById.get(row.studentId);
+      if (!student) continue;
       await this.prisma.trainingAttendance.upsert({
         where: { sessionId_studentId: { sessionId, studentId: row.studentId } },
         create: { collegeId, sessionId, studentId: row.studentId, present: row.present, markedById: userId },
         update: { present: row.present, markedById: userId },
       });
+      notifyUserIds.push(student.userId);
     }
-    return { success: true, marked: validIds.size };
+
+    await this.notifications.notifyMany(notifyUserIds, collegeId, {
+      type: 'GENERAL',
+      title: `Attendance recorded: ${session.title}`,
+      body: `Your attendance for "${session.title}" has been recorded. Check the Training section for details.`,
+      link: '/me/training/calendar',
+    });
+
+    return { success: true, marked: validById.size };
   }
 
   /**
@@ -183,7 +206,7 @@ export class TrainingSessionsService {
    * present/absent (case-insensitive).
    */
   async importAttendance(collegeId: string, sessionId: string, userId: string, dto: ImportAttendanceDto) {
-    await this.findOneOrThrow(collegeId, sessionId);
+    const session = await this.findOneOrThrow(collegeId, sessionId);
     const buffer = Buffer.from(dto.fileBase64, 'base64');
     const isXlsx = /\.xlsx$/i.test(dto.fileName);
     const rows = isXlsx ? await parseXlsxRows(buffer) : parseCsvRows(buffer.toString('utf8'));
@@ -192,9 +215,10 @@ export class TrainingSessionsService {
     const rollNumbers = rows.map((r) => r.rollNumber).filter(Boolean);
     const students = await this.prisma.student.findMany({
       where: { collegeId, rollNumber: { in: rollNumbers } },
-      select: { id: true, rollNumber: true },
+      select: { id: true, rollNumber: true, userId: true },
     });
     const byRoll = new Map(students.map((s) => [s.rollNumber, s.id]));
+    const userIdById = new Map(students.map((s) => [s.id, s.userId]));
 
     const errors: Array<{ row: number; message: string }> = [];
     const upserts: Array<{ studentId: string; present: boolean }> = [];
@@ -225,6 +249,16 @@ export class TrainingSessionsService {
       });
     }
 
+    const notifyUserIds = upserts
+      .map((u) => userIdById.get(u.studentId))
+      .filter((id): id is string => !!id);
+    await this.notifications.notifyMany(notifyUserIds, collegeId, {
+      type: 'GENERAL',
+      title: `Attendance recorded: ${session.title}`,
+      body: `Your attendance for "${session.title}" has been recorded. Check the Training section for details.`,
+      link: '/me/training/calendar',
+    });
+
     return { updatedCount: upserts.length, errorCount: errors.length, errors };
   }
 
@@ -233,7 +267,7 @@ export class TrainingSessionsService {
   async studentForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },
-      select: { id: true, collegeId: true, programme: true },
+      select: { id: true, collegeId: true, school: true, programme: true },
     });
     if (!student) throw new ForbiddenException('No student profile for this account');
     return student;
@@ -251,11 +285,11 @@ export class TrainingSessionsService {
   // targeting their programme/batch) plus their own attendance flag (null until
   // marked).
   async listForStudent(userId: string) {
-    const { id: studentId, collegeId, programme } = await this.studentForUser(userId);
+    const { id: studentId, collegeId, school, programme } = await this.studentForUser(userId);
     const batchIds = await this.myBatchIds(studentId);
     const [sessions, attendance] = await Promise.all([
       this.prisma.trainingSession.findMany({
-        where: { collegeId, ...visibilityFilter(programme, batchIds) },
+        where: { collegeId, ...visibilityFilter(school, programme, batchIds) },
         orderBy: { startsAt: 'asc' },
       }),
       this.prisma.trainingAttendance.findMany({ where: { studentId } }),

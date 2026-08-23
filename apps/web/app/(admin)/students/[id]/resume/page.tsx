@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PageSkeleton } from '../../../../../components/page-skeleton';
+import { PdfModal } from '../../../../../components/pdf-modal';
 import { getStudentResume, type OfficerResume } from '../../../../../lib/resume';
 
 /** Officer view of a student's résumé — renders the uploaded PDF. */
@@ -10,6 +11,7 @@ export default function StudentResumePage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const [resume, setResume] = useState<OfficerResume | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPdf, setShowPdf] = useState(false);
 
   useEffect(() => {
     getStudentResume(id)
@@ -41,18 +43,27 @@ export default function StudentResumePage({ params }: { params: Promise<{ id: st
               <p className="text-sm font-medium text-strong">{resume.fileName}</p>
               <p className="text-xs text-subtle">{(resume.fileSize / 1024).toFixed(1)} KB</p>
             </div>
-            <a
-              href={resume.fileUrl}
-              download={resume.fileName}
-              className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-            >
-              Download PDF
-            </a>
-          </div>
-          <div className="overflow-hidden rounded-lg border border-border bg-white shadow-card">
-            <iframe src={resume.fileUrl} title={resume.fileName} className="h-[75vh] w-full" />
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={() => setShowPdf(true)}
+                className="rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-strong hover:bg-app"
+              >
+                View
+              </button>
+              <a
+                href={resume.fileUrl}
+                download={resume.fileName}
+                className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+              >
+                Download PDF
+              </a>
+            </div>
           </div>
         </>
+      )}
+
+      {showPdf && resume && (
+        <PdfModal url={resume.fileUrl} name={resume.fileName} onClose={() => setShowPdf(false)} />
       )}
     </div>
   );

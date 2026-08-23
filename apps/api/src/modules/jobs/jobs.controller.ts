@@ -129,7 +129,10 @@ export class JobsController {
     if (user.role === UserRole.STUDENT) {
       return { data: await this.jobs.studentFeed(user.sub) };
     }
-    const { items, meta } = await this.jobs.list(this.collegeId(user), query);
+    const { items, meta } = await this.jobs.list(this.collegeId(user), query, {
+      role: user.role,
+      userId: user.sub,
+    });
     return { data: items, meta };
   }
 
@@ -145,7 +148,9 @@ export class JobsController {
     if (user.role === UserRole.STUDENT) {
       return { data: await this.jobs.studentJobDetail(user.sub, id) };
     }
-    return { data: await this.jobs.findOne(this.collegeId(user), id) };
+    return {
+      data: await this.jobs.findOne(this.collegeId(user), id, { role: user.role, userId: user.sub }),
+    };
   }
 
   @Patch(':id')
@@ -155,13 +160,20 @@ export class JobsController {
     @Param('id') id: string,
     @Body() dto: UpdateJobDto,
   ) {
-    return { data: await this.jobs.update(this.collegeId(user), id, dto) };
+    return {
+      data: await this.jobs.update(this.collegeId(user), id, dto, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post(':id/publish')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async publish(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.jobs.publish(this.collegeId(user), id) };
+    return {
+      data: await this.jobs.publish(this.collegeId(user), id, { role: user.role, userId: user.sub }),
+    };
   }
 
   @Post('publish-many')
@@ -173,13 +185,17 @@ export class JobsController {
   @Post(':id/close')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async close(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.jobs.close(this.collegeId(user), id) };
+    return {
+      data: await this.jobs.close(this.collegeId(user), id, { role: user.role, userId: user.sub }),
+    };
   }
 
   @Delete(':id')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async remove(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.jobs.remove(this.collegeId(user), id) };
+    return {
+      data: await this.jobs.remove(this.collegeId(user), id, { role: user.role, userId: user.sub }),
+    };
   }
 
   // Raw @Res() bypasses the {data} envelope interceptor — this streams a file

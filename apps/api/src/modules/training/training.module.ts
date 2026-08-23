@@ -5,7 +5,7 @@ import { TrainingSessionsController, MeTrainingSessionsController } from './sess
 import { TrainingSessionsService } from './sessions.service';
 import { TrainingFeedbackController, MeTrainingFeedbackController } from './feedback.controller';
 import { TrainingFeedbackService } from './feedback.service';
-import { TrainingDashboardController } from './dashboard.controller';
+import { TrainingDashboardController, TrainingOfficerDashboardController } from './dashboard.controller';
 import { TrainingDashboardService } from './dashboard.service';
 import { TrainingBatchesController } from './batches.controller';
 import { TrainingBatchesService } from './batches.service';
@@ -19,6 +19,7 @@ import { TrainingBatchesService } from './batches.service';
     TrainingFeedbackController,
     MeTrainingFeedbackController,
     TrainingDashboardController,
+    TrainingOfficerDashboardController,
     TrainingBatchesController,
   ],
   providers: [

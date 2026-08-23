@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../../components/confirm-provider';
+import { useSession } from '../../../../../lib/session';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
 import { formatLpa, getJob, uploadOfferLetter, type Job } from '../../../../../lib/jobs';
 import {
@@ -24,6 +25,10 @@ import {
 
 export default function FunnelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useSession();
+  // Placement Coordinators can view the pipeline (scoped to their own
+  // programmes by the API) but can't decide rounds, place, or reject.
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
   const confirm = useConfirm();
   const [job, setJob] = useState<Job | null>(null);
   const [funnel, setFunnel] = useState<Funnel | null>(null);
@@ -247,21 +252,23 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
             <span className={tab === t.key ? 'opacity-80' : 'text-subtle'}>{t.count}</span>
           </button>
         ))}
-        <button
-          onClick={() => canAddRound && setShowAddRound(true)}
-          disabled={!canAddRound}
-          title={
-            canAddRound
-              ? 'Add a round'
-              : `Close ${lastRound?.title ?? 'the current round'} by selecting who advances first`
-          }
-          className="rounded-pill border border-dashed border-primary-300 px-4 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {canAddRound ? '+ Add round' : `Close ${lastRound?.title ?? 'round'} first`}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => canAddRound && setShowAddRound(true)}
+            disabled={!canAddRound}
+            title={
+              canAddRound
+                ? 'Add a round'
+                : `Close ${lastRound?.title ?? 'the current round'} by selecting who advances first`
+            }
+            className="rounded-pill border border-dashed border-primary-300 px-4 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {canAddRound ? '+ Add round' : `Close ${lastRound?.title ?? 'round'} first`}
+          </button>
+        )}
       </div>
 
-      {showAddRound && (
+      {showAddRound && !readOnly && (
         <AddRoundForm
           nextLabel={`Round ${funnel.rounds.length + 1}`}
           busy={busy}
@@ -272,13 +279,18 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
 
       {/* Content */}
       {funnel.rounds.length === 0 && tab !== 'pool' ? (
-        <StartCard count={funnel.applicantsTotal} onStart={() => setShowAddRound(true)} />
+        readOnly ? (
+          <Card className="p-6 text-center text-sm text-subtle">No rounds started yet.</Card>
+        ) : (
+          <StartCard count={funnel.applicantsTotal} onStart={() => setShowAddRound(true)} />
+        )
       ) : activeRound ? (
         <RoundView
           round={activeRound}
           picked={picked}
           setPicked={setPicked}
           busy={busy}
+          readOnly={readOnly}
           onDecide={() => decide(activeRound)}
           onRemove={() => removeRound(activeRound)}
           onMarkAttendance={(applicationId, attended) =>
@@ -292,6 +304,7 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
           picked={picked}
           setPicked={setPicked}
           busy={busy}
+          readOnly={readOnly}
           onBulkPlace={bulkPlace}
           onPlace={(s) => setPlacing(s)}
           onReject={reject}
@@ -372,6 +385,7 @@ function RoundView({
   picked,
   setPicked,
   busy,
+  readOnly,
   onDecide,
   onRemove,
   onMarkAttendance,
@@ -381,12 +395,13 @@ function RoundView({
   picked: Set<string>;
   setPicked: (s: Set<string>) => void;
   busy: boolean;
+  readOnly: boolean;
   onDecide: () => void;
   onRemove: () => void;
   onMarkAttendance: (applicationId: string, attended: boolean) => void;
   isLast: boolean;
 }) {
-  const open = round.status === 'OPEN';
+  const open = round.status === 'OPEN' && !readOnly;
   const toggle = (idc: string) => {
     const next = new Set(picked);
     if (next.has(idc)) next.delete(idc);
@@ -519,12 +534,12 @@ function RoundView({
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    {open ? (
-                      <span className="text-xs text-subtle">pending</span>
-                    ) : p.outcome === 'ADVANCED' ? (
+                    {p.outcome === 'ADVANCED' ? (
                       <Badge tint="mint">Advanced</Badge>
-                    ) : (
+                    ) : p.outcome === 'REJECTED' ? (
                       <Badge tint="rose">Rejected</Badge>
+                    ) : (
+                      <span className="text-xs text-subtle">pending</span>
                     )}
                   </td>
                 </tr>
@@ -625,6 +640,7 @@ function FinalistsTable({
   picked,
   setPicked,
   busy,
+  readOnly,
   onBulkPlace,
   onPlace,
   onReject,
@@ -633,6 +649,7 @@ function FinalistsTable({
   picked: Set<string>;
   setPicked: (s: Set<string>) => void;
   busy: boolean;
+  readOnly: boolean;
   onBulkPlace: () => void;
   onPlace: (s: FunnelStudent) => void;
   onReject: (s: FunnelStudent) => void;
@@ -654,22 +671,24 @@ function FinalistsTable({
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
             <tr>
-              <th className="px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={allPicked}
-                  onChange={() =>
-                    setPicked(allPicked ? new Set() : new Set(people.map((p) => p.applicationId)))
-                  }
-                  className="h-4 w-4 cursor-pointer accent-primary-600"
-                  aria-label="Select all"
-                />
-              </th>
+              {!readOnly && (
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allPicked}
+                    onChange={() =>
+                      setPicked(allPicked ? new Set() : new Set(people.map((p) => p.applicationId)))
+                    }
+                    className="h-4 w-4 cursor-pointer accent-primary-600"
+                    aria-label="Select all"
+                  />
+                </th>
+              )}
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Reg No.</th>
               <th className="px-4 py-3 font-medium">Programme</th>
               <th className="px-4 py-3 font-medium">Resume</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              {!readOnly && <th className="px-4 py-3 text-right font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -680,15 +699,17 @@ function FinalistsTable({
                   picked.has(s.applicationId) ? 'bg-primary-50/50' : ''
                 }`}
               >
-                <td className="px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={picked.has(s.applicationId)}
-                    onChange={() => toggle(s.applicationId)}
-                    className="h-4 w-4 cursor-pointer accent-primary-600"
-                    aria-label={`Select ${s.fullName}`}
-                  />
-                </td>
+                {!readOnly && (
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={picked.has(s.applicationId)}
+                      onChange={() => toggle(s.applicationId)}
+                      className="h-4 w-4 cursor-pointer accent-primary-600"
+                      aria-label={`Select ${s.fullName}`}
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3 font-medium text-strong">{s.fullName}</td>
                 <td className="px-4 py-3">{s.rollNumber}</td>
                 <td className="px-4 py-3">{s.programme}</td>
@@ -706,23 +727,25 @@ function FinalistsTable({
                     <span className="text-xs text-subtle">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <Button size="sm" onClick={() => onPlace(s)}>
-                      Select / place
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onReject(s)}>
-                      Reject
-                    </Button>
-                  </div>
-                </td>
+                {!readOnly && (
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" onClick={() => onPlace(s)}>
+                        Select / place
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => onReject(s)}>
+                        Reject
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </Card>
 
-      {picked.size > 0 && (
+      {!readOnly && picked.size > 0 && (
         <div className="sticky bottom-4 flex items-center justify-between gap-3 rounded-pill border border-border bg-white/95 p-2 pl-4 shadow-nav backdrop-blur">
           <span className="text-sm text-body">
             <span className="font-semibold text-strong">{picked.size}</span> selected

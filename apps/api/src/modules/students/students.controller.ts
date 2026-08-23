@@ -66,13 +66,17 @@ export class StudentsController {
   // programme, each row including a résumé link — bypasses the {data} envelope
   // like the Reports module's exports.
   @Get('export/by-programme')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
   async exportByProgramme(
     @CurrentUser() user: JwtPayload,
     @Ip() ip: string,
     @Res() res: Response,
   ) {
     const collegeId = this.collegeId(user);
-    const datasets = await this.students.exportByProgramme(collegeId);
+    const datasets = await this.students.exportByProgramme(collegeId, {
+      role: user.role,
+      userId: user.sub,
+    });
     const buffer = await toMultiSheetXlsx(datasets);
 
     await this.audit.record(user, {

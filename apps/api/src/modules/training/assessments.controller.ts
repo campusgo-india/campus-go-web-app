@@ -3,7 +3,7 @@ import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AssessmentsService } from './assessments.service';
-import { CreateAssessmentDto, ImportScoresDto, ManualScoreEntryDto, UpdateAssessmentDto } from './dto';
+import { BulkScoreEntryDto, CreateAssessmentDto, ImportScoresDto, UpdateAssessmentDto } from './dto';
 
 @Controller('training/assessments')
 @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
@@ -45,12 +45,14 @@ export class AssessmentsController {
   }
 
   @Post(':id/scores')
-  async enterScore(
+  async bulkEnterScores(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
-    @Body() dto: ManualScoreEntryDto,
+    @Body() dto: BulkScoreEntryDto,
   ) {
-    return { data: await this.assessments.enterScore(this.collegeId(user), id, user.sub, dto) };
+    return {
+      data: await this.assessments.bulkEnterScores(this.collegeId(user), id, user.sub, dto),
+    };
   }
 
   @Post(':id/scores/import')

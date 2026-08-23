@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
 import {
-  enterScore,
+  bulkEnterScores,
   importScores,
   listScores,
   type ImportResult,
@@ -20,7 +20,7 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
   const [importing, setImporting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -48,6 +48,7 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
     try {
       const res = await importScores(id, file);
       setResult(res);
+      setDrafts({});
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed');
@@ -56,24 +57,23 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
     }
   }
 
-  async function saveManual(studentId: string) {
-    const raw = drafts[studentId];
-    const marks = Number(raw);
-    if (raw === undefined || Number.isNaN(marks)) return;
-    setSavingId(studentId);
+  // Batches every edited row into one submit, mirroring the attendance page —
+  // students are only emailed once, when the whole page is submitted.
+  async function submitScores() {
+    const updates = Object.entries(drafts)
+      .map(([studentId, raw]) => ({ studentId, marksObtained: Number(raw) }))
+      .filter((r) => !Number.isNaN(r.marksObtained));
+    if (updates.length === 0) return;
+    setSaving(true);
     setError(null);
     try {
-      await enterScore(id, studentId, marks);
+      await bulkEnterScores(id, updates);
+      setDrafts({});
       await load();
-      setDrafts((d) => {
-        const next = { ...d };
-        delete next[studentId];
-        return next;
-      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save score');
+      setError(err instanceof Error ? err.message : 'Could not save scores');
     } finally {
-      setSavingId(null);
+      setSaving(false);
     }
   }
 
@@ -155,7 +155,6 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
                 <th className="px-4 py-3">Roll No</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Marks</th>
-                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -173,21 +172,18 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
                       }
                     />
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => saveManual(r.studentId)}
-                      disabled={savingId === r.studentId || drafts[r.studentId] === undefined}
-                      className="text-sm font-medium text-primary-600 hover:underline disabled:opacity-40"
-                    >
-                      {savingId === r.studentId ? 'Saving…' : 'Save'}
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <Button size="lg" onClick={submitScores} disabled={saving || Object.keys(drafts).length === 0}>
+        {saving
+          ? 'Submitting…'
+          : `Submit scores${Object.keys(drafts).length ? ` (${Object.keys(drafts).length})` : ''}`}
+      </Button>
     </div>
   );
 }

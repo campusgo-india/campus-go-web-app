@@ -42,6 +42,7 @@ const SCHOOLS_NAV: NavItem = { href: '/settings/courses', label: 'Schools' };
 const COORDINATOR_NAV: NavItem[] = [
   { href: '/jobs', label: 'Jobs' },
   { href: '/students', label: 'Students' },
+  { href: '/training/dashboard', label: 'Training' },
 ];
 
 function navFor(role: UserRole | undefined): NavItem[] {

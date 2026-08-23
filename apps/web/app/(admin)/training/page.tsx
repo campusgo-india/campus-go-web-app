@@ -89,6 +89,9 @@ export default function TrainingAssessmentsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/training/dashboard">
+            <Button variant="outline">Dashboard</Button>
+          </Link>
           <Link href="/training/sessions">
             <Button variant="outline">Sessions</Button>
           </Link>
@@ -122,6 +125,7 @@ export default function TrainingAssessmentsPage() {
                 <th className="px-4 py-3">Pillar</th>
                 <th className="px-4 py-3">Phase</th>
                 <th className="px-4 py-3">Max marks</th>
+                <th className="px-4 py-3">Scheduled</th>
                 <th className="px-4 py-3">Visible to</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3" />
@@ -136,6 +140,14 @@ export default function TrainingAssessmentsPage() {
                     <Badge tint={PHASE_TINT[a.phase]}>{a.phase}</Badge>
                   </td>
                   <td className="px-4 py-3 text-body">{a.maxMarks}</td>
+                  <td className="px-4 py-3 text-body">
+                    {a.scheduledAt
+                      ? new Date(a.scheduledAt).toLocaleString(undefined, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })
+                      : <span className="text-subtle">—</span>}
+                  </td>
                   <td
                     className={`px-4 py-3 ${
                       a.targetProgrammes.length === 0 && a.targetBatchIds.length === 0

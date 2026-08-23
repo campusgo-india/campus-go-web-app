@@ -23,6 +23,8 @@ export class CreateAssessmentDto {
   @IsEnum(AssessmentPhase) phase!: AssessmentPhase;
   @NormalizeUrl() @IsString() @MinLength(1) externalUrl!: string;
   @Type(() => Number) @IsInt() @Min(1) maxMarks!: number;
+  // Optional — some tests are open-ended with no fixed date/time.
+  @IsOptional() @IsDateString() scheduledAt?: string;
   // Targeting: omit/empty both = every active student at the college.
   @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
   @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
@@ -34,14 +36,23 @@ export class UpdateAssessmentDto {
   @IsOptional() @IsEnum(AssessmentPhase) phase?: AssessmentPhase;
   @IsOptional() @NormalizeUrl() @IsString() @MinLength(1) externalUrl?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) maxMarks?: number;
+  @IsOptional() @IsDateString() scheduledAt?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
   @IsOptional() @IsArray() @IsString({ each: true }) targetProgrammes?: string[];
   @IsOptional() @IsArray() @IsString({ each: true }) targetBatchIds?: string[];
 }
 
-export class ManualScoreEntryDto {
+export class ScoreRowDto {
   @IsString() @MinLength(1) studentId!: string;
   @Type(() => Number) @IsNumber() @Min(0) marksObtained!: number;
+}
+
+export class BulkScoreEntryDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ScoreRowDto)
+  rows!: ScoreRowDto[];
 }
 
 // The dropped file is read client-side and sent as base64 — CSV text or XLSX

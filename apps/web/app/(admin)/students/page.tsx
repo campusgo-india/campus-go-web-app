@@ -295,19 +295,21 @@ function StudentsList() {
           <h1 className="text-2xl font-semibold text-strong">{title}</h1>
           <p className="text-sm text-subtle">{subtitle}</p>
         </div>
-        {!readOnly && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" onClick={onExportByProgramme} loading={exporting}>
-              Export by programme
-            </Button>
-            <Link href="/students/import">
-              <Button variant="ghost">Import CSV</Button>
-            </Link>
-            <Link href="/students/new">
-              <Button>Add student</Button>
-            </Link>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="ghost" onClick={onExportByProgramme} loading={exporting}>
+            Export by programme
+          </Button>
+          {!readOnly && (
+            <>
+              <Link href="/students/import">
+                <Button variant="ghost">Import CSV</Button>
+              </Link>
+              <Link href="/students/new">
+                <Button>Add student</Button>
+              </Link>
+            </>
+          )}
+        </div>
       </header>
 
       {showGraduate && (

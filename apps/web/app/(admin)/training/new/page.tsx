@@ -14,6 +14,7 @@ export default function NewAssessmentPage() {
   const [phase, setPhase] = useState<'PRE' | 'POST'>('PRE');
   const [externalUrl, setExternalUrl] = useState('');
   const [maxMarks, setMaxMarks] = useState('100');
+  const [scheduledAt, setScheduledAt] = useState('');
   const [targetProgrammes, setTargetProgrammes] = useState<string[]>([]);
   const [targetBatchIds, setTargetBatchIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,7 @@ export default function NewAssessmentPage() {
         phase,
         externalUrl: externalUrl.trim(),
         maxMarks: marks,
+        ...(scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
         targetProgrammes,
         targetBatchIds,
       });
@@ -98,16 +100,27 @@ export default function NewAssessmentPage() {
           />
         </label>
 
-        <label className="space-y-1 block">
-          <span className="text-xs font-medium text-subtle">Max marks *</span>
-          <input
-            type="number"
-            min="1"
-            className={inputCls}
-            value={maxMarks}
-            onChange={(e) => setMaxMarks(e.target.value)}
-          />
-        </label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="space-y-1 block">
+            <span className="text-xs font-medium text-subtle">Max marks *</span>
+            <input
+              type="number"
+              min="1"
+              className={inputCls}
+              value={maxMarks}
+              onChange={(e) => setMaxMarks(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1 block">
+            <span className="text-xs font-medium text-subtle">Test date &amp; time</span>
+            <input
+              type="datetime-local"
+              className={inputCls}
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+            />
+          </label>
+        </div>
 
         <TrainingTargetPicker
           programmes={targetProgrammes}

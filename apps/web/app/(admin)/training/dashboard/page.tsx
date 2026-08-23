@@ -1,0 +1,217 @@
+'use client';
+
+import Link from 'next/link';
+import { Badge, ProgressBar, SectionCard, StatTile } from '@campusgo/ui';
+import { PageSkeleton } from '../../../../components/page-skeleton';
+import { useSession } from '../../../../lib/session';
+import { useApi } from '../../../../lib/use-api';
+import {
+  getOfficerTrainingDashboard,
+  PILLAR_LABEL,
+  type EmployabilityTier,
+  type OfficerTrainingDashboard,
+} from '../../../../lib/training';
+
+const TIER_LABEL: Record<EmployabilityTier, string> = {
+  TIER_1: 'Placement Ready',
+  TIER_2: 'On Track',
+  TIER_3: 'Needs Focus',
+};
+
+const TIER_TINT: Record<EmployabilityTier, 'mint' | 'lavender' | 'rose'> = {
+  TIER_1: 'mint',
+  TIER_2: 'lavender',
+  TIER_3: 'rose',
+};
+
+/**
+ * Cohort-wide training analytics for the placement team — pre vs post-test
+ * pillar averages, the readiness-tier distribution, and attendance across
+ * recent sessions. A Placement Coordinator sees the same view scoped to their
+ * assigned programmes.
+ */
+export default function TrainingDashboardPage() {
+  const { user } = useSession();
+  const canManage = user?.role === 'COLLEGE_ADMIN' || user?.role === 'PLACEMENT_OFFICER';
+  const { data } = useApi<OfficerTrainingDashboard>('/training/dashboard', getOfficerTrainingDashboard);
+
+  if (!data) return <PageSkeleton />;
+
+  const { readiness, pillars, overallAttendancePct, sessions, assessments, studentCount } = data;
+  const tierTotal = readiness.tierCounts.TIER_1 + readiness.tierCounts.TIER_2 + readiness.tierCounts.TIER_3;
+
+  return (
+    <div className="space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-strong">Training Dashboard</h1>
+          <p className="text-sm text-subtle">
+            {studentCount.toLocaleString('en-IN')} active students in scope
+          </p>
+        </div>
+        {canManage && (
+          <Link href="/training" className="text-sm font-medium text-primary-600 hover:underline">
+            Manage assessments &amp; sessions →
+          </Link>
+        )}
+      </header>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile
+          gradient="ocean"
+          label="Average readiness"
+          value={`${readiness.average}%`}
+          hint={`${readiness.assessedCount} students assessed`}
+        />
+        <StatTile
+          gradient="sunset"
+          label="Overall attendance"
+          value={`${overallAttendancePct}%`}
+          hint="across recent sessions"
+        />
+        <StatTile
+          gradient="violet"
+          label="Placement ready"
+          value={readiness.tierCounts.TIER_1.toLocaleString('en-IN')}
+          hint={tierTotal ? `of ${tierTotal} assessed` : 'no scores yet'}
+        />
+        <StatTile
+          gradient="primary"
+          label="Not yet assessed"
+          value={readiness.notYetAssessedCount.toLocaleString('en-IN')}
+          hint="no scores on file"
+        />
+      </div>
+
+      <SectionCard
+        title="Readiness distribution"
+        subtitle="Every scored student, bucketed by their overall readiness index"
+      >
+        {tierTotal === 0 ? (
+          <p className="text-sm text-subtle">No assessment scores recorded yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {(['TIER_1', 'TIER_2', 'TIER_3'] as EmployabilityTier[]).map((tier) => (
+              <ProgressBar
+                key={tier}
+                value={(readiness.tierCounts[tier] / tierTotal) * 100}
+                label={
+                  <span className="flex items-center gap-2">
+                    <Badge tint={TIER_TINT[tier]}>{TIER_LABEL[tier]}</Badge>
+                  </span>
+                }
+                caption={`${readiness.tierCounts[tier]} students`}
+                fillClassName={
+                  tier === 'TIER_1'
+                    ? 'bg-tint-mint-fg'
+                    : tier === 'TIER_2'
+                      ? 'bg-tint-lavender-fg'
+                      : 'bg-tint-rose-fg'
+                }
+              />
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Pre vs post-test analysis"
+        subtitle="Average score % per skill pillar, pooled across every scored assessment"
+      >
+        <div className="space-y-4">
+          {pillars.map((p) => (
+            <div key={p.pillar}>
+              <p className="mb-1.5 text-sm font-medium text-body">{PILLAR_LABEL[p.pillar]}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ProgressBar
+                  value={p.prePct ?? 0}
+                  label="Pre-test"
+                  caption={p.prePct != null ? `${p.prePct}%` : 'No data'}
+                  fillClassName="bg-tint-lavender-fg"
+                />
+                <ProgressBar
+                  value={p.postPct ?? 0}
+                  label="Post-test"
+                  caption={p.postPct != null ? `${p.postPct}%` : 'No data'}
+                  fillClassName="bg-tint-mint-fg"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Recent sessions" subtitle="Attendance %, most recent first" flush>
+        {sessions.length === 0 ? (
+          <p className="p-5 text-sm text-subtle">No sessions yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Session</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Attendance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s) => (
+                  <tr key={s.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-medium text-strong">{s.title}</td>
+                    <td className="px-4 py-3 text-body">
+                      {new Date(s.startsAt).toLocaleDateString(undefined, {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tint={s.status === 'COMPLETED' ? 'mint' : 'lavender'}>{s.status}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-body">
+                      {s.attendancePct != null ? `${s.attendancePct}% (${s.markedCount} marked)` : 'Not marked'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Recent assessments" subtitle="Average score %, most recent first" flush>
+        {assessments.length === 0 ? (
+          <p className="p-5 text-sm text-subtle">No assessments yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Assessment</th>
+                  <th className="px-4 py-3 font-medium">Pillar</th>
+                  <th className="px-4 py-3 font-medium">Phase</th>
+                  <th className="px-4 py-3 font-medium">Average score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {assessments.map((a) => (
+                  <tr key={a.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-medium text-strong">{a.name}</td>
+                    <td className="px-4 py-3 text-body">{PILLAR_LABEL[a.pillar]}</td>
+                    <td className="px-4 py-3">
+                      <Badge tint={a.phase === 'PRE' ? 'lavender' : 'mint'}>{a.phase}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-body">
+                      {a.averagePct != null ? `${a.averagePct}% (${a.scoredCount} scored)` : 'Not scored'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+}

@@ -390,9 +390,14 @@ export class StudentsService {
    * XLSX — includes a résumé link per student, unlike the generic Reports
    * "students" export.
    */
-  async exportByProgramme(collegeId: string): Promise<ReportDataset[]> {
+  async exportByProgramme(collegeId: string, viewer?: Viewer): Promise<ReportDataset[]> {
+    const programmeRestriction = await this.programmeRestriction(viewer);
     const students = await this.prisma.student.findMany({
-      where: { collegeId, graduatedAt: null },
+      where: {
+        collegeId,
+        graduatedAt: null,
+        ...(programmeRestriction ? { programme: { in: programmeRestriction } } : {}),
+      },
       include: {
         user: { select: { fullName: true, email: true, phone: true } },
         resume: { select: { publicSlug: true, isPublished: true } },

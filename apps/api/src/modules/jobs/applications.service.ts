@@ -38,6 +38,11 @@ const TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
 
 const PLACING_STAGES: ApplicationStage[] = ['OFFER_ACCEPTED', 'JOINED'];
 
+interface Viewer {
+  role: string;
+  userId: string;
+}
+
 @Injectable()
 export class ApplicationsService {
   constructor(
@@ -45,6 +50,18 @@ export class ApplicationsService {
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
   ) {}
+
+  // A Placement Coordinator only ever sees their assigned programmes —
+  // resolved fresh from the DB so a reassignment takes effect without
+  // requiring re-login. Returns null for every other role (no restriction).
+  private async programmeRestriction(viewer?: Viewer): Promise<string[] | null> {
+    if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
+    const u = await this.prisma.user.findUnique({
+      where: { id: viewer.userId },
+      select: { assignedProgrammes: true },
+    });
+    return u?.assignedProgrammes ?? [];
+  }
 
   // ─────────────── Student-facing ───────────────
 
@@ -190,7 +207,7 @@ export class ApplicationsService {
     };
   }
 
-  async findOne(collegeId: string, applicationId: string) {
+  async findOne(collegeId: string, applicationId: string, viewer?: Viewer) {
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, collegeId },
       include: {
@@ -202,6 +219,10 @@ export class ApplicationsService {
       },
     });
     if (!app) throw new NotFoundException('Application not found');
+    const programmeRestriction = await this.programmeRestriction(viewer);
+    if (programmeRestriction && !programmeRestriction.includes(app.student.programme)) {
+      throw new NotFoundException('Application not found');
+    }
     return this.publicApplication(app, true);
   }
 

@@ -40,8 +40,14 @@ export class RoundsController {
   }
 
   @Get(':jobId/funnel')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
   async funnel(@CurrentUser() user: JwtPayload, @Param('jobId') jobId: string) {
-    return { data: await this.rounds.funnel(this.collegeId(user), jobId) };
+    return {
+      data: await this.rounds.funnel(this.collegeId(user), jobId, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post(':jobId/rounds')

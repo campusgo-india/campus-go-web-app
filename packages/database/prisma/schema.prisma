@@ -766,6 +766,8 @@ model Assessment {
   phase       AssessmentPhase
   externalUrl String          @map("external_url")
   maxMarks    Int             @map("max_marks")
+  // When the test is scheduled/due — optional since some tests are open-ended.
+  scheduledAt DateTime?       @map("scheduled_at")
   isActive    Boolean         @default(true) @map("is_active")
   // Targeting: empty on both = every active student at the college (the
   // original default). Otherwise visible to a student if their branch is in

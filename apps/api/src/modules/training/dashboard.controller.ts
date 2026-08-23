@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { BadRequestException, Controller, Get } from '@nestjs/common';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
@@ -13,5 +13,24 @@ export class TrainingDashboardController {
   @Get()
   async get(@CurrentUser() user: JwtPayload) {
     return { data: await this.dashboard.getForUser(user.sub) };
+  }
+}
+
+/**
+ * Officer/admin cohort-wide training analytics — pre/post-test pillar
+ * breakdown, readiness-tier distribution, attendance. A Placement Coordinator
+ * gets the same view scoped to their assigned programmes.
+ */
+@Controller('training/dashboard')
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
+export class TrainingOfficerDashboardController {
+  constructor(private readonly dashboard: TrainingDashboardService) {}
+
+  @Get()
+  async get(@CurrentUser() user: JwtPayload) {
+    if (!user.collegeId) throw new BadRequestException('No college context');
+    return {
+      data: await this.dashboard.getForOfficer(user.collegeId, { role: user.role, userId: user.sub }),
+    };
   }
 }

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { PageSkeleton } from '../../../../components/page-skeleton';
+import { PdfModal } from '../../../../components/pdf-modal';
 import {
   deleteMyResume,
   getMyResume,
@@ -32,6 +33,7 @@ function MyResume() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPdf, setShowPdf] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -202,13 +204,12 @@ function MyResume() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-lg border border-border bg-white">
-                <iframe
-                  src={resume.fileUrl}
-                  title="Resume preview"
-                  className="h-64 w-full sm:h-80 md:h-[400px]"
-                />
-              </div>
+              <button
+                onClick={() => setShowPdf(true)}
+                className="w-full rounded-lg border border-border bg-app px-4 py-3 text-left text-sm font-medium text-primary-600 hover:bg-primary-50/30"
+              >
+                Preview resume →
+              </button>
 
               <div className="space-y-3 rounded-xl bg-app p-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -252,6 +253,10 @@ function MyResume() {
             </>
           )}
         </Card>
+      )}
+
+      {showPdf && resume?.fileUrl && (
+        <PdfModal url={resume.fileUrl} name={resume.fileName} onClose={() => setShowPdf(false)} />
       )}
     </div>
   );

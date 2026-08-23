@@ -75,19 +75,192 @@ function computeReadiness(rows: PillarScoreRow[]) {
   return { pillars, readinessIndex, scoredPillars };
 }
 
+interface Viewer {
+  role: string;
+  userId: string;
+}
+
 @Injectable()
 export class TrainingDashboardService {
   constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+
+  // A Placement Coordinator only ever sees their assigned programmes — same
+  // pattern as students.service.ts/applications.service.ts/rounds.service.ts.
+  // Resolved fresh from the DB on every call so a reassignment takes effect
+  // without requiring re-login. Returns null (no restriction) for every other
+  // role.
+  private async programmeRestriction(viewer?: Viewer): Promise<string[] | null> {
+    if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
+    const u = await this.prisma.user.findUnique({
+      where: { id: viewer.userId },
+      select: { assignedProgrammes: true },
+    });
+    if (!u?.assignedProgrammes.length) {
+      throw new ForbiddenException('No programme assigned to this account yet');
+    }
+    return u.assignedProgrammes;
+  }
+
+  // Officer/admin (and programme-scoped coordinator) cohort-wide view: pre vs
+  // post-test pillar averages, the readiness-tier distribution, and attendance
+  // — everything the training team needs to spot who's falling behind, in one
+  // call. A Coordinator only ever sees students in their assigned programmes.
+  async getForOfficer(collegeId: string, viewer?: Viewer) {
+    const programmeRestriction = await this.programmeRestriction(viewer);
+    const studentWhere = {
+      collegeId,
+      graduatedAt: null,
+      ...(programmeRestriction ? { programme: { in: programmeRestriction } } : {}),
+    };
+    const students = await this.prisma.student.findMany({
+      where: studentWhere,
+      select: { id: true },
+    });
+    const studentIds = students.map((s) => s.id);
+
+    const [scores, attendance, sessions, assessments] = await Promise.all([
+      this.prisma.assessmentScore.findMany({
+        where: { studentId: { in: studentIds } },
+        select: {
+          studentId: true,
+          marksObtained: true,
+          assessmentId: true,
+          assessment: { select: { pillar: true, maxMarks: true, phase: true } },
+        },
+      }),
+      this.prisma.trainingAttendance.findMany({
+        where: { studentId: { in: studentIds } },
+        select: { present: true, sessionId: true },
+      }),
+      this.prisma.trainingSession.findMany({
+        where: { collegeId },
+        orderBy: { startsAt: 'desc' },
+        take: 20,
+        select: { id: true, title: true, startsAt: true, status: true },
+      }),
+      this.prisma.assessment.findMany({
+        where: { collegeId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { id: true, name: true, pillar: true, phase: true, maxMarks: true },
+      }),
+    ]);
+
+    // Readiness distribution: one readiness index per student (equal-weighted
+    // pillar average, identical formula to the student's own dashboard),
+    // bucketed into tiers. Students with no scores yet aren't counted in the
+    // average (would wrongly depress it) but are reported separately.
+    const scoresByStudent = new Map<string, PillarScoreRow[]>();
+    for (const s of scores) {
+      const list = scoresByStudent.get(s.studentId) ?? [];
+      list.push({
+        marksObtained: Number(s.marksObtained),
+        pillar: s.assessment.pillar,
+        maxMarks: s.assessment.maxMarks,
+      });
+      scoresByStudent.set(s.studentId, list);
+    }
+    const tierCounts: Record<EmployabilityTier, number> = { TIER_1: 0, TIER_2: 0, TIER_3: 0 };
+    let readinessSum = 0;
+    let assessedCount = 0;
+    for (const id of studentIds) {
+      const rows = scoresByStudent.get(id);
+      if (!rows || rows.length === 0) continue;
+      const { readinessIndex, scoredPillars } = computeReadiness(rows);
+      if (scoredPillars.length === 0) continue;
+      tierCounts[tierFor(readinessIndex)]++;
+      readinessSum += readinessIndex;
+      assessedCount++;
+    }
+    const readiness = {
+      average: assessedCount ? Math.round(readinessSum / assessedCount) : 0,
+      assessedCount,
+      notYetAssessedCount: studentIds.length - assessedCount,
+      tierCounts,
+    };
+
+    // Pillar breakdown: pooled PRE vs POST average % per pillar, across every
+    // scored row in scope — the "pre vs post-test analysis" view.
+    const byPillarPhase = new Map<string, number[]>();
+    for (const s of scores) {
+      if (s.assessment.maxMarks <= 0) continue;
+      const pct = (Number(s.marksObtained) / s.assessment.maxMarks) * 100;
+      const key = `${s.assessment.pillar}-${s.assessment.phase}`;
+      const list = byPillarPhase.get(key) ?? [];
+      list.push(pct);
+      byPillarPhase.set(key, list);
+    }
+    const avg = (list: number[] | undefined) =>
+      list && list.length ? Math.round(list.reduce((a, b) => a + b, 0) / list.length) : null;
+    const pillars = PILLARS.map((pillar) => ({
+      pillar,
+      label: PILLAR_LABEL[pillar],
+      prePct: avg(byPillarPhase.get(`${pillar}-PRE`)),
+      postPct: avg(byPillarPhase.get(`${pillar}-POST`)),
+    }));
+
+    // Attendance: overall %, plus per-session breakdown (most recent 20).
+    const attendanceTotal = attendance.length;
+    const attendancePresent = attendance.filter((a) => a.present).length;
+    const overallAttendancePct = attendanceTotal
+      ? Math.round((attendancePresent / attendanceTotal) * 100)
+      : 0;
+    const attendanceBySession = new Map<string, { present: number; total: number }>();
+    for (const a of attendance) {
+      const row = attendanceBySession.get(a.sessionId) ?? { present: 0, total: 0 };
+      row.total++;
+      if (a.present) row.present++;
+      attendanceBySession.set(a.sessionId, row);
+    }
+    const sessionsOut = sessions.map((s) => {
+      const row = attendanceBySession.get(s.id);
+      return {
+        id: s.id,
+        title: s.title,
+        startsAt: s.startsAt,
+        status: s.status,
+        attendancePct: row && row.total ? Math.round((row.present / row.total) * 100) : null,
+        markedCount: row?.total ?? 0,
+      };
+    });
+
+    // Assessments: average score % per assessment (most recent 20).
+    const scoresByAssessment = new Map<string, number[]>();
+    for (const s of scores) {
+      if (s.assessment.maxMarks <= 0) continue;
+      const pct = (Number(s.marksObtained) / s.assessment.maxMarks) * 100;
+      const list = scoresByAssessment.get(s.assessmentId) ?? [];
+      list.push(pct);
+      scoresByAssessment.set(s.assessmentId, list);
+    }
+    const assessmentsOut = assessments.map((a) => ({
+      id: a.id,
+      name: a.name,
+      pillar: a.pillar,
+      phase: a.phase,
+      averagePct: avg(scoresByAssessment.get(a.id)),
+      scoredCount: scoresByAssessment.get(a.id)?.length ?? 0,
+    }));
+
+    return {
+      studentCount: studentIds.length,
+      readiness,
+      pillars,
+      overallAttendancePct,
+      sessions: sessionsOut,
+      assessments: assessmentsOut,
+    };
+  }
 
   // Everything the "My Employability" page needs in one call, mirroring the
   // aggregated-response shape students.service.ts uses for profile completion.
   async getForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },
-      select: { id: true, collegeId: true, programme: true, graduationYear: true },
+      select: { id: true, collegeId: true, school: true, programme: true, graduationYear: true },
     });
     if (!student) throw new ForbiddenException('No student profile for this account');
-    const { id: studentId, collegeId, programme, graduationYear } = student;
+    const { id: studentId, collegeId, school, programme, graduationYear } = student;
 
     const scores = await this.prisma.assessmentScore.findMany({
       where: { studentId },
@@ -151,7 +324,7 @@ export class TrainingDashboardService {
     const batchIds = await this.prisma.trainingBatchMember
       .findMany({ where: { studentId }, select: { batchId: true } })
       .then((rows) => rows.map((r) => r.batchId));
-    const visible = visibilityFilter(programme, batchIds);
+    const visible = visibilityFilter(school, programme, batchIds);
 
     const [attendanceRows, statusCounts, nextSession] = await Promise.all([
       this.prisma.trainingAttendance.findMany({ where: { studentId }, select: { present: true } }),

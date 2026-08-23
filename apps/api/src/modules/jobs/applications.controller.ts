@@ -16,8 +16,14 @@ export class ApplicationsController {
   }
 
   @Get(':id')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.applications.findOne(this.collegeId(user), id) };
+    return {
+      data: await this.applications.findOne(this.collegeId(user), id, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Patch(':id/stage')
