@@ -117,23 +117,23 @@ export default function TrainingAssessmentsPage() {
           </Link>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-card border border-border bg-white">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs font-medium uppercase text-subtle">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Pillar</th>
-                <th className="px-4 py-3">Phase</th>
-                <th className="px-4 py-3">Max marks</th>
-                <th className="px-4 py-3">Scheduled</th>
-                <th className="px-4 py-3">Visible to</th>
-                <th className="px-4 py-3">Status</th>
+        <div className="overflow-hidden rounded-card border border-border bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+              <tr>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Pillar</th>
+                <th className="px-4 py-3 font-medium">Phase</th>
+                <th className="px-4 py-3 font-medium">Max marks</th>
+                <th className="px-4 py-3 font-medium">Scheduled</th>
+                <th className="px-4 py-3 font-medium">Visible to</th>
+                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {items.map((a) => (
-                <tr key={a.id} className="border-b border-border last:border-0">
+                <tr key={a.id} className="border-b border-border last:border-0 hover:bg-app/60">
                   <td className="px-4 py-3 font-medium text-strong">{a.name}</td>
                   <td className="px-4 py-3 text-body">{PILLAR_LABEL[a.pillar]}</td>
                   <td className="px-4 py-3">

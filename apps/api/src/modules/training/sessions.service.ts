@@ -92,6 +92,10 @@ export class TrainingSessionsService {
     return rows.map(toPublic);
   }
 
+  async findOnePublic(collegeId: string, id: string) {
+    return toPublic(await this.findOneOrThrow(collegeId, id));
+  }
+
   async findOneOrThrow(collegeId: string, id: string) {
     const s = await this.prisma.trainingSession.findFirst({ where: { id, collegeId } });
     if (!s) throw new NotFoundException('Training session not found');

@@ -2,18 +2,47 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Button, Card } from '@campusgo/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
 import {
   bulkEnterScores,
+  getAssessment,
   importScores,
   listScores,
+  PILLAR_LABEL,
+  type Assessment,
   type ImportResult,
   type ScoreRow,
 } from '../../../../../lib/training';
 
+const PHASE_TINT: Record<string, 'lavender' | 'mint'> = { PRE: 'lavender', POST: 'mint' };
+
+// A plain text field (not <input type="number">) so there's no native spin
+// buttons or scroll-wheel-increments-the-value surprise — both are common
+// sources of "how did this score change" confusion. inputMode="decimal"
+// still brings up a numeric keyboard on mobile. Only digits and one decimal
+// point are allowed; anything else (including "-") is dropped as typed.
+function sanitizeMarksInput(raw: string): string {
+  const cleaned = raw.replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot === -1) return cleaned;
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+}
+
+// Clamps a finished entry into [0, maxMarks] once the officer leaves the
+// field — clamping mid-keystroke corrupts multi-digit typing (a controlled
+// number input rewritten on every change loses characters), so this only
+// runs on blur.
+function clampMarks(raw: string, maxMarks: number): string {
+  if (raw === '') return '';
+  const n = Number(raw);
+  if (Number.isNaN(n)) return raw;
+  return String(Math.min(Math.max(n, 0), maxMarks));
+}
+
 export default function AssessmentScoresPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [rows, setRows] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +57,9 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
     setLoading(true);
     setError(null);
     try {
-      setRows(await listScores(id));
+      const [a, s] = await Promise.all([getAssessment(id), listScores(id)]);
+      setAssessment(a);
+      setRows(s);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load scores');
     } finally {
@@ -57,11 +88,14 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
     }
   }
 
-  // Batches every edited row into one submit, mirroring the attendance page —
-  // students are only emailed once, when the whole page is submitted.
+  // Batches every edited row into one submit, mirroring the Jobs pipeline's
+  // "advance & close" bar — students are only emailed once, on submit.
   async function submitScores() {
     const updates = Object.entries(drafts)
-      .map(([studentId, raw]) => ({ studentId, marksObtained: Number(raw) }))
+      .map(([studentId, raw]) => ({
+        studentId,
+        marksObtained: Number(clampMarks(raw, assessment?.maxMarks ?? Infinity)),
+      }))
       .filter((r) => !Number.isNaN(r.marksObtained));
     if (updates.length === 0) return;
     setSaving(true);
@@ -77,13 +111,23 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
     }
   }
 
-  if (loading) return <ListSkeleton />;
+  if (loading || !assessment) return <ListSkeleton />;
+
+  const draftCount = Object.keys(drafts).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-strong">Enter scores</h1>
-        <Link href="/training" className="text-sm text-primary-600 hover:underline">
+    <div className="space-y-6 pb-20">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold text-strong">{assessment.name}</h1>
+            <Badge tint={PHASE_TINT[assessment.phase]}>{assessment.phase}</Badge>
+          </div>
+          <p className="text-sm text-subtle">
+            {PILLAR_LABEL[assessment.pillar]} · out of {assessment.maxMarks} marks
+          </p>
+        </div>
+        <Link href="/training" className="shrink-0 text-sm text-primary-600 hover:underline">
           Back to assessments
         </Link>
       </div>
@@ -91,7 +135,8 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
       <Card className="space-y-3 p-6">
         <p className="text-sm font-medium text-strong">Bulk import</p>
         <p className="text-xs text-subtle">
-          Columns: <b>Student Roll No / ID</b>, <b>Marks Obtained</b>. CSV or Excel (.xlsx).
+          Columns: <b>Student Roll No / ID</b>, <b>Marks Obtained</b> (0–{assessment.maxMarks}). CSV
+          or Excel (.xlsx).
         </p>
         <div
           onDragOver={(e) => {
@@ -143,47 +188,78 @@ export default function AssessmentScoresPage({ params }: { params: Promise<{ id:
             )}
           </div>
         )}
-
-        {error && <p className="text-sm text-danger">{error}</p>}
       </Card>
 
-      <Card className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs font-medium uppercase text-subtle">
-                <th className="px-4 py-3">Roll No</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Marks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.studentId} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 text-body">{r.rollNumber}</td>
-                  <td className="px-4 py-3 text-body">{r.fullName}</td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="number"
-                      className="h-9 w-24 rounded-md border border-border bg-white px-2 text-sm outline-none focus:border-primary-400"
-                      value={drafts[r.studentId] ?? r.marksObtained ?? ''}
-                      onChange={(e) =>
-                        setDrafts((d) => ({ ...d, [r.studentId]: e.target.value }))
-                      }
-                    />
-                  </td>
+      {error && <p className="text-sm text-danger">{error}</p>}
+
+      <div>
+        <p className="mb-2 text-sm font-medium text-strong">Or enter manually</p>
+        <Card className="overflow-hidden p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Roll No</th>
+                  <th className="px-4 py-3 font-medium">Name</th>
+                  <th className="px-4 py-3 font-medium">Marks (0–{assessment.maxMarks})</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const draft = drafts[r.studentId];
+                  const isDirty = draft !== undefined && draft !== String(r.marksObtained ?? '');
+                  return (
+                    <tr
+                      key={r.studentId}
+                      className={`border-b border-border last:border-0 ${isDirty ? 'bg-primary-50/40' : ''}`}
+                    >
+                      <td className="px-4 py-3 text-body">{r.rollNumber}</td>
+                      <td className="px-4 py-3 text-body">{r.fullName}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className={`h-9 w-24 rounded-md border bg-white px-2 text-sm outline-none focus:border-primary-400 ${
+                              isDirty ? 'border-primary-400' : 'border-border'
+                            }`}
+                            value={draft ?? r.marksObtained ?? ''}
+                            onChange={(e) =>
+                              setDrafts((d) => ({
+                                ...d,
+                                [r.studentId]: sanitizeMarksInput(e.target.value),
+                              }))
+                            }
+                            onBlur={(e) =>
+                              setDrafts((d) => ({
+                                ...d,
+                                [r.studentId]: clampMarks(e.target.value, assessment.maxMarks),
+                              }))
+                            }
+                          />
+                          {isDirty && <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
 
-      <Button size="lg" onClick={submitScores} disabled={saving || Object.keys(drafts).length === 0}>
-        {saving
-          ? 'Submitting…'
-          : `Submit scores${Object.keys(drafts).length ? ` (${Object.keys(drafts).length})` : ''}`}
-      </Button>
+      {draftCount > 0 && (
+        <div className="sticky bottom-4 flex items-center justify-between gap-3 rounded-pill border border-border bg-white/95 p-2 pl-4 shadow-nav backdrop-blur">
+          <span className="text-sm text-body">
+            <span className="font-semibold text-strong">{draftCount}</span>{' '}
+            {draftCount === 1 ? 'score' : 'scores'} to submit
+          </span>
+          <Button onClick={submitScores} loading={saving}>
+            Submit scores
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

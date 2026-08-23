@@ -20,6 +20,11 @@ export class AssessmentsController {
     return { data: await this.assessments.list(this.collegeId(user)) };
   }
 
+  @Get(':id')
+  async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return { data: await this.assessments.findOnePublic(this.collegeId(user), id) };
+  }
+
   @Post()
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateAssessmentDto) {
     return { data: await this.assessments.create(this.collegeId(user), user.sub, dto) };

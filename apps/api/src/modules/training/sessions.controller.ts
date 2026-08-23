@@ -20,6 +20,11 @@ export class TrainingSessionsController {
     return { data: await this.sessions.list(this.collegeId(user)) };
   }
 
+  @Get(':id')
+  async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return { data: await this.sessions.findOnePublic(this.collegeId(user), id) };
+  }
+
   @Post()
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateSessionDto) {
     return { data: await this.sessions.create(this.collegeId(user), user.sub, dto) };

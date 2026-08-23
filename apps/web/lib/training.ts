@@ -214,6 +214,8 @@ export const getOfficerTrainingDashboard = () =>
 // ─── Officer / College Admin: assessments ───
 export const listAssessments = () => api<Assessment[]>('/training/assessments');
 
+export const getAssessment = (id: string) => api<Assessment>(`/training/assessments/${id}`);
+
 export const createAssessment = (input: AssessmentInput) =>
   api<Assessment>('/training/assessments', { method: 'POST', body: JSON.stringify(input) });
 
@@ -245,6 +247,8 @@ export async function importScores(assessmentId: string, file: File): Promise<Im
 
 // ─── Officer / College Admin: sessions ───
 export const listSessions = () => api<TrainingSession[]>('/training/sessions');
+
+export const getSession = (id: string) => api<TrainingSession>(`/training/sessions/${id}`);
 
 export const createSession = (input: SessionInput) =>
   api<TrainingSession>('/training/sessions', { method: 'POST', body: JSON.stringify(input) });

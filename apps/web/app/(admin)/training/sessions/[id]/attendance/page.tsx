@@ -2,18 +2,25 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Button, Card, Switch } from '@campusgo/ui';
+import { Badge, Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../../../components/page-skeleton';
 import {
+  getSession,
   importAttendance,
   listAttendance,
   markAttendance,
+  PILLAR_LABEL,
   type AttendanceRow,
   type ImportResult,
+  type TrainingSession,
 } from '../../../../../../lib/training';
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 
 export default function SessionAttendancePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [session, setSession] = useState<TrainingSession | null>(null);
   const [rows, setRows] = useState<AttendanceRow[]>([]);
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -28,7 +35,9 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
     setLoading(true);
     setError(null);
     try {
-      setRows(await listAttendance(id));
+      const [s, a] = await Promise.all([getSession(id), listAttendance(id)]);
+      setSession(s);
+      setRows(a);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load attendance');
     } finally {
@@ -86,13 +95,22 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
     }
   }
 
-  if (loading) return <ListSkeleton />;
+  if (loading || !session) return <ListSkeleton />;
+
+  const pendingCount = Object.keys(pending).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-strong">Mark attendance</h1>
-        <Link href="/training/sessions" className="text-sm text-primary-600 hover:underline">
+    <div className="space-y-6 pb-20">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-strong">{session.title}</h1>
+          <p className="text-sm text-subtle">
+            {fmt(session.startsAt)} – {fmt(session.endsAt)}
+            {session.trainerName ? ` · ${session.trainerName}` : ''}
+            {session.pillar ? ` · ${PILLAR_LABEL[session.pillar]}` : ''}
+          </p>
+        </div>
+        <Link href="/training/sessions" className="shrink-0 text-sm text-primary-600 hover:underline">
           Back to sessions
         </Link>
       </div>
@@ -164,40 +182,73 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
         </button>
       </div>
 
-      <Card className="p-0">
+      <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs font-medium uppercase text-subtle">
-                <th className="px-4 py-3">Roll No</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Present</th>
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
+              <tr>
+                <th className="px-4 py-3 font-medium">Roll No</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Attendance</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.studentId} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3 text-body">{r.rollNumber}</td>
-                  <td className="px-4 py-3 text-body">{r.fullName}</td>
-                  <td className="px-4 py-3">
-                    <Switch
-                      checked={effectivePresent(r)}
-                      onCheckedChange={(checked) =>
-                        setPending((p) => ({ ...p, [r.studentId]: checked }))
-                      }
-                      aria-label={`Mark ${r.fullName} present`}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                // Tri-state: unlike allPresent/toggleAll (which coalesce to a
+                // boolean for the bulk action), an individual row that's never
+                // been marked shows neither pill active rather than defaulting
+                // to "Absent".
+                const raw = pending[r.studentId] ?? r.present;
+                const isDirty = pending[r.studentId] !== undefined;
+                return (
+                  <tr
+                    key={r.studentId}
+                    className={`border-b border-border last:border-0 ${isDirty ? 'bg-primary-50/40' : ''}`}
+                  >
+                    <td className="px-4 py-3 text-body">{r.rollNumber}</td>
+                    <td className="px-4 py-3 text-body">{r.fullName}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setPending((p) => ({ ...p, [r.studentId]: true }))}
+                          className={`rounded-pill px-2.5 py-1 text-xs font-medium transition ${
+                            raw === true
+                              ? 'bg-success/15 text-success'
+                              : 'bg-app text-subtle hover:bg-success/10 hover:text-success'
+                          }`}
+                        >
+                          Present
+                        </button>
+                        <button
+                          onClick={() => setPending((p) => ({ ...p, [r.studentId]: false }))}
+                          className={`rounded-pill px-2.5 py-1 text-xs font-medium transition ${
+                            raw === false
+                              ? 'bg-danger/15 text-danger'
+                              : 'bg-app text-subtle hover:bg-danger/10 hover:text-danger'
+                          }`}
+                        >
+                          Absent
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </Card>
 
-      <Button size="lg" onClick={saveAll} disabled={saving || Object.keys(pending).length === 0}>
-        {saving ? 'Saving…' : `Save attendance${Object.keys(pending).length ? ` (${Object.keys(pending).length})` : ''}`}
-      </Button>
+      {pendingCount > 0 && (
+        <div className="sticky bottom-4 flex items-center justify-between gap-3 rounded-pill border border-border bg-white/95 p-2 pl-4 shadow-nav backdrop-blur">
+          <span className="text-sm text-body">
+            <span className="font-semibold text-strong">{pendingCount}</span> to save
+          </span>
+          <Button onClick={saveAll} loading={saving}>
+            Save attendance
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

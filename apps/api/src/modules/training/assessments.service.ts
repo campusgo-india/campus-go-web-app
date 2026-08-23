@@ -48,6 +48,10 @@ export class AssessmentsService {
     return rows.map(toPublic);
   }
 
+  async findOnePublic(collegeId: string, id: string) {
+    return toPublic(await this.findOneOrThrow(collegeId, id));
+  }
+
   async findOneOrThrow(collegeId: string, id: string) {
     const a = await this.prisma.assessment.findFirst({ where: { id, collegeId } });
     if (!a) throw new NotFoundException('Assessment not found');
