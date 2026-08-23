@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param } from '@nestjs/common';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
@@ -22,6 +22,36 @@ export class AnalyticsController {
   @Get('placement-dashboard')
   async placementDashboard(@CurrentUser() user: JwtPayload) {
     return { data: await this.analytics.placementDashboard(this.collegeId(user)) };
+  }
+
+  @Get('placement-funnel')
+  async placementFunnel(@CurrentUser() user: JwtPayload) {
+    return { data: await this.analytics.placementFunnel(this.collegeId(user)) };
+  }
+
+  @Get('programme-wise-placement')
+  async programmeWisePlacement(@CurrentUser() user: JwtPayload) {
+    return { data: await this.analytics.programmeWisePlacement(this.collegeId(user)) };
+  }
+
+  @Get('active-drives')
+  async activeDrives(@CurrentUser() user: JwtPayload) {
+    return { data: await this.analytics.activeDrives(this.collegeId(user)) };
+  }
+
+  @Get('students-requiring-attention')
+  async studentsRequiringAttention(@CurrentUser() user: JwtPayload) {
+    return { data: await this.analytics.studentsRequiringAttention(this.collegeId(user)) };
+  }
+
+  @Get('students-requiring-attention/:category')
+  async studentsInAttentionCategory(
+    @CurrentUser() user: JwtPayload,
+    @Param('category') category: string,
+  ) {
+    return {
+      data: await this.analytics.studentsInAttentionCategory(this.collegeId(user), category),
+    };
   }
 
   @Get('jobs')

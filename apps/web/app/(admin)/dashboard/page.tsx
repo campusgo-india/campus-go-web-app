@@ -97,9 +97,9 @@ export default function DashboardPage() {
         />
         <StatTile
           gradient="violet"
-          label="Active jobs"
-          value={jobs ? jobs.jobsPublished.toLocaleString() : '—'}
-          hint={jobs ? `${jobs.jobsPosted.toLocaleString()} posted` : undefined}
+          label="Companies"
+          value={jobs ? jobs.recruitingCompanies.toLocaleString() : '—'}
+          hint={jobs ? `${jobs.jobsPublished.toLocaleString()} active jobs` : undefined}
         />
         <StatTile
           gradient="primary"
@@ -109,7 +109,12 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+        <StatTile
+          label="Active drives"
+          value={jobs ? jobs.activeDrives.toLocaleString() : '—'}
+          hint="interviews ongoing"
+        />
         <StatTile
           label="Verified"
           value={placement ? placement.verifiedStudents.toLocaleString() : '—'}

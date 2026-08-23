@@ -67,6 +67,7 @@ export interface Student {
   communicationSkillRating: number | null;
   higherStudiesPlanned: boolean | null;
   entrepreneurshipInterest: boolean | null;
+  registeredForPlacements: boolean;
   verificationStatus: string;
   verifiedAt: string | null;
   rejectionReason: string | null;
@@ -282,6 +283,14 @@ export function updateOwnProfile(input: UpdateOwnProfileInput): Promise<Student>
 
 export function submitOwnProfile(): Promise<Student> {
   return api(`/me/student/submit`, { method: 'POST' });
+}
+
+/** One-time opt-in for the current placement cycle. */
+export function setPlacementRegistration(registered: boolean): Promise<Student> {
+  return api(`/me/student/placement-registration`, {
+    method: 'PATCH',
+    body: JSON.stringify({ registered }),
+  });
 }
 
 /** Downloads an XLSX with one sheet per programme, résumé links included. */

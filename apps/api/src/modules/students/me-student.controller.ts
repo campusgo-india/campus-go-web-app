@@ -3,7 +3,7 @@ import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { StudentsService } from './students.service';
-import { UpdateOwnProfileDto } from './dto';
+import { SetPlacementRegistrationDto, UpdateOwnProfileDto } from './dto';
 
 /**
  * Student self-service. Every route resolves the Student row from the
@@ -28,5 +28,13 @@ export class MeStudentController {
   @Post('submit')
   async submit(@CurrentUser() user: JwtPayload) {
     return { data: await this.students.submitOwn(user.sub) };
+  }
+
+  @Patch('placement-registration')
+  async setPlacementRegistration(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SetPlacementRegistrationDto,
+  ) {
+    return { data: await this.students.setPlacementRegistration(user.sub, dto.registered) };
   }
 }

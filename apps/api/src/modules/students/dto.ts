@@ -273,6 +273,11 @@ export class SetStudentStatusDto {
   isActive!: boolean;
 }
 
+export class SetPlacementRegistrationDto {
+  @IsBoolean()
+  registered!: boolean;
+}
+
 export class GraduateBatchDto {
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
 }

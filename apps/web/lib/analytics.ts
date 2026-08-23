@@ -19,6 +19,8 @@ export interface JobMetrics {
   jobsPublished: number;
   applicationsReceived: number;
   offersReleased: number;
+  recruitingCompanies: number;
+  activeDrives: number;
   conversionRate: number;
 }
 
@@ -71,6 +73,68 @@ export interface PlacementDashboard {
   ug: PlacementTrack;
   pg: PlacementTrack;
 }
+
+export interface FunnelStages {
+  finalYearStudents: number;
+  eligible: number;
+  registered: number;
+  applied: number;
+  attended: number;
+  shortlisted: number;
+  selected: number;
+  offered: number;
+  joined: number;
+}
+
+export interface PlacementFunnel {
+  ug: FunnelStages;
+  pg: FunnelStages;
+}
+
+export interface ProgrammeWiseRow {
+  programme: string;
+  students: number;
+  eligible: number;
+  placed: number;
+  placementRate: number;
+}
+
+export interface ActiveDrive {
+  jobId: string;
+  company: string;
+  role: string;
+  eligible: number;
+  applied: number;
+  shortlisted: number;
+  nearestInterview: string | null;
+  status: string;
+}
+
+export interface AttentionCounts {
+  withoutResume: number;
+  incompleteProfile: number;
+  eligibleNotApplying: number;
+  noParticipation: number;
+  withoutInternship: number;
+  pendingDocuments: number;
+}
+
+export interface AttentionStudent {
+  id: string;
+  rollNumber: string;
+  fullName: string;
+  school: string;
+  programme: string;
+}
+
+export const getPlacementFunnel = () => api<PlacementFunnel>('/analytics/placement-funnel');
+export const getProgrammeWisePlacement = () =>
+  api<ProgrammeWiseRow[]>('/analytics/programme-wise-placement');
+export const getActiveDrives = () => api<ActiveDrive[]>('/analytics/active-drives');
+export const getStudentsRequiringAttention = () =>
+  api<AttentionCounts>('/analytics/students-requiring-attention');
+export const getStudentsInAttentionCategory = (category: string) =>
+  api<AttentionStudent[]>(`/analytics/students-requiring-attention/${category}`);
 
 export const getPlacementMetrics = () => api<PlacementMetrics>('/analytics/placement');
 export const getPlacementDashboard = () =>

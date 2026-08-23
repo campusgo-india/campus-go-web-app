@@ -1,6 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
+import { checkEligibility } from '../jobs/eligibility';
+import { jobVisibleToCollege } from '../jobs/job-scope.util';
+
+// Stages that mean "reached at least one round of scrutiny beyond a raw
+// application" under the legacy stage-based flow (still reachable via the
+// applications detail screen, alongside the newer rounds/pipeline flow).
+const SHORTLISTED_OR_LATER_STAGES = [
+  'SHORTLISTED',
+  'ROUND_1',
+  'ROUND_2',
+  'ROUND_3',
+  'HR',
+  'OFFER_RELEASED',
+  'OFFER_ACCEPTED',
+  'JOINED',
+] as const;
+const SELECTED_STAGES = ['OFFER_ACCEPTED', 'JOINED'] as const;
 
 // Application stages that count as a secured placement / a released offer.
 const PLACING_STAGES = ['OFFER_ACCEPTED', 'JOINED'] as const;
@@ -93,17 +110,34 @@ export class AnalyticsService {
 
   // ─────────────── Jobs ───────────────
   async jobs(collegeId: string) {
-    const [jobsPosted, jobsPublished, applicationsReceived, offersReleased] = await Promise.all([
-      this.prisma.job.count({ where: { collegeId } }),
-      this.prisma.job.count({ where: { collegeId, publishedAt: { not: null } } }),
-      this.prisma.application.count({ where: { collegeId } }),
-      this.prisma.application.count({ where: { collegeId, stage: { in: [...OFFER_STAGES] } } }),
-    ]);
+    const [jobsPosted, jobsPublished, applicationsReceived, offersReleased, publishedJobs, drivesWithOpenRounds] =
+      await Promise.all([
+        this.prisma.job.count({ where: { collegeId } }),
+        this.prisma.job.count({ where: { collegeId, publishedAt: { not: null } } }),
+        this.prisma.application.count({ where: { collegeId } }),
+        this.prisma.application.count({ where: { collegeId, stage: { in: [...OFFER_STAGES] } } }),
+        this.prisma.job.findMany({
+          where: { status: 'PUBLISHED', ...jobVisibleToCollege(collegeId) },
+          select: { companyName: true, company: { select: { name: true } } },
+        }),
+        this.prisma.job.count({
+          where: {
+            status: 'PUBLISHED',
+            ...jobVisibleToCollege(collegeId),
+            rounds: { some: { collegeId, status: 'OPEN' } },
+          },
+        }),
+      ]);
+    const recruitingCompanies = new Set(
+      publishedJobs.map((j) => j.company?.name ?? j.companyName ?? 'Unknown'),
+    ).size;
     return {
       jobsPosted,
       jobsPublished,
       applicationsReceived,
       offersReleased,
+      recruitingCompanies,
+      activeDrives: drivesWithOpenRounds,
       conversionRate:
         applicationsReceived > 0
           ? Math.round((offersReleased / applicationsReceived) * 1000) / 10
@@ -348,6 +382,343 @@ export class AnalyticsService {
       ug,
       pg,
     };
+  }
+
+  // ─────────────── Placement Progress funnel (Overall + UG/PG) ───────────────
+  // Nine stages, computed per student from whichever signal is available —
+  // this app supports both a granular legacy stage flow (Application.stage)
+  // and a streamlined rounds/pipeline flow (Application.status +
+  // ApplicationRound), so several stages union both.
+  async placementFunnel(collegeId: string) {
+    const [schools, students, applications, rounds] = await Promise.all([
+      this.prisma.collegeSchool.findMany({
+        where: { collegeId },
+        select: { name: true, degreeLevel: true },
+      }),
+      this.prisma.student.findMany({
+        where: { collegeId },
+        select: {
+          id: true,
+          school: true,
+          isActive: true,
+          verificationStatus: true,
+          registeredForPlacements: true,
+          resume: { select: { id: true } },
+        },
+      }),
+      this.prisma.application.findMany({
+        where: { collegeId },
+        select: { studentId: true, status: true, stage: true, offerCtc: true, offerLetterUrl: true },
+      }),
+      this.prisma.applicationRound.findMany({
+        where: { application: { collegeId } },
+        select: { outcome: true, attended: true, application: { select: { studentId: true } } },
+      }),
+    ]);
+
+    const levelByName = new Map(schools.map((s) => [s.name, s.degreeLevel]));
+    const levelOf = (school: string) => levelByName.get(school) ?? 'UG';
+
+    const appsByStudent = new Map<string, typeof applications>();
+    for (const a of applications) {
+      const list = appsByStudent.get(a.studentId) ?? [];
+      list.push(a);
+      appsByStudent.set(a.studentId, list);
+    }
+    const roundsByStudent = new Map<string, typeof rounds>();
+    for (const r of rounds) {
+      const sid = r.application.studentId;
+      const list = roundsByStudent.get(sid) ?? [];
+      list.push(r);
+      roundsByStudent.set(sid, list);
+    }
+
+    function makeStage() {
+      return { finalYearStudents: 0, eligible: 0, registered: 0, applied: 0, attended: 0, shortlisted: 0, selected: 0, offered: 0, joined: 0 };
+    }
+    const buckets = { UG: makeStage(), PG: makeStage() };
+
+    for (const s of students) {
+      if (!s.isActive) continue;
+      const bucket = buckets[levelOf(s.school)];
+      bucket.finalYearStudents++;
+
+      const isEligible = s.verificationStatus === 'VERIFIED' && !!s.resume;
+      if (isEligible) bucket.eligible++;
+      if (isEligible && s.registeredForPlacements) bucket.registered++;
+
+      const myApps = appsByStudent.get(s.id) ?? [];
+      const myRounds = roundsByStudent.get(s.id) ?? [];
+      if (myApps.length > 0) bucket.applied++;
+      if (myRounds.some((r) => r.attended === true)) bucket.attended++;
+      if (
+        myRounds.some((r) => r.outcome === 'ADVANCED') ||
+        myApps.some((a) => (SHORTLISTED_OR_LATER_STAGES as readonly string[]).includes(a.stage))
+      ) {
+        bucket.shortlisted++;
+      }
+      if (
+        myApps.some(
+          (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
+        )
+      ) {
+        bucket.selected++;
+      }
+      if (myApps.some((a) => a.offerCtc != null || a.offerLetterUrl != null)) bucket.offered++;
+      if (myApps.some((a) => a.stage === 'JOINED')) bucket.joined++;
+    }
+
+    return { ug: buckets.UG, pg: buckets.PG };
+  }
+
+  // ─────────────── Programme-wise placement table ───────────────
+  async programmeWisePlacement(collegeId: string) {
+    const [students, applications] = await Promise.all([
+      this.prisma.student.findMany({
+        where: { collegeId, isActive: true },
+        select: {
+          id: true,
+          programme: true,
+          verificationStatus: true,
+          resume: { select: { id: true } },
+        },
+      }),
+      this.prisma.application.findMany({
+        where: { collegeId },
+        select: { studentId: true, status: true, stage: true },
+      }),
+    ]);
+
+    const selectedIds = new Set(
+      applications
+        .filter(
+          (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
+        )
+        .map((a) => a.studentId),
+    );
+
+    const map = new Map<string, { students: number; eligible: number; placed: number }>();
+    for (const s of students) {
+      const row = map.get(s.programme) ?? { students: 0, eligible: 0, placed: 0 };
+      row.students++;
+      if (s.verificationStatus === 'VERIFIED' && s.resume) row.eligible++;
+      if (selectedIds.has(s.id)) row.placed++;
+      map.set(s.programme, row);
+    }
+
+    return [...map.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([programme, r]) => ({
+        programme,
+        students: r.students,
+        eligible: r.eligible,
+        placed: r.placed,
+        placementRate: r.students > 0 ? Math.round((r.placed / r.students) * 1000) / 10 : 0,
+      }));
+  }
+
+  // ─────────────── Active placement drives ───────────────
+  // Published jobs, nearest open-round interview first — the ones needing
+  // the officer's attention right now.
+  async activeDrives(collegeId: string) {
+    const jobs = await this.prisma.job.findMany({
+      where: { status: 'PUBLISHED', ...jobVisibleToCollege(collegeId) },
+      select: {
+        id: true,
+        title: true,
+        companyName: true,
+        company: { select: { name: true } },
+        eligibleSchools: true,
+        eligibleProgrammes: true,
+        graduationYears: true,
+        minCgpa: true,
+        minTenthPercentage: true,
+        minTwelfthPercentage: true,
+        minUgPercentage: true,
+        eligibleGenders: true,
+        maxActiveBacklogs: true,
+        maxTotalBacklogs: true,
+        applications: { select: { studentId: true, status: true, stage: true } },
+        rounds: { select: { status: true, scheduledAt: true }, orderBy: { scheduledAt: 'asc' } },
+      },
+    });
+    if (jobs.length === 0) return [];
+
+    // Every verified, active, non-placed student — the pool eligibility is
+    // checked against, mirroring the officer "eligible students" preview.
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, isActive: true, verificationStatus: 'VERIFIED' },
+      include: { resume: { select: { id: true } } },
+    });
+    const placedIds = new Set(
+      (
+        await this.prisma.application.findMany({
+          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+          select: { studentId: true },
+          distinct: ['studentId'],
+        })
+      ).map((a) => a.studentId),
+    );
+
+    const rows = jobs.map((j) => {
+      const criteria = {
+        eligibleSchools: j.eligibleSchools,
+        eligibleProgrammes: j.eligibleProgrammes,
+        graduationYears: j.graduationYears,
+        minCgpa: j.minCgpa != null ? Number(j.minCgpa) : null,
+        minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,
+        minTwelfthPercentage: j.minTwelfthPercentage != null ? Number(j.minTwelfthPercentage) : null,
+        minUgPercentage: j.minUgPercentage != null ? Number(j.minUgPercentage) : null,
+        eligibleGenders: j.eligibleGenders,
+        maxActiveBacklogs: j.maxActiveBacklogs,
+        maxTotalBacklogs: j.maxTotalBacklogs,
+      };
+      const eligibleCount = students.filter(
+        (s) =>
+          checkEligibility(
+            {
+              verificationStatus: s.verificationStatus,
+              isPlaced: placedIds.has(s.id),
+              school: s.school,
+              programme: s.programme,
+              graduationYear: s.graduationYear,
+              cgpa: s.cgpa != null ? Number(s.cgpa) : null,
+              tenthPercentage: s.tenthPercentage != null ? Number(s.tenthPercentage) : null,
+              twelfthPercentage: s.twelfthPercentage != null ? Number(s.twelfthPercentage) : null,
+              ugPercentage: s.ugPercentage != null ? Number(s.ugPercentage) : null,
+              gender: s.gender,
+              activeBacklogs: s.activeBacklogs,
+              totalBacklogs: s.totalBacklogs,
+              hasResume: !!s.resume,
+            },
+            criteria,
+          ).eligible,
+      ).length;
+
+      const shortlisted = j.applications.filter(
+        (a) => a.status === 'IN_PROGRESS' || a.status === 'SELECTED' || a.stage !== 'APPLIED',
+      ).length;
+      const openRounds = j.rounds.filter((r) => r.status === 'OPEN' && r.scheduledAt);
+      const nearestInterview = openRounds.length ? openRounds[0].scheduledAt : null;
+
+      return {
+        jobId: j.id,
+        company: j.company?.name ?? j.companyName ?? 'Unknown',
+        role: j.title,
+        eligible: eligibleCount,
+        applied: j.applications.length,
+        shortlisted,
+        nearestInterview,
+        status: openRounds.length > 0 ? 'Interviewing' : 'Active',
+      };
+    });
+
+    return rows.sort((a, b) => {
+      if (a.nearestInterview && b.nearestInterview) {
+        return new Date(a.nearestInterview).getTime() - new Date(b.nearestInterview).getTime();
+      }
+      if (a.nearestInterview) return -1;
+      if (b.nearestInterview) return 1;
+      return b.applied - a.applied;
+    });
+  }
+
+  // ─────────────── Students requiring attention ───────────────
+  private async attentionCategoryWhere(collegeId: string, category: string) {
+    const base = { collegeId, isActive: true } as const;
+    if (category === 'withoutResume') return { ...base, resume: null };
+    if (category === 'incompleteProfile') return { ...base, profileCompletion: { lt: 100 } };
+    if (category === 'pendingDocuments') {
+      return {
+        ...base,
+        OR: [
+          { panNumber: null },
+          { tenthBoard: null },
+          { tenthPassingYear: null },
+          { twelfthBoard: null },
+          { twelfthPassingYear: null },
+        ],
+      };
+    }
+    if (category === 'withoutInternship') {
+      const withInternship = await this.prisma.internship.findMany({
+        where: { collegeId },
+        select: { studentId: true },
+        distinct: ['studentId'],
+      });
+      return { ...base, id: { notIn: withInternship.map((i) => i.studentId) } };
+    }
+    if (category === 'eligibleNotApplying' || category === 'noParticipation') {
+      const [withApps, withInternships] = await Promise.all([
+        this.prisma.application.findMany({
+          where: { collegeId },
+          select: { studentId: true },
+          distinct: ['studentId'],
+        }),
+        this.prisma.internship.findMany({
+          where: { collegeId },
+          select: { studentId: true },
+          distinct: ['studentId'],
+        }),
+      ]);
+      const appliedIds = new Set(withApps.map((a) => a.studentId));
+      const internedIds = new Set(withInternships.map((i) => i.studentId));
+      if (category === 'eligibleNotApplying') {
+        return {
+          ...base,
+          verificationStatus: 'VERIFIED' as const,
+          resume: { isNot: null },
+          id: { notIn: [...appliedIds] },
+        };
+      }
+      // No participation at all: never applied AND never logged an internship.
+      return { ...base, id: { notIn: [...appliedIds, ...internedIds] } };
+    }
+    throw new Error(`Unknown attention category: ${category}`);
+  }
+
+  async studentsRequiringAttention(collegeId: string) {
+    const categories = [
+      'withoutResume',
+      'incompleteProfile',
+      'eligibleNotApplying',
+      'noParticipation',
+      'withoutInternship',
+      'pendingDocuments',
+    ] as const;
+    const counts = await Promise.all(
+      categories.map(async (c) => {
+        const where = await this.attentionCategoryWhere(collegeId, c);
+        return this.prisma.student.count({ where: where as never });
+      }),
+    );
+    return Object.fromEntries(categories.map((c, i) => [c, counts[i]])) as Record<
+      (typeof categories)[number],
+      number
+    >;
+  }
+
+  async studentsInAttentionCategory(collegeId: string, category: string) {
+    const where = await this.attentionCategoryWhere(collegeId, category);
+    const students = await this.prisma.student.findMany({
+      where: where as never,
+      select: {
+        id: true,
+        rollNumber: true,
+        school: true,
+        programme: true,
+        user: { select: { fullName: true } },
+      },
+      orderBy: { rollNumber: 'asc' },
+      take: 500,
+    });
+    return students.map((s) => ({
+      id: s.id,
+      rollNumber: s.rollNumber,
+      fullName: s.user.fullName,
+      school: s.school,
+      programme: s.programme,
+    }));
   }
 
   // ─────────────── Breakdowns ───────────────

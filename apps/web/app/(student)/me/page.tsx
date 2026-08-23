@@ -1,12 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Badge, Card } from '@campusgo/ui';
-import { getOwnStudent, type Student } from '../../../lib/students';
+import { Badge, Button, Card } from '@campusgo/ui';
+import { getOwnStudent, setPlacementRegistration, type Student } from '../../../lib/students';
 import { listMyApplications, type Application } from '../../../lib/applications';
 import { NotificationBell } from '../../../components/notification-bell';
 import { ListSkeleton } from '../../../components/page-skeleton';
-import { useApi } from '../../../lib/use-api';
+import { useApi, mutate } from '../../../lib/use-api';
 
 const TERMINAL = ['JOINED', 'REJECTED', 'WITHDRAWN'];
 const PLACING = ['OFFER_RELEASED', 'OFFER_ACCEPTED', 'JOINED'];
@@ -83,6 +84,8 @@ export default function StudentHome() {
   const nextStepLabel = incompleteSteps[0]?.label;
   const showProfileNudge =
     !!student && (completion < 100 || student.verificationStatus !== 'VERIFIED');
+  const showRegisterNudge =
+    !!student && student.verificationStatus === 'VERIFIED' && !student.registeredForPlacements;
 
   return (
     <div className="space-y-6">
@@ -160,6 +163,9 @@ export default function StudentHome() {
         </Link>
       )}
 
+      {/* Placement cycle opt-in — separate from profile verification */}
+      {showRegisterNudge && <RegisterForPlacementsCard />}
+
       {/* Next interview hero */}
       {nextInterview ? (
         <div className="rounded-card bg-gradient-primary p-5 text-white shadow-nav">
@@ -224,6 +230,41 @@ export default function StudentHome() {
         )}
       </section>
     </div>
+  );
+}
+
+function RegisterForPlacementsCard() {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function register() {
+    setSaving(true);
+    setError(null);
+    try {
+      await setPlacementRegistration(true);
+      await mutate('/student/me');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not register');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="space-y-3 border border-primary-200 bg-primary-50 p-5">
+      <div>
+        <p className="text-sm font-semibold text-strong">Register for placements</p>
+        <p className="mt-1 text-xs text-body">
+          Your profile is verified. Register once to be counted in this season&apos;s placement
+          drive — the placement cell tracks registered students separately from the full student
+          list.
+        </p>
+      </div>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      <Button size="sm" onClick={register} loading={saving}>
+        {saving ? 'Registering…' : 'Register now'}
+      </Button>
+    </Card>
   );
 }
 

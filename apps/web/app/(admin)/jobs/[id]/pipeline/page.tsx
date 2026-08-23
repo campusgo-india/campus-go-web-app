@@ -11,6 +11,7 @@ import {
   decideRound,
   deleteRound,
   getFunnel,
+  markRoundAttendance,
   placeApplicant,
   rejectApplicant,
   roundTypeLabel,
@@ -124,6 +125,16 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
       setError(err instanceof Error ? err.message : 'Could not close round');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function markAttendance(round: FunnelRound, applicationId: string, attended: boolean) {
+    setError(null);
+    try {
+      await markRoundAttendance(id, round.id, [{ applicationId, attended }]);
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not mark attendance');
     }
   }
 
@@ -270,6 +281,9 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
           busy={busy}
           onDecide={() => decide(activeRound)}
           onRemove={() => removeRound(activeRound)}
+          onMarkAttendance={(applicationId, attended) =>
+            markAttendance(activeRound, applicationId, attended)
+          }
           isLast={activeRound.id === lastRound?.id}
         />
       ) : tab === 'finalists' ? (
@@ -360,6 +374,7 @@ function RoundView({
   busy,
   onDecide,
   onRemove,
+  onMarkAttendance,
   isLast,
 }: {
   round: FunnelRound;
@@ -368,6 +383,7 @@ function RoundView({
   busy: boolean;
   onDecide: () => void;
   onRemove: () => void;
+  onMarkAttendance: (applicationId: string, attended: boolean) => void;
   isLast: boolean;
 }) {
   const open = round.status === 'OPEN';
@@ -431,13 +447,14 @@ function RoundView({
               <th className="px-4 py-3 font-medium">Reg No.</th>
               <th className="px-4 py-3 font-medium">Programme</th>
               <th className="px-4 py-3 font-medium">Resume</th>
+              {open && <th className="px-4 py-3 font-medium">Attendance</th>}
               <th className="px-4 py-3 font-medium">{open ? 'Advance?' : 'Result'}</th>
             </tr>
           </thead>
           <tbody>
             {round.participants.length === 0 ? (
               <tr>
-                <td colSpan={open ? 6 : 5} className="px-4 py-8 text-center text-subtle">
+                <td colSpan={open ? 7 : 5} className="px-4 py-8 text-center text-subtle">
                   No one in this round.
                 </td>
               </tr>
@@ -475,6 +492,32 @@ function RoundView({
                       <span className="text-xs text-subtle">—</span>
                     )}
                   </td>
+                  {open && (
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => onMarkAttendance(p.applicationId, true)}
+                          className={`rounded-pill px-2.5 py-1 text-xs font-medium transition ${
+                            p.attended === true
+                              ? 'bg-success/15 text-success'
+                              : 'bg-app text-subtle hover:bg-success/10 hover:text-success'
+                          }`}
+                        >
+                          Present
+                        </button>
+                        <button
+                          onClick={() => onMarkAttendance(p.applicationId, false)}
+                          className={`rounded-pill px-2.5 py-1 text-xs font-medium transition ${
+                            p.attended === false
+                              ? 'bg-danger/15 text-danger'
+                              : 'bg-app text-subtle hover:bg-danger/10 hover:text-danger'
+                          }`}
+                        >
+                          No-show
+                        </button>
+                      </div>
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {open ? (
                       <span className="text-xs text-subtle">pending</span>

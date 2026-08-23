@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -9,6 +10,7 @@ import {
   IsString,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import { RoundType } from '@campusgo/database';
 import { EmptyToUndefined } from '../../common/transforms';
@@ -44,4 +46,17 @@ export class RejectApplicantDto {
 
 export class BulkRoundDto {
   @IsArray() @ArrayNotEmpty() @IsString({ each: true }) applicationIds!: string[];
+}
+
+export class AttendanceRecordDto {
+  @IsString() applicationId!: string;
+  @IsBoolean() attended!: boolean;
+}
+
+export class MarkRoundAttendanceDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @ValidateNested({ each: true })
+  @Type(() => AttendanceRecordDto)
+  records!: AttendanceRecordDto[];
 }

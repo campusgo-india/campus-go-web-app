@@ -15,6 +15,7 @@ import { RoundsService } from './rounds.service';
 import {
   CreateRoundDto,
   DecideRoundDto,
+  MarkRoundAttendanceDto,
   PlaceApplicantDto,
   RejectApplicantDto,
   UpdateRoundDto,
@@ -69,6 +70,18 @@ export class RoundsController {
     @Param('roundId') roundId: string,
   ) {
     return { data: await this.rounds.deleteRound(this.collegeId(user), jobId, roundId) };
+  }
+
+  @Post(':jobId/rounds/:roundId/attendance')
+  async markAttendance(
+    @CurrentUser() user: JwtPayload,
+    @Param('jobId') jobId: string,
+    @Param('roundId') roundId: string,
+    @Body() dto: MarkRoundAttendanceDto,
+  ) {
+    return {
+      data: await this.rounds.markAttendance(this.collegeId(user), jobId, roundId, dto.records),
+    };
   }
 
   @Post(':jobId/rounds/:roundId/decide')

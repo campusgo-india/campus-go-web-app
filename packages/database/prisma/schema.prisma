@@ -289,6 +289,10 @@ model Student {
   communicationSkillRating Int?     @map("communication_skill_rating")
   higherStudiesPlanned     Boolean? @map("higher_studies_planned")
   entrepreneurshipInterest Boolean? @map("entrepreneurship_interest")
+  // Explicit one-time opt-in for the current placement cycle — separate from
+  // profile verification. Drives the Placement Progress funnel's "Registered"
+  // stage and the "eligible but not registered" outreach list.
+  registeredForPlacements Boolean @default(false) @map("registered_for_placements")
 
   verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
   verifiedById       String?            @map("verified_by_id")
@@ -587,6 +591,9 @@ model ApplicationRound {
   applicationId String       @map("application_id")
   roundId       String       @map("round_id")
   outcome       RoundOutcome @default(PENDING)
+  // Null = not marked yet, true = present, false = no-show. Set by the
+  // officer when running the round, independent of the eventual outcome.
+  attended      Boolean?
   decidedAt     DateTime?    @map("decided_at")
   createdAt     DateTime     @default(now()) @map("created_at")
 

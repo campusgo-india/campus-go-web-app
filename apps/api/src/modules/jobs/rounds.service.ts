@@ -109,6 +109,7 @@ export class RoundsService {
         participants: r.participants.map((p) => ({
           ...this.toStudent(p.application),
           outcome: p.outcome,
+          attended: p.attended,
         })),
       })),
       // Applied but not yet placed into any round (before Round 1, or late applicants).
@@ -285,6 +286,36 @@ export class RoundsService {
     }
     await this.prisma.jobRound.delete({ where: { id: roundId } });
     return { success: true };
+  }
+
+  // ─────────────── Mark who showed up (before deciding the round) ───────────────
+  async markAttendance(
+    collegeId: string,
+    jobId: string,
+    roundId: string,
+    records: { applicationId: string; attended: boolean }[],
+  ) {
+    await this.resolveJob(collegeId, jobId);
+    const round = await this.prisma.jobRound.findFirst({ where: { id: roundId, jobId, collegeId } });
+    if (!round) throw new NotFoundException('Round not found');
+
+    const participants = await this.prisma.applicationRound.findMany({
+      where: { roundId, applicationId: { in: records.map((r) => r.applicationId) } },
+      select: { id: true, applicationId: true },
+    });
+    const byAppId = new Map(participants.map((p) => [p.applicationId, p.id]));
+
+    await this.prisma.$transaction(
+      records
+        .filter((r) => byAppId.has(r.applicationId))
+        .map((r) =>
+          this.prisma.applicationRound.update({
+            where: { id: byAppId.get(r.applicationId)! },
+            data: { attended: r.attended },
+          }),
+        ),
+    );
+    return { success: true, marked: records.filter((r) => byAppId.has(r.applicationId)).length };
   }
 
   // ─────────────── Decide a round (advance some, auto-reject the rest) ───────────────

@@ -804,6 +804,18 @@ export class StudentsService {
     return this.publicStudent(updated);
   }
 
+  // One-time opt-in for the current placement cycle — separate from profile
+  // verification, feeds the Placement Progress funnel's "Registered" stage.
+  async setPlacementRegistration(userId: string, registered: boolean) {
+    const student = await this.ownStudent(userId);
+    const updated = await this.prisma.student.update({
+      where: { id: student.id },
+      data: { registeredForPlacements: registered },
+      include: { user: true, resume: { select: { fileUrl: true } } },
+    });
+    return this.publicStudent(updated);
+  }
+
   private async ownStudent(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },
@@ -967,6 +979,7 @@ export class StudentsService {
     communicationSkillRating: number | null;
     higherStudiesPlanned: boolean | null;
     entrepreneurshipInterest: boolean | null;
+    registeredForPlacements: boolean;
     verificationStatus: string;
     verifiedAt: Date | null;
     rejectionReason: string | null;
@@ -1034,6 +1047,7 @@ export class StudentsService {
       communicationSkillRating: s.communicationSkillRating,
       higherStudiesPlanned: s.higherStudiesPlanned,
       entrepreneurshipInterest: s.entrepreneurshipInterest,
+      registeredForPlacements: s.registeredForPlacements,
       verificationStatus: s.verificationStatus,
       verifiedAt: s.verifiedAt,
       rejectionReason: s.rejectionReason,

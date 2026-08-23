@@ -40,6 +40,8 @@ export interface FunnelStudent {
 
 export interface FunnelParticipant extends FunnelStudent {
   outcome: RoundOutcome;
+  /** Null = not marked yet, true = present, false = no-show. */
+  attended: boolean | null;
 }
 
 export interface FunnelRound {
@@ -93,6 +95,16 @@ export const decideRound = (jobId: string, roundId: string, advanceIds: string[]
   api(`/jobs/${jobId}/rounds/${roundId}/decide`, {
     method: 'POST',
     body: JSON.stringify({ advanceIds }),
+  });
+
+export const markRoundAttendance = (
+  jobId: string,
+  roundId: string,
+  records: { applicationId: string; attended: boolean }[],
+) =>
+  api(`/jobs/${jobId}/rounds/${roundId}/attendance`, {
+    method: 'POST',
+    body: JSON.stringify({ records }),
   });
 
 export const placeApplicant = (
