@@ -151,9 +151,8 @@ export default function PlacementDashboardPage() {
           </div>
         )}
         <p className="mt-4 text-xs text-subtle">
-          Eligible = verified profile with a résumé on file. Registered = eligible students who
-          opted in for this placement cycle. Attended / Shortlisted / Selected / Offered / Joined
-          come from each student&apos;s application and interview-round history.
+          Eligible = verified profile with a résumé on file. Attended / Shortlisted / Selected /
+          Offered / Joined come from each student&apos;s application and interview-round history.
         </p>
       </SectionCard>
 
@@ -242,7 +241,6 @@ function TrackPanel({
 const FUNNEL_STAGES: { key: keyof FunnelStages; label: string }[] = [
   { key: 'finalYearStudents', label: 'Final-year students' },
   { key: 'eligible', label: 'Eligible' },
-  { key: 'registered', label: 'Registered' },
   { key: 'applied', label: 'Applied' },
   { key: 'attended', label: 'Attended' },
   { key: 'shortlisted', label: 'Shortlisted' },

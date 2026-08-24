@@ -77,7 +77,6 @@ export interface PlacementDashboard {
 export interface FunnelStages {
   finalYearStudents: number;
   eligible: number;
-  registered: number;
   applied: number;
   attended: number;
   shortlisted: number;

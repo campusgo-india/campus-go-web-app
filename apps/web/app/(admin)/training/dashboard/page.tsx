@@ -150,6 +150,7 @@ export default function TrainingDashboardPage() {
               <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
                 <tr>
                   <th className="px-4 py-3 font-medium">Session</th>
+                  <th className="px-4 py-3 font-medium">Department/Batch</th>
                   <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Attendance</th>
@@ -159,6 +160,9 @@ export default function TrainingDashboardPage() {
                 {sessions.map((s) => (
                   <tr key={s.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-strong">{s.title}</td>
+                    <td className={`px-4 py-3 ${s.audience === 'Everyone' ? 'text-subtle' : 'font-medium text-primary-600'}`}>
+                      {s.audience}
+                    </td>
                     <td className="px-4 py-3 text-body">
                       {new Date(s.startsAt).toLocaleDateString(undefined, {
                         day: 'numeric',
@@ -189,6 +193,7 @@ export default function TrainingDashboardPage() {
               <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
                 <tr>
                   <th className="px-4 py-3 font-medium">Assessment</th>
+                  <th className="px-4 py-3 font-medium">Department/Batch</th>
                   <th className="px-4 py-3 font-medium">Pillar</th>
                   <th className="px-4 py-3 font-medium">Phase</th>
                   <th className="px-4 py-3 font-medium">Average score</th>
@@ -198,6 +203,9 @@ export default function TrainingDashboardPage() {
                 {assessments.map((a) => (
                   <tr key={a.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3 font-medium text-strong">{a.name}</td>
+                    <td className={`px-4 py-3 ${a.audience === 'Everyone' ? 'text-subtle' : 'font-medium text-primary-600'}`}>
+                      {a.audience}
+                    </td>
                     <td className="px-4 py-3 text-body">{PILLAR_LABEL[a.pillar]}</td>
                     <td className="px-4 py-3">
                       <Badge tint={a.phase === 'PRE' ? 'lavender' : 'mint'}>{a.phase}</Badge>

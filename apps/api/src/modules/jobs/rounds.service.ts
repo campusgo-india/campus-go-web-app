@@ -289,6 +289,12 @@ export class RoundsService {
         `Close "${last.title}" by selecting who advances before adding another round.`,
       );
     }
+    // Round 1's date feeds the Placement Dashboard's Active Drives "nearest
+    // interview" column — without it that column silently reads "—" even
+    // though interviewing has genuinely started.
+    if (seq === 1 && !dto.scheduledAt) {
+      throw new BadRequestException('A date is required for Round 1.');
+    }
     const title = dto.title?.trim() || `Round ${seq}`;
 
     const round = await this.prisma.jobRound.create({
@@ -655,6 +661,12 @@ export class RoundsService {
       throw new BadRequestException(
         `Close "${last.title}" by selecting who advances before adding another round.`,
       );
+    }
+    // Round 1's date feeds the Placement Dashboard's Active Drives "nearest
+    // interview" column — without it that column silently reads "—" even
+    // though interviewing has genuinely started.
+    if (seq === 1 && !dto.scheduledAt) {
+      throw new BadRequestException('A date is required for Round 1.');
     }
     const title = dto.title?.trim() || `Round ${seq}`;
 

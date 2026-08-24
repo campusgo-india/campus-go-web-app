@@ -385,7 +385,7 @@ export class AnalyticsService {
   }
 
   // ─────────────── Placement Progress funnel (Overall + UG/PG) ───────────────
-  // Nine stages, computed per student from whichever signal is available —
+  // Eight stages, computed per student from whichever signal is available —
   // this app supports both a granular legacy stage flow (Application.stage)
   // and a streamlined rounds/pipeline flow (Application.status +
   // ApplicationRound), so several stages union both.
@@ -402,7 +402,6 @@ export class AnalyticsService {
           school: true,
           isActive: true,
           verificationStatus: true,
-          registeredForPlacements: true,
           resume: { select: { id: true } },
         },
       }),
@@ -434,7 +433,7 @@ export class AnalyticsService {
     }
 
     function makeStage() {
-      return { finalYearStudents: 0, eligible: 0, registered: 0, applied: 0, attended: 0, shortlisted: 0, selected: 0, offered: 0, joined: 0 };
+      return { finalYearStudents: 0, eligible: 0, applied: 0, attended: 0, shortlisted: 0, selected: 0, offered: 0, joined: 0 };
     }
     const buckets = { UG: makeStage(), PG: makeStage() };
 
@@ -445,12 +444,17 @@ export class AnalyticsService {
 
       const isEligible = s.verificationStatus === 'VERIFIED' && !!s.resume;
       if (isEligible) bucket.eligible++;
-      if (isEligible && s.registeredForPlacements) bucket.registered++;
 
       const myApps = appsByStudent.get(s.id) ?? [];
       const myRounds = roundsByStudent.get(s.id) ?? [];
       if (myApps.length > 0) bucket.applied++;
-      if (myRounds.some((r) => r.attended === true)) bucket.attended++;
+      // "Attended" = reached at least one interview round. Not gated on the
+      // ApplicationRound.attended flag — that's a separate, easy-to-skip
+      // manual "mark present/absent" action officers rarely use, so relying
+      // on it left this stage at 0 even for students who clearly interviewed.
+      // Being enrolled in a round (created automatically when the round
+      // starts) is the reliable signal.
+      if (myRounds.length > 0) bucket.attended++;
       if (
         myRounds.some((r) => r.outcome === 'ADVANCED') ||
         myApps.some((a) => (SHORTLISTED_OR_LATER_STAGES as readonly string[]).includes(a.stage))
@@ -518,11 +522,35 @@ export class AnalyticsService {
   }
 
   // ─────────────── Active placement drives ───────────────
-  // Published jobs, nearest open-round interview first — the ones needing
-  // the officer's attention right now.
+  // Published jobs (still accepting applications) PLUS closed jobs still
+  // being actively interviewed — nearest open-round interview first, the
+  // ones needing the officer's attention right now. A college job's status
+  // flips to CLOSED the moment Round 1 starts (see RoundsService), so
+  // filtering to PUBLISHED alone would make a job vanish from this list
+  // exactly when it enters its most "active" phase; a CLOSED job only drops
+  // off once nothing is left to do (no open round, no unresolved applicant).
+  //
+  // Composed via AND (not a flat spread) so this OR doesn't clobber
+  // jobVisibleToCollege's own OR clause.
   async activeDrives(collegeId: string) {
     const jobs = await this.prisma.job.findMany({
-      where: { status: 'PUBLISHED', ...jobVisibleToCollege(collegeId) },
+      where: {
+        AND: [
+          jobVisibleToCollege(collegeId),
+          {
+            OR: [
+              { status: 'PUBLISHED' },
+              {
+                status: 'CLOSED',
+                OR: [
+                  { rounds: { some: { status: 'OPEN' } } },
+                  { applications: { some: { status: { in: ['APPLIED', 'IN_PROGRESS'] } } } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
       select: {
         id: true,
         title: true,

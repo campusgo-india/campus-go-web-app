@@ -187,6 +187,7 @@ export interface OfficerTrainingDashboard {
     status: SessionStatus;
     attendancePct: number | null;
     markedCount: number;
+    audience: string;
   }>;
   assessments: Array<{
     id: string;
@@ -195,6 +196,7 @@ export interface OfficerTrainingDashboard {
     phase: AssessmentPhase;
     averagePct: number | null;
     scoredCount: number;
+    audience: string;
   }>;
 }
 

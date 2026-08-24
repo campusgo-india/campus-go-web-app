@@ -885,12 +885,14 @@ function AddRoundForm({
         />
       </label>
       <label className="block space-y-1 sm:w-1/2">
-        <span className="text-xs font-medium text-subtle">Date (optional)</span>
+        <span className="text-xs font-medium text-subtle">
+          Date {nextLabel === 'Round 1' ? '*' : '(optional)'}
+        </span>
         <input type="date" className={cls} value={when} onChange={(e) => setWhen(e.target.value)} />
       </label>
       <p className="text-xs text-subtle">
         {nextLabel === 'Round 1'
-          ? 'Everyone who applied enters this round.'
+          ? 'Everyone who applied enters this round. The date feeds the Placement Dashboard’s Active Drives.'
           : 'Everyone who cleared the previous round enters this round.'}
       </p>
       <div className="flex gap-2">
@@ -904,6 +906,7 @@ function AddRoundForm({
             })
           }
           loading={busy}
+          disabled={nextLabel === 'Round 1' && !when}
         >
           Add round
         </Button>

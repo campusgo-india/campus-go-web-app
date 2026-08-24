@@ -136,15 +136,47 @@ export class TrainingDashboardService {
         where: { collegeId },
         orderBy: { startsAt: 'desc' },
         take: 20,
-        select: { id: true, title: true, startsAt: true, status: true },
+        select: {
+          id: true,
+          title: true,
+          startsAt: true,
+          status: true,
+          targetProgrammes: true,
+          targetBatchIds: true,
+        },
       }),
       this.prisma.assessment.findMany({
         where: { collegeId },
         orderBy: { createdAt: 'desc' },
         take: 20,
-        select: { id: true, name: true, pillar: true, phase: true, maxMarks: true },
+        select: {
+          id: true,
+          name: true,
+          pillar: true,
+          phase: true,
+          maxMarks: true,
+          targetProgrammes: true,
+          targetBatchIds: true,
+        },
       }),
     ]);
+
+    // Resolve batch ids -> names once, shared by both tables below, so the
+    // "which department/batch" column reads a name instead of a raw uuid.
+    const allBatchIds = [...sessions, ...assessments].flatMap((x) => x.targetBatchIds);
+    const batches = allBatchIds.length
+      ? await this.prisma.trainingBatch.findMany({
+          where: { id: { in: allBatchIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const batchNameById = new Map(batches.map((b) => [b.id, b.name]));
+    const audienceOf = (targetProgrammes: string[], targetBatchIds: string[]) =>
+      targetProgrammes.length === 0 && targetBatchIds.length === 0
+        ? 'Everyone'
+        : [...targetProgrammes, ...targetBatchIds.map((id) => batchNameById.get(id) ?? 'Unknown batch')].join(
+            ', ',
+          );
 
     // Readiness distribution: one readiness index per student (equal-weighted
     // pillar average, identical formula to the student's own dashboard),
@@ -221,6 +253,7 @@ export class TrainingDashboardService {
         status: s.status,
         attendancePct: row && row.total ? Math.round((row.present / row.total) * 100) : null,
         markedCount: row?.total ?? 0,
+        audience: audienceOf(s.targetProgrammes, s.targetBatchIds),
       };
     });
 
@@ -240,6 +273,7 @@ export class TrainingDashboardService {
       phase: a.phase,
       averagePct: avg(scoresByAssessment.get(a.id)),
       scoredCount: scoresByAssessment.get(a.id)?.length ?? 0,
+      audience: audienceOf(a.targetProgrammes, a.targetBatchIds),
     }));
 
     return {
