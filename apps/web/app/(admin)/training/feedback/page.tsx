@@ -67,6 +67,7 @@ export default function TrainingFeedbackPage() {
             <thead>
               <tr className="border-b border-border text-left text-xs font-medium uppercase text-subtle">
                 <th className="px-4 py-3">Session</th>
+                <th className="px-4 py-3">Date</th>
                 <th className="px-4 py-3">Trainer</th>
                 <th className="px-4 py-3">Responses</th>
                 <th className="px-4 py-3">Content</th>
@@ -79,6 +80,13 @@ export default function TrainingFeedbackPage() {
               {(data?.sessions ?? []).map((s) => (
                 <tr key={s.sessionId} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium text-strong">{s.title}</td>
+                  <td className="px-4 py-3 text-body">
+                    {new Date(s.startsAt).toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </td>
                   <td className="px-4 py-3 text-body">{s.trainerName ?? '—'}</td>
                   <td className="px-4 py-3 text-body">{s.responseCount}</td>
                   <td className="px-4 py-3 text-body">{s.avgContentQuality ?? '—'}</td>
@@ -89,7 +97,7 @@ export default function TrainingFeedbackPage() {
               ))}
               {data && data.sessions.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-subtle">
+                  <td colSpan={8} className="px-4 py-6 text-center text-sm text-subtle">
                     No feedback submitted yet.
                   </td>
                 </tr>

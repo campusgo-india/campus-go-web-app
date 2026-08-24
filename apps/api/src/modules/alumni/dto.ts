@@ -33,6 +33,7 @@ export class CreateAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
+  @IsOptional() @IsString() industry?: string;
   @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @IsBoolean() isMentor?: boolean;
   @IsOptional() @IsBoolean() isHiring?: boolean;
@@ -55,6 +56,7 @@ export class SelfRegisterAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
+  @IsOptional() @IsString() industry?: string;
   @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
 }
 
@@ -73,6 +75,7 @@ export class UpdateAlumniDto {
   @IsOptional() @IsString() currentCompany?: string;
   @IsOptional() @IsString() currentDesignation?: string;
   @TitleCase() @IsOptional() @IsString() currentLocation?: string;
+  @IsOptional() @IsString() industry?: string;
   @NormalizeUrl() @IsOptional() @IsString() linkedinUrl?: string;
   @IsOptional() @IsBoolean() isMentor?: boolean;
   @IsOptional() @IsBoolean() isHiring?: boolean;

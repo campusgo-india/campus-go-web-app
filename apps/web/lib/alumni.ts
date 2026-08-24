@@ -15,6 +15,7 @@ export interface Alumni {
   currentCompany: string | null;
   currentDesignation: string | null;
   currentLocation: string | null;
+  industry: string | null;
   linkedinUrl: string | null;
   isMentor: boolean;
   isHiring: boolean;
@@ -39,6 +40,7 @@ export interface AlumniInput {
   currentCompany?: string;
   currentDesignation?: string;
   currentLocation?: string;
+  industry?: string;
   linkedinUrl?: string;
   isMentor?: boolean;
   isHiring?: boolean;
@@ -85,6 +87,7 @@ export interface SelfRegisterInput {
   currentCompany?: string;
   currentDesignation?: string;
   currentLocation?: string;
+  industry?: string;
   linkedinUrl?: string;
 }
 

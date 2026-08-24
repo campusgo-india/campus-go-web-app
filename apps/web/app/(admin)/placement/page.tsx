@@ -151,8 +151,9 @@ export default function PlacementDashboardPage() {
           </div>
         )}
         <p className="mt-4 text-xs text-subtle">
-          Eligible = verified profile with a résumé on file. Attended / Shortlisted / Selected /
-          Offered / Joined come from each student&apos;s application and interview-round history.
+          Eligible = verified profile with a résumé on file. Round 1/2/3 are cumulative — reaching
+          Round 3 counts a student in Round 1 and 2 as well. Selected / Offered / Joined come from
+          each student&apos;s application and interview-round history.
         </p>
       </SectionCard>
 
@@ -243,7 +244,9 @@ const FUNNEL_STAGES: { key: keyof FunnelStages; label: string }[] = [
   { key: 'eligible', label: 'Eligible' },
   { key: 'applied', label: 'Applied' },
   { key: 'attended', label: 'Attended' },
-  { key: 'shortlisted', label: 'Shortlisted' },
+  { key: 'round1', label: 'Round 1' },
+  { key: 'round2', label: 'Round 2' },
+  { key: 'round3', label: 'Round 3' },
   { key: 'selected', label: 'Selected' },
   { key: 'offered', label: 'Offered' },
   { key: 'joined', label: 'Joined' },
@@ -425,6 +428,17 @@ function AttentionModal({
     `/analytics/students-requiring-attention/${category}`,
     () => getStudentsInAttentionCategory(category),
   );
+  const [search, setSearch] = useState('');
+
+  const filtered = (data ?? []).filter((s) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return (
+      s.fullName.toLowerCase().includes(q) ||
+      s.rollNumber.toLowerCase().includes(q) ||
+      s.programme.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div
@@ -434,13 +448,19 @@ function AttentionModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-card bg-card shadow-card"
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-card bg-card shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-strong">{label}</p>
-            <p className="text-xs text-subtle">{data ? `${data.length} students` : 'Loading…'}</p>
+            <p className="text-xs text-subtle">
+              {data
+                ? `${data.length} student${data.length === 1 ? '' : 's'}${
+                    search.trim() ? ` · ${filtered.length} shown` : ''
+                  }`
+                : 'Loading…'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -450,29 +470,55 @@ function AttentionModal({
             ✕
           </button>
         </div>
-        <div className="max-h-[60vh] overflow-y-auto">
+
+        {data && data.length > 5 && (
+          <div className="border-b border-border px-5 py-3">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, roll no., or programme…"
+              className="h-9 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
+              autoFocus
+            />
+          </div>
+        )}
+
+        <div className="flex-1 overflow-y-auto">
           {isLoading || !data ? (
             <div className="p-5">
               <InlineSkeleton width="w-full" height="h-32" />
             </div>
           ) : data.length === 0 ? (
             <p className="p-5 text-sm text-subtle">No students in this list. 🎉</p>
+          ) : filtered.length === 0 ? (
+            <p className="p-5 text-sm text-subtle">No students match &ldquo;{search}&rdquo;.</p>
           ) : (
             <ul>
-              {data.map((s) => (
-                <li key={s.id} className="border-b border-border last:border-0">
-                  <Link
-                    href={`/students/${s.id}`}
-                    className="flex items-center justify-between px-5 py-3 text-sm hover:bg-app"
-                  >
-                    <span>
-                      <span className="font-medium text-strong">{s.fullName}</span>
-                      <span className="ml-2 text-xs text-subtle">{s.rollNumber}</span>
-                    </span>
-                    <span className="text-xs text-subtle">
+              {filtered.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border px-5 py-3 text-sm last:border-0 hover:bg-app"
+                >
+                  <div className="min-w-0">
+                    <Link href={`/students/${s.id}`} className="font-medium text-strong hover:underline">
+                      {s.fullName}
+                    </Link>
+                    <span className="ml-2 text-xs text-subtle">{s.rollNumber}</span>
+                    <p className="text-xs text-subtle">
                       {s.school} · {s.programme}
-                    </span>
-                  </Link>
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5 text-xs">
+                    <a href={`mailto:${s.email}`} className="text-primary-600 hover:underline">
+                      {s.email}
+                    </a>
+                    {s.phone && (
+                      <a href={`tel:${s.phone}`} className="text-subtle hover:text-primary-600 hover:underline">
+                        {s.phone}
+                      </a>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

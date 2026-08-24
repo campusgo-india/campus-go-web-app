@@ -4,11 +4,11 @@ import type { PrismaClient } from '@campusgo/database';
 import { checkEligibility } from '../jobs/eligibility';
 import { jobVisibleToCollege } from '../jobs/job-scope.util';
 
-// Stages that mean "reached at least one round of scrutiny beyond a raw
-// application" under the legacy stage-based flow (still reachable via the
-// applications detail screen, alongside the newer rounds/pipeline flow).
-const SHORTLISTED_OR_LATER_STAGES = [
-  'SHORTLISTED',
+// Legacy stage-based flow's equivalent of "reached round N or later" — used
+// alongside the newer rounds/pipeline flow's ApplicationRound.round.seq so
+// the Placement Progress funnel's Round 1/2/3 stages count a student
+// regardless of which flow was used to move them there.
+const ROUND_1_OR_LATER_STAGES = [
   'ROUND_1',
   'ROUND_2',
   'ROUND_3',
@@ -17,6 +17,15 @@ const SHORTLISTED_OR_LATER_STAGES = [
   'OFFER_ACCEPTED',
   'JOINED',
 ] as const;
+const ROUND_2_OR_LATER_STAGES = [
+  'ROUND_2',
+  'ROUND_3',
+  'HR',
+  'OFFER_RELEASED',
+  'OFFER_ACCEPTED',
+  'JOINED',
+] as const;
+const ROUND_3_OR_LATER_STAGES = ['ROUND_3', 'HR', 'OFFER_RELEASED', 'OFFER_ACCEPTED', 'JOINED'] as const;
 const SELECTED_STAGES = ['OFFER_ACCEPTED', 'JOINED'] as const;
 
 // Application stages that count as a secured placement / a released offer.
@@ -411,7 +420,12 @@ export class AnalyticsService {
       }),
       this.prisma.applicationRound.findMany({
         where: { application: { collegeId } },
-        select: { outcome: true, attended: true, application: { select: { studentId: true } } },
+        select: {
+          outcome: true,
+          attended: true,
+          round: { select: { seq: true } },
+          application: { select: { studentId: true } },
+        },
       }),
     ]);
 
@@ -433,7 +447,18 @@ export class AnalyticsService {
     }
 
     function makeStage() {
-      return { finalYearStudents: 0, eligible: 0, applied: 0, attended: 0, shortlisted: 0, selected: 0, offered: 0, joined: 0 };
+      return {
+        finalYearStudents: 0,
+        eligible: 0,
+        applied: 0,
+        attended: 0,
+        round1: 0,
+        round2: 0,
+        round3: 0,
+        selected: 0,
+        offered: 0,
+        joined: 0,
+      };
     }
     const buckets = { UG: makeStage(), PG: makeStage() };
 
@@ -455,11 +480,20 @@ export class AnalyticsService {
       // Being enrolled in a round (created automatically when the round
       // starts) is the reliable signal.
       if (myRounds.length > 0) bucket.attended++;
-      if (
-        myRounds.some((r) => r.outcome === 'ADVANCED') ||
-        myApps.some((a) => (SHORTLISTED_OR_LATER_STAGES as readonly string[]).includes(a.stage))
-      ) {
-        bucket.shortlisted++;
+
+      // Round 1/2/3: reached a round with that sequence number or later —
+      // nested/cumulative like the rest of this funnel (reaching Round 3
+      // implies having reached Round 1 and 2), from whichever flow moved
+      // them there.
+      const maxSeqReached = myRounds.reduce((max, r) => Math.max(max, r.round.seq), 0);
+      if (maxSeqReached >= 1 || myApps.some((a) => (ROUND_1_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+        bucket.round1++;
+      }
+      if (maxSeqReached >= 2 || myApps.some((a) => (ROUND_2_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+        bucket.round2++;
+      }
+      if (maxSeqReached >= 3 || myApps.some((a) => (ROUND_3_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+        bucket.round3++;
       }
       if (
         myApps.some(
@@ -523,12 +557,19 @@ export class AnalyticsService {
 
   // ─────────────── Active placement drives ───────────────
   // Published jobs (still accepting applications) PLUS closed jobs still
-  // being actively interviewed — nearest open-round interview first, the
-  // ones needing the officer's attention right now. A college job's status
-  // flips to CLOSED the moment Round 1 starts (see RoundsService), so
-  // filtering to PUBLISHED alone would make a job vanish from this list
-  // exactly when it enters its most "active" phase; a CLOSED job only drops
-  // off once nothing is left to do (no open round, no unresolved applicant).
+  // being actively interviewed right now (an open round) — the ones needing
+  // the officer's attention. A college job's status flips to CLOSED the
+  // moment Round 1 starts (see RoundsService), so filtering to PUBLISHED
+  // alone would make a job vanish from this list exactly when it enters its
+  // most "active" phase.
+  //
+  // Deliberately NOT keyed on leftover unresolved applications (e.g. a
+  // straggler still sitting at APPLIED because they were never pulled into a
+  // round) — once the job's only/last round is DECIDED and nothing is OPEN,
+  // the drive is done from the officer's point of view even if a few
+  // applications were never formally closed out. Otherwise a job with one
+  // placed candidate and a handful of never-processed applicants keeps
+  // showing as "active" indefinitely.
   //
   // Composed via AND (not a flat spread) so this OR doesn't clobber
   // jobVisibleToCollege's own OR clause.
@@ -538,16 +579,7 @@ export class AnalyticsService {
         AND: [
           jobVisibleToCollege(collegeId),
           {
-            OR: [
-              { status: 'PUBLISHED' },
-              {
-                status: 'CLOSED',
-                OR: [
-                  { rounds: { some: { status: 'OPEN' } } },
-                  { applications: { some: { status: { in: ['APPLIED', 'IN_PROGRESS'] } } } },
-                ],
-              },
-            ],
+            OR: [{ status: 'PUBLISHED' }, { status: 'CLOSED', rounds: { some: { status: 'OPEN' } } }],
           },
         ],
       },
@@ -735,7 +767,7 @@ export class AnalyticsService {
         rollNumber: true,
         school: true,
         programme: true,
-        user: { select: { fullName: true } },
+        user: { select: { fullName: true, email: true, phone: true } },
       },
       orderBy: { rollNumber: 'asc' },
       take: 500,
@@ -746,6 +778,8 @@ export class AnalyticsService {
       fullName: s.user.fullName,
       school: s.school,
       programme: s.programme,
+      email: s.user.email,
+      phone: s.user.phone,
     }));
   }
 

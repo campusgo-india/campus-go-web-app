@@ -79,7 +79,9 @@ export interface FunnelStages {
   eligible: number;
   applied: number;
   attended: number;
-  shortlisted: number;
+  round1: number;
+  round2: number;
+  round3: number;
   selected: number;
   offered: number;
   joined: number;
@@ -124,6 +126,8 @@ export interface AttentionStudent {
   fullName: string;
   school: string;
   programme: string;
+  email: string;
+  phone: string | null;
 }
 
 export const getPlacementFunnel = () => api<PlacementFunnel>('/analytics/placement-funnel');

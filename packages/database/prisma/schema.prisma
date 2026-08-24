@@ -201,6 +201,7 @@ model Alumni {
   currentCompany     String?  @map("current_company")
   currentDesignation String?  @map("current_designation")
   currentLocation    String?  @map("current_location")
+  industry           String?
   linkedinUrl        String?  @map("linkedin_url")
   isMentor           Boolean  @default(false) @map("is_mentor")
   isHiring           Boolean  @default(false) @map("is_hiring")

@@ -8,6 +8,7 @@ import {
   selfRegisterAlumni,
   type SelfRegisterInput,
 } from '../../../../lib/alumni';
+import { INDUSTRIES } from '../../../../lib/industries';
 
 export default function AlumniRegisterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -72,13 +73,16 @@ function RegisterForm({
     currentCompany: '',
     currentDesignation: '',
     currentLocation: '',
+    industry: '',
     linkedinUrl: '',
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set =
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const emailOk = !form.email.trim() || isValidEmail(form.email);
   const phoneOk = !form.phone.trim() || isValidPhone(form.phone);
@@ -106,6 +110,7 @@ function RegisterForm({
         currentCompany: form.currentCompany.trim() || undefined,
         currentDesignation: form.currentDesignation.trim() || undefined,
         currentLocation: form.currentLocation.trim() || undefined,
+        industry: form.industry || undefined,
         linkedinUrl: form.linkedinUrl.trim() || undefined,
       };
       await selfRegisterAlumni(slug, input);
@@ -145,7 +150,7 @@ function RegisterForm({
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year you joined the school"
+            placeholder="2020"
             min="0"
           />
         </Field>
@@ -207,6 +212,16 @@ function RegisterForm({
           />
         </Field>
       </div>
+      <Field label="Industry">
+        <select className={inputCls} value={form.industry} onChange={set('industry')}>
+          <option value="">Select industry…</option>
+          {INDUSTRIES.map((i) => (
+            <option key={i} value={i}>
+              {i}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="LinkedIn URL">
         <input
           className={inputCls}

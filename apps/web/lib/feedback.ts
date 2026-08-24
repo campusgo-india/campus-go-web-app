@@ -43,6 +43,7 @@ export interface EmployerFeedbackPublicContext {
   industry: string | null;
   programmes: string[];
   academicYears: number[];
+  collegeName: string | null;
 }
 
 export interface SubmitEmployerFeedbackInput {

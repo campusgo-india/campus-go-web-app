@@ -6,6 +6,7 @@ import { Button, Card, SectionCard } from '@campusgo/ui';
 import { isValidEmail, isValidPhone } from '@campusgo/shared';
 import { useSession } from '../../../lib/session';
 import { InlineSkeleton } from '../../../components/page-skeleton';
+import { INDUSTRIES } from '../../../lib/industries';
 import {
   createCompany,
   getRecruiterTracking,
@@ -23,6 +24,7 @@ export default function CompaniesPage() {
   const { user } = useSession();
   const [items, setItems] = useState<Company[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -32,7 +34,7 @@ export default function CompaniesPage() {
     setLoading(true);
     setError(null);
     try {
-      setItems(await listCompanies(search));
+      setItems(await listCompanies(debouncedSearch));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load companies');
     } finally {
@@ -47,10 +49,16 @@ export default function CompaniesPage() {
       .catch(() => {});
   }
 
+  // Debounce the search box so we don't hit the API on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     loadTracking();
@@ -111,13 +119,9 @@ export default function CompaniesPage() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && load()}
           placeholder="Search by name or industry…"
           className="h-10 w-full max-w-md rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
         />
-        <Button variant="ghost" onClick={load}>
-          Search
-        </Button>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -190,7 +194,8 @@ function NewCompanyForm({ onCreated }: { onCreated: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const set =
-    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (k: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function submit() {
@@ -229,7 +234,14 @@ function NewCompanyForm({ onCreated }: { onCreated: () => void }) {
           <input className={inputCls} value={form.name} onChange={set('name')} />
         </Field>
         <Field label="Industry">
-          <input className={inputCls} value={form.industry} onChange={set('industry')} />
+          <select className={inputCls} value={form.industry} onChange={set('industry')}>
+            <option value="">Select industry…</option>
+            {INDUSTRIES.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="City">
           <input

@@ -19,6 +19,7 @@ import {
   type AlumniStats,
 } from '../../../lib/alumni';
 import { listMySchools, type CollegeSchool } from '../../../lib/courses';
+import { INDUSTRIES } from '../../../lib/industries';
 
 type ViewMode = 'years' | 'schools' | 'table';
 
@@ -476,6 +477,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     currentCompany: '',
     currentDesignation: '',
     currentLocation: '',
+    industry: '',
     linkedinUrl: '',
     tags: '',
     notes: '',
@@ -522,6 +524,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
         currentLocation: form.currentLocation.trim()
           ? toTitleCase(form.currentLocation)
           : undefined,
+        industry: form.industry || undefined,
         linkedinUrl: form.linkedinUrl || undefined,
         tags: form.tags
           ? form.tags
@@ -581,7 +584,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year they joined the school"
+            placeholder="2020"
             min="0"
           />
         </Field>
@@ -665,6 +668,16 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
             value={form.currentLocation}
             onChange={set('currentLocation')}
           />
+        </Field>
+        <Field label="Industry">
+          <select className={inputCls} value={form.industry} onChange={set('industry')}>
+            <option value="">Select industry…</option>
+            {INDUSTRIES.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="LinkedIn URL">
           <input

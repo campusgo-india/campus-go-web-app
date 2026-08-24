@@ -157,6 +157,16 @@ export class EmployerFeedbackService {
     });
     if (!feedback) throw new NotFoundException('This feedback link is invalid');
 
+    // Job has no `college` relation (collegeId is a bare scalar, nullable for
+    // a PLATFORM-broadcast job — which spans every targeted college, so
+    // there's no single name to show there), hence the separate lookup.
+    const college = feedback.collegeId
+      ? await this.prisma.college.findUnique({
+          where: { id: feedback.collegeId },
+          select: { name: true },
+        })
+      : null;
+
     return {
       submitted: feedback.submittedAt != null,
       jobTitle: feedback.job.title,
@@ -164,6 +174,7 @@ export class EmployerFeedbackService {
       industry: feedback.job.company?.industry ?? null,
       programmes: feedback.job.eligibleProgrammes,
       academicYears: feedback.job.graduationYears,
+      collegeName: college?.name ?? null,
     };
   }
 

@@ -81,12 +81,21 @@ export class TrainingFeedbackService {
   async analytics(collegeId: string) {
     const rows = await this.prisma.trainingFeedback.findMany({
       where: { collegeId },
-      include: { session: { select: { id: true, title: true, trainerName: true } } },
+      include: {
+        session: { select: { id: true, title: true, trainerName: true, startsAt: true } },
+      },
     });
 
     const bySession = new Map<
       string,
-      { title: string; trainerName: string | null; content: number[]; delivery: number[]; relevance: number[] }
+      {
+        title: string;
+        trainerName: string | null;
+        startsAt: Date;
+        content: number[];
+        delivery: number[];
+        relevance: number[];
+      }
     >();
     for (const r of rows) {
       let bucket = bySession.get(r.sessionId);
@@ -94,6 +103,7 @@ export class TrainingFeedbackService {
         bucket = {
           title: r.session.title,
           trainerName: r.session.trainerName,
+          startsAt: r.session.startsAt,
           content: [],
           delivery: [],
           relevance: [],
@@ -105,19 +115,22 @@ export class TrainingFeedbackService {
       bucket.relevance.push(r.relevanceToPlacement);
     }
 
-    const sessions = [...bySession.entries()].map(([sessionId, b]) => {
-      const overall = avg([...b.content, ...b.delivery, ...b.relevance]);
-      return {
-        sessionId,
-        title: b.title,
-        trainerName: b.trainerName,
-        responseCount: b.content.length,
-        avgContentQuality: round1(avg(b.content)),
-        avgTrainerDelivery: round1(avg(b.delivery)),
-        avgRelevance: round1(avg(b.relevance)),
-        avgOverall: round1(overall),
-      };
-    });
+    const sessions = [...bySession.entries()]
+      .map(([sessionId, b]) => {
+        const overall = avg([...b.content, ...b.delivery, ...b.relevance]);
+        return {
+          sessionId,
+          title: b.title,
+          trainerName: b.trainerName,
+          startsAt: b.startsAt,
+          responseCount: b.content.length,
+          avgContentQuality: round1(avg(b.content)),
+          avgTrainerDelivery: round1(avg(b.delivery)),
+          avgRelevance: round1(avg(b.relevance)),
+          avgOverall: round1(overall),
+        };
+      })
+      .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
 
     // Overall rating per trainer, across every session they ran.
     const byTrainer = new Map<string, number[]>();

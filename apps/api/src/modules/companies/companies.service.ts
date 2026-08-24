@@ -186,9 +186,20 @@ export class CompaniesService {
   }
 
   async hiringHistory(collegeId: string, id: string) {
-    await this.findOne(collegeId, id);
+    const company = await this.findOne(collegeId, id);
     const jobs = await this.prisma.job.findMany({
-      where: { companyId: id, collegeId },
+      where: {
+        collegeId,
+        // A job posted with this company selected from the directory, OR an
+        // older/quick-posted job that only has this company's name as free
+        // text (companyId left null) — without the fallback, any job not
+        // explicitly linked to the Company row is silently invisible here
+        // even though it's obviously the same employer.
+        OR: [
+          { companyId: id },
+          { companyId: null, companyName: { equals: company.name, mode: 'insensitive' } },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { applications: true } },

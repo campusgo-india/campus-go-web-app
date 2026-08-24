@@ -129,11 +129,15 @@ function FeedbackForm({
         <p className="text-sm text-subtle">
           {ctx.jobTitle} · {ctx.companyName}
         </p>
+        {ctx.collegeName && (
+          <p className="text-xs font-medium text-primary-600">On behalf of {ctx.collegeName}</p>
+        )}
       </div>
 
       <div className="space-y-3 rounded-md bg-app p-3">
         <p className="text-xs font-semibold uppercase text-subtle">Employer details</p>
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <Field label="College Name">{ctx.collegeName ?? 'Multiple colleges (broadcast drive)'}</Field>
           <Field label="Company Name">{ctx.companyName}</Field>
           <Field label="Industry">{ctx.industry ?? '—'}</Field>
           <Field label="Programme Recruited From">{ctx.programmes.join(', ') || '—'}</Field>

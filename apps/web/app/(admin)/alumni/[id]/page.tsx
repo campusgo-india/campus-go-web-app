@@ -13,6 +13,7 @@ import {
   type AlumniInput,
 } from '../../../../lib/alumni';
 import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
+import { INDUSTRIES } from '../../../../lib/industries';
 
 export default function AlumniDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -144,6 +145,7 @@ export default function AlumniDetailPage({ params }: { params: Promise<{ id: str
           <Info label="Company" value={alumni.currentCompany} />
           <Info label="Designation" value={alumni.currentDesignation} />
           <Info label="Location" value={alumni.currentLocation} />
+          <Info label="Industry" value={alumni.industry} />
         </dl>
       </Card>
 
@@ -186,6 +188,7 @@ function EditAlumniForm({
     currentCompany: alumni.currentCompany ?? '',
     currentDesignation: alumni.currentDesignation ?? '',
     currentLocation: alumni.currentLocation ?? '',
+    industry: alumni.industry ?? '',
     linkedinUrl: alumni.linkedinUrl ?? '',
     tags: alumni.tags.join(', '),
     notes: alumni.notes ?? '',
@@ -228,6 +231,7 @@ function EditAlumniForm({
         currentCompany: form.currentCompany || undefined,
         currentDesignation: form.currentDesignation || undefined,
         currentLocation: form.currentLocation || undefined,
+        industry: form.industry || undefined,
         linkedinUrl: form.linkedinUrl || undefined,
         tags: form.tags
           .split(',')
@@ -256,13 +260,13 @@ function EditAlumniForm({
         <Field label="Email *">
           <input className={inputCls} value={form.email} onChange={set('email')} />
         </Field>
-        <Field label="Joining year / School year">
+        <Field label="Year of Admission">
           <input
             type="number"
             className={inputCls}
             value={form.joiningYear}
             onChange={set('joiningYear')}
-            placeholder="Year they joined the school"
+            placeholder="2020"
             min="0"
           />
         </Field>
@@ -331,6 +335,16 @@ function EditAlumniForm({
             value={form.currentLocation}
             onChange={set('currentLocation')}
           />
+        </Field>
+        <Field label="Industry">
+          <select className={inputCls} value={form.industry} onChange={set('industry')}>
+            <option value="">Select industry…</option>
+            {INDUSTRIES.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="LinkedIn URL">
           <input className={inputCls} value={form.linkedinUrl} onChange={set('linkedinUrl')} />

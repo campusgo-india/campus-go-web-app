@@ -161,6 +161,7 @@ export interface FeedbackAnalytics {
     sessionId: string;
     title: string;
     trainerName: string | null;
+    startsAt: string;
     responseCount: number;
     avgContentQuality: number | null;
     avgTrainerDelivery: number | null;
