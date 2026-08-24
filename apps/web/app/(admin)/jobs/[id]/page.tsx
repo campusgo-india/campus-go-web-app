@@ -18,6 +18,11 @@ import {
 } from '../../../../lib/jobs';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
+import {
+  getEmployerFeedbackForJob,
+  getOrCreateEmployerFeedbackLink,
+  type EmployerFeedback,
+} from '../../../../lib/feedback';
 
 const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
   DRAFT: 'cream',
@@ -381,9 +386,89 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               />
             </dl>
           </Card>
+
+          {!job.isPlatform && <EmployerFeedbackCard jobId={id} />}
         </div>
       </div>
     </div>
+  );
+}
+
+function EmployerFeedbackCard({ jobId }: { jobId: string }) {
+  const [feedback, setFeedback] = useState<EmployerFeedback | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getEmployerFeedbackForJob(jobId)
+      .then(setFeedback)
+      .catch(() => setFeedback(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId]);
+
+  async function generate() {
+    setBusy(true);
+    setError(null);
+    try {
+      setFeedback(await getOrCreateEmployerFeedbackLink(jobId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not generate link');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function copyLink() {
+    if (!feedback) return;
+    const url = `${window.location.origin}/employer-feedback/${feedback.publicToken}`;
+    navigator.clipboard?.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (feedback === undefined) return null;
+
+  return (
+    <Card className="space-y-3 p-5">
+      <h2 className="text-sm font-semibold text-strong">Employer feedback</h2>
+
+      {!feedback ? (
+        <>
+          <p className="text-xs text-subtle">
+            Generate a shareable link for the employer to give feedback on their hiring experience.
+          </p>
+          <Button size="sm" onClick={generate} loading={busy}>
+            Generate feedback link
+          </Button>
+        </>
+      ) : feedback.submitted ? (
+        <div className="space-y-2 text-sm">
+          <Badge tint="mint">Submitted</Badge>
+          <p className="text-body">
+            <span className="font-medium text-strong">{feedback.contactPerson}</span>
+            {feedback.designation ? ` · ${feedback.designation}` : ''}
+          </p>
+          {feedback.ratings && (
+            <p className="text-xs text-subtle">
+              Overall employability: {feedback.ratings.overallEmployability}/5 · Would recruit
+              again: {feedback.recruitAgain}
+            </p>
+          )}
+          {feedback.suggestions && <p className="text-xs text-body">“{feedback.suggestions}”</p>}
+        </div>
+      ) : (
+        <>
+          <Badge tint="cream">Awaiting response</Badge>
+          <p className="text-xs text-subtle">Share this link with the employer contact.</p>
+          <Button size="sm" variant="outline" onClick={copyLink}>
+            {copied ? 'Copied!' : 'Copy link'}
+          </Button>
+        </>
+      )}
+
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </Card>
   );
 }
 

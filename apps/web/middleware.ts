@@ -13,7 +13,14 @@ import { UserRole, isAdminRole } from '@campusgo/shared';
  * Real authorization is enforced server-side by the API (verified JWT). A
  * production hardening step is to move auth behind a same-origin BFF proxy.
  */
-const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/reset-password', '/alumni-register'];
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/forgot-password',
+  '/reset-password',
+  '/alumni-register',
+  '/employer-feedback',
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

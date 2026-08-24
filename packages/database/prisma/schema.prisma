@@ -315,10 +315,47 @@ model Student {
   trainingAttendance TrainingAttendance[]
   trainingFeedback   TrainingFeedback[]
   trainingBatches    TrainingBatchMember[]
+  feedback           StudentFeedback?
 
   @@unique([collegeId, rollNumber])
   @@index([collegeId, programme, graduationYear])
   @@map("students")
+}
+
+enum PlacementStatus {
+  PLACED
+  HIGHER_STUDIES
+  ENTREPRENEURSHIP
+  SEEKING_EMPLOYMENT
+  OTHER
+}
+
+// End-of-placement-season survey — one per student, submitted once from their
+// own account (no public link needed, unlike EmployerFeedback: the student is
+// already logged in).
+model StudentFeedback {
+  id             String           @id @default(uuid())
+  collegeId      String           @map("college_id")
+  studentId      String           @unique @map("student_id")
+  academicYear   String           @map("academic_year")
+  placementStatus PlacementStatus @map("placement_status")
+
+  // 1–5 ratings.
+  placementOpportunities      Int @map("placement_opportunities")
+  careerGuidance               Int @map("career_guidance")
+  placementTraining            Int @map("placement_training")
+  communicationOfOpportunities Int @map("communication_of_opportunities")
+  placementCellSupport         Int @map("placement_cell_support")
+  industryInteraction          Int @map("industry_interaction")
+  overallSupport                Int @map("overall_support")
+
+  suggestions String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId])
+  @@map("student_feedback")
 }
 
 // A student's uploaded résumé PDF. publicSlug is an unguessable capability token:
@@ -515,15 +552,61 @@ model Job {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  company      Company?      @relation(fields: [companyId], references: [id])
-  applications Application[]
-  rounds       JobRound[]
-  createdBy    User          @relation("JobCreatedBy", fields: [createdById], references: [id])
+  company          Company?          @relation(fields: [companyId], references: [id])
+  applications     Application[]
+  rounds           JobRound[]
+  createdBy        User              @relation("JobCreatedBy", fields: [createdById], references: [id])
+  employerFeedback EmployerFeedback?
 
   @@index([collegeId, status])
   @@index([companyId])
   @@index([scope, status])
   @@map("jobs")
+}
+
+enum RecruiterVerdict {
+  YES
+  MAYBE
+  NO
+}
+
+// One feedback record per Job, covering the employer's overall hiring
+// experience/opinion of the college's students — not tied to any single
+// interview round or candidate. Created (empty) when an officer generates the
+// shareable link; filled in once the employer submits via that public link.
+model EmployerFeedback {
+  id           String  @id @default(uuid())
+  // Null for a PLATFORM-broadcast job's feedback — same nullability as
+  // Job.collegeId, for the same reason: it isn't owned by any one college.
+  collegeId    String? @map("college_id")
+  jobId        String  @unique @map("job_id")
+  // Unguessable token for the public submission link — same convention as
+  // Resume.publicSlug (crypto random, not a sequential id).
+  publicToken  String  @unique @map("public_token")
+  contactPerson String? @map("contact_person")
+  designation   String?
+
+  // 1–5 ratings. Nullable until submitted.
+  knowledgeSkills       Int? @map("knowledge_skills")
+  communicationSkills   Int? @map("communication_skills")
+  problemSolving        Int? @map("problem_solving")
+  teamworkAdaptability  Int? @map("teamwork_adaptability")
+  professionalism       Int?
+  overallEmployability  Int? @map("overall_employability")
+  curriculumRelevance   Int? @map("curriculum_relevance")
+  trainingEffectiveness Int? @map("training_effectiveness")
+
+  improvementAreas String?           @map("improvement_areas")
+  suggestions      String?
+  recruitAgain     RecruiterVerdict? @map("recruit_again")
+
+  submittedAt DateTime? @map("submitted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId])
+  @@map("employer_feedback")
 }
 
 model Application {

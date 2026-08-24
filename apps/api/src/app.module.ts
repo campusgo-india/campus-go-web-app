@@ -22,6 +22,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AlumniModule } from './modules/alumni/alumni.module';
 import { InternshipsModule } from './modules/internships/internships.module';
 import { TrainingModule } from './modules/training/training.module';
+import { FeedbackModule } from './modules/feedback/feedback.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -56,6 +57,7 @@ import { HealthController } from './modules/health/health.controller';
     AlumniModule,
     InternshipsModule,
     TrainingModule,
+    FeedbackModule,
   ],
   controllers: [HealthController],
   providers: [

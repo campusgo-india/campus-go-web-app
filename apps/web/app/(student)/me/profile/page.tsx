@@ -157,6 +157,12 @@ export default function ProfileMenuPage() {
           icon={<StarIcon />}
         />
         <Row
+          href="/me/feedback"
+          title="Placement Feedback"
+          sub="Share your end-of-season feedback"
+          icon={<ChartIcon />}
+        />
+        <Row
           href="/me/notifications"
           title="Notifications"
           sub="Alerts on your account"
