@@ -10,7 +10,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
-import { jobVisibleToCollege } from './job-scope.util';
+import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
 import type { ReportDataset } from '../reports/report-serializers';
 
@@ -37,11 +37,6 @@ const TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
 };
 
 const PLACING_STAGES: ApplicationStage[] = ['OFFER_ACCEPTED', 'JOINED'];
-
-interface Viewer {
-  role: string;
-  userId: string;
-}
 
 @Injectable()
 export class ApplicationsService {
@@ -109,7 +104,7 @@ export class ApplicationsService {
 
   // ─────────────── Placement Officer: pipeline + ATS ───────────────
 
-  async pipeline(collegeId: string, jobId: string) {
+  async pipeline(collegeId: string, jobId: string, viewer?: Viewer) {
     // Own college job, or a platform job broadcast to this college. Either way the
     // applicant query below is scoped to collegeId, so officers only see their own.
     const job = await this.prisma.job.findFirst({
@@ -119,6 +114,7 @@ export class ApplicationsService {
       },
     });
     if (!job) throw new NotFoundException('Job not found');
+    assertOwnJob(job, viewer);
 
     const apps = await this.prisma.application.findMany({
       where: { jobId, collegeId },
@@ -173,7 +169,11 @@ export class ApplicationsService {
 
   // Applicant contact + resume export for an officer to share with an HR outside
   // the app. Resume link only if published (so the link actually resolves).
-  async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
+  async exportApplicantsDataset(
+    collegeId: string,
+    jobId: string,
+    viewer?: Viewer,
+  ): Promise<ReportDataset> {
     const [job, college, officer] = await Promise.all([
       this.prisma.job.findFirst({
         where: { id: jobId, ...jobVisibleToCollege(collegeId) },
@@ -183,6 +183,7 @@ export class ApplicationsService {
       this.collegeHeadContact(collegeId),
     ]);
     if (!job) throw new NotFoundException('Job not found');
+    assertOwnJob(job, viewer);
 
     const apps = await this.prisma.application.findMany({
       where: { collegeId, jobId },

@@ -56,7 +56,12 @@ export class RoundsController {
     @Param('jobId') jobId: string,
     @Body() dto: CreateRoundDto,
   ) {
-    return { data: await this.rounds.createRound(this.collegeId(user), jobId, user.sub, dto) };
+    return {
+      data: await this.rounds.createRound(this.collegeId(user), jobId, user.sub, dto, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Patch(':jobId/rounds/:roundId')
@@ -66,7 +71,12 @@ export class RoundsController {
     @Param('roundId') roundId: string,
     @Body() dto: UpdateRoundDto,
   ) {
-    return { data: await this.rounds.updateRound(this.collegeId(user), jobId, roundId, dto) };
+    return {
+      data: await this.rounds.updateRound(this.collegeId(user), jobId, roundId, dto, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Delete(':jobId/rounds/:roundId')
@@ -75,7 +85,12 @@ export class RoundsController {
     @Param('jobId') jobId: string,
     @Param('roundId') roundId: string,
   ) {
-    return { data: await this.rounds.deleteRound(this.collegeId(user), jobId, roundId) };
+    return {
+      data: await this.rounds.deleteRound(this.collegeId(user), jobId, roundId, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post(':jobId/rounds/:roundId/attendance')
@@ -86,7 +101,10 @@ export class RoundsController {
     @Body() dto: MarkRoundAttendanceDto,
   ) {
     return {
-      data: await this.rounds.markAttendance(this.collegeId(user), jobId, roundId, dto.records),
+      data: await this.rounds.markAttendance(this.collegeId(user), jobId, roundId, dto.records, {
+        role: user.role,
+        userId: user.sub,
+      }),
     };
   }
 
@@ -98,7 +116,10 @@ export class RoundsController {
     @Body() dto: DecideRoundDto,
   ) {
     return {
-      data: await this.rounds.decideRound(this.collegeId(user), jobId, roundId, dto.advanceIds),
+      data: await this.rounds.decideRound(this.collegeId(user), jobId, roundId, dto.advanceIds, {
+        role: user.role,
+        userId: user.sub,
+      }),
     };
   }
 
@@ -109,7 +130,12 @@ export class RoundsController {
     @Param('appId') appId: string,
     @Body() dto: PlaceApplicantDto,
   ) {
-    return { data: await this.rounds.place(this.collegeId(user), jobId, appId, dto) };
+    return {
+      data: await this.rounds.place(this.collegeId(user), jobId, appId, dto, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post(':jobId/applications/:appId/reject')
@@ -119,6 +145,11 @@ export class RoundsController {
     @Param('appId') appId: string,
     @Body() dto: RejectApplicantDto,
   ) {
-    return { data: await this.rounds.reject(this.collegeId(user), jobId, appId, dto.reason) };
+    return {
+      data: await this.rounds.reject(this.collegeId(user), jobId, appId, dto.reason, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 }

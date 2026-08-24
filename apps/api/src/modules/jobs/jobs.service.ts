@@ -16,7 +16,7 @@ import {
   UpdatePlatformJobDto,
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { jobVisibleToCollege } from './job-scope.util';
+import { assertOwnJob, jobVisibleToCollege, ownJobWhere, type Viewer } from './job-scope.util';
 import {
   checkEligibility,
   checkApplyEligibility,
@@ -35,40 +35,12 @@ interface ApplicationField {
   required?: boolean;
 }
 
-interface Viewer {
-  role: string;
-  userId: string;
-}
-
 @Injectable()
 export class JobsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
   ) {}
-
-  // A Placement Officer only ever sees/manages COLLEGE-scoped jobs they
-  // personally posted — College Admin keeps full college-wide visibility (they
-  // oversee the whole team). Coordinators are scoped separately, by programme,
-  // not by creator. PLATFORM-broadcast jobs are excluded from this restriction:
-  // they're never "owned" by any one officer, and every officer at a targeted
-  // college retains read/manage access to their own applicants on them.
-  private ownJobWhere(viewer?: Viewer): Prisma.JobWhereInput {
-    if (viewer?.role === 'PLACEMENT_OFFICER') {
-      return { OR: [{ createdById: viewer.userId }, { scope: 'PLATFORM' }] };
-    }
-    return {};
-  }
-
-  private assertOwnJob(job: { createdById?: string | null; scope?: string }, viewer?: Viewer) {
-    if (
-      viewer?.role === 'PLACEMENT_OFFICER' &&
-      job.scope !== 'PLATFORM' &&
-      job.createdById !== viewer.userId
-    ) {
-      throw new NotFoundException('Job not found');
-    }
-  }
 
   private decimalOrNull(v: number | undefined | null): Prisma.Decimal | null {
     return v != null ? new Prisma.Decimal(v) : null;
@@ -131,7 +103,7 @@ export class JobsService {
     const where: Prisma.JobWhereInput = {
       AND: [
         this.visibleToCollege(collegeId),
-        this.ownJobWhere(viewer),
+        ownJobWhere(viewer),
         ...(q.status ? [{ status: q.status as Prisma.JobWhereInput['status'] }] : []),
         ...(q.createdById ? [{ createdById: q.createdById }] : []),
         ...(q.search
@@ -180,14 +152,14 @@ export class JobsService {
       },
     });
     if (!job) throw new NotFoundException('Job not found');
-    this.assertOwnJob(job, viewer);
+    assertOwnJob(job, viewer);
     return this.publicJob(job);
   }
 
   async update(collegeId: string, id: string, dto: UpdateJobDto, viewer?: Viewer) {
     const job = await this.prisma.job.findFirst({ where: { id, collegeId } });
     if (!job) throw new NotFoundException('Job not found');
-    this.assertOwnJob(job, viewer);
+    assertOwnJob(job, viewer);
     if (job.status === 'CLOSED') throw new BadRequestException('Cannot edit a closed job');
 
     const {
@@ -232,7 +204,7 @@ export class JobsService {
   async publish(collegeId: string, id: string, viewer?: Viewer) {
     const job = await this.prisma.job.findFirst({ where: { id, collegeId } });
     if (!job) throw new NotFoundException('Job not found');
-    this.assertOwnJob(job, viewer);
+    assertOwnJob(job, viewer);
     if (job.status === 'PUBLISHED') throw new BadRequestException('Job already published');
     if (job.status === 'CLOSED') throw new BadRequestException('Cannot publish a closed job');
 
@@ -335,7 +307,7 @@ export class JobsService {
     // the collegeId filter). Applications cascade-delete with the job.
     const job = await this.prisma.job.findFirst({ where: { id, collegeId } });
     if (!job) throw new NotFoundException('Job not found');
-    this.assertOwnJob(job, viewer);
+    assertOwnJob(job, viewer);
     await this.prisma.job.delete({ where: { id } });
     return { success: true };
   }
@@ -343,7 +315,7 @@ export class JobsService {
   async close(collegeId: string, id: string, viewer?: Viewer) {
     const job = await this.prisma.job.findFirst({ where: { id, collegeId } });
     if (!job) throw new NotFoundException('Job not found');
-    this.assertOwnJob(job, viewer);
+    assertOwnJob(job, viewer);
     if (job.status === 'CLOSED') throw new BadRequestException('Job already closed');
 
     const updated = await this.prisma.job.update({
@@ -371,11 +343,12 @@ export class JobsService {
   }
 
   // Officer preview: every active, verified, non-placed student who matches.
-  async eligibleStudents(collegeId: string, jobId: string) {
+  async eligibleStudents(collegeId: string, jobId: string, viewer?: Viewer) {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, ...this.visibleToCollege(collegeId) },
     });
     if (!job) throw new NotFoundException('Job not found');
+    assertOwnJob(job, viewer);
 
     const students = await this.prisma.student.findMany({
       where: {
@@ -417,9 +390,15 @@ export class JobsService {
    * Built for Placement Coordinators ("who in my programmes applied, who
    * didn't"), but usable by any officer with an explicit programme filter.
    */
-  async applicantStatusByProgramme(collegeId: string, jobId: string, programmes?: string[]) {
+  async applicantStatusByProgramme(
+    collegeId: string,
+    jobId: string,
+    programmes?: string[],
+    viewer?: Viewer,
+  ) {
     const job = await this.prisma.job.findFirst({ where: { id: jobId, ...this.visibleToCollege(collegeId) } });
     if (!job) throw new NotFoundException('Job not found');
+    assertOwnJob(job, viewer);
 
     const programmeWhere = programmes?.length ? { programme: { in: programmes } } : {};
     const [students, applications] = await Promise.all([

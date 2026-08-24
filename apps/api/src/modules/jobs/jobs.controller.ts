@@ -210,7 +210,10 @@ export class JobsController {
     @Res() res: Response,
   ): Promise<void> {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const dataset = await this.applications.exportApplicantsDataset(this.collegeId(user), id);
+    const dataset = await this.applications.exportApplicantsDataset(this.collegeId(user), id, {
+      role: user.role,
+      userId: user.sub,
+    });
     const buffer = fmt === 'xlsx' ? await toXlsx(dataset) : toCsv(dataset);
 
     await this.audit.record(user, {
@@ -230,7 +233,12 @@ export class JobsController {
   @Get(':id/eligible-students')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async eligibleStudents(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.jobs.eligibleStudents(this.collegeId(user), id) };
+    return {
+      data: await this.jobs.eligibleStudents(this.collegeId(user), id, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   // Who in a programme applied to this job and who didn't. A Placement Coordinator
@@ -254,14 +262,22 @@ export class JobsController {
       effectiveProgrammes = programme ? [programme] : mine;
     }
     return {
-      data: await this.jobs.applicantStatusByProgramme(this.collegeId(user), id, effectiveProgrammes),
+      data: await this.jobs.applicantStatusByProgramme(this.collegeId(user), id, effectiveProgrammes, {
+        role: user.role,
+        userId: user.sub,
+      }),
     };
   }
 
   @Get(':id/applications')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async pipeline(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return { data: await this.applications.pipeline(this.collegeId(user), id) };
+    return {
+      data: await this.applications.pipeline(this.collegeId(user), id, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
   }
 
   @Post(':id/apply')

@@ -3,7 +3,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
-import { jobVisibleToCollege } from './job-scope.util';
+import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { CreateRoundDto, PlaceApplicantDto, UpdateRoundDto } from './rounds-dto';
 
 // Student fields the funnel screen needs, reused across the two funnel queries.
@@ -43,11 +43,6 @@ interface FunnelStudent {
   collegeName?: string;
 }
 
-interface Viewer {
-  role: string;
-  userId: string;
-}
-
 // A Platform-Admin-run round track for a PLATFORM-scope job. `JobRound.collegeId`
 // has no FK constraint at the DB level (it's a bare scalar, checked only in
 // application code), so this reserved value safely marks "this round belongs to
@@ -77,8 +72,11 @@ export class RoundsService {
 
   // A job the officer's college can run rounds on: its own college job, OR a
   // PLATFORM-broadcast job targeted to the college. Each college keeps its own
-  // round numbering (JobRound is unique per [jobId, collegeId, seq]).
-  private async resolveJob(collegeId: string, jobId: string) {
+  // round numbering (JobRound is unique per [jobId, collegeId, seq]). A
+  // Placement Officer scoped to their own jobs (see assertOwnJob) is scoped
+  // out of a colleague's job's rounds/attendance/decisions too — not just the
+  // job record itself.
+  private async resolveJob(collegeId: string, jobId: string, viewer?: Viewer) {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, ...jobVisibleToCollege(collegeId) },
       select: {
@@ -88,10 +86,12 @@ export class RoundsService {
         applicationDeadline: true,
         status: true,
         scope: true,
+        createdById: true,
         company: { select: { name: true } },
       },
     });
     if (!job) throw new NotFoundException('Job not found');
+    assertOwnJob(job, viewer);
     return job;
   }
 
@@ -127,7 +127,7 @@ export class RoundsService {
   // programmes' applicants — everyone else outside their remit is filtered
   // out of every bucket (pool, rounds, finalists, placed).
   async funnel(collegeId: string, jobId: string, viewer?: Viewer) {
-    await this.resolveJob(collegeId, jobId);
+    await this.resolveJob(collegeId, jobId, viewer);
     const programmeRestriction = await this.programmeRestriction(viewer);
     const inScope = (programme: string) =>
       !programmeRestriction || programmeRestriction.includes(programme);
@@ -259,8 +259,14 @@ export class RoundsService {
   }
 
   // ─────────────── Round lifecycle ───────────────
-  async createRound(collegeId: string, jobId: string, createdById: string, dto: CreateRoundDto) {
-    const job = await this.resolveJob(collegeId, jobId);
+  async createRound(
+    collegeId: string,
+    jobId: string,
+    createdById: string,
+    dto: CreateRoundDto,
+    viewer?: Viewer,
+  ) {
+    const job = await this.resolveJob(collegeId, jobId, viewer);
 
     // Once any applicant has been selected, the funnel is done — a new round
     // would let a decided candidate get pulled back into evaluation.
@@ -382,8 +388,14 @@ export class RoundsService {
     return { ...round, enrolled: cohort.length };
   }
 
-  async updateRound(collegeId: string, jobId: string, roundId: string, dto: UpdateRoundDto) {
-    await this.resolveJob(collegeId, jobId);
+  async updateRound(
+    collegeId: string,
+    jobId: string,
+    roundId: string,
+    dto: UpdateRoundDto,
+    viewer?: Viewer,
+  ) {
+    await this.resolveJob(collegeId, jobId, viewer);
     const round = await this.prisma.jobRound.findFirst({
       where: { id: roundId, jobId, collegeId },
     });
@@ -403,8 +415,8 @@ export class RoundsService {
 
   // Only the latest round can be removed (and only while OPEN) — an undo for a
   // round added by mistake. Participation rows cascade.
-  async deleteRound(collegeId: string, jobId: string, roundId: string) {
-    await this.resolveJob(collegeId, jobId);
+  async deleteRound(collegeId: string, jobId: string, roundId: string, viewer?: Viewer) {
+    await this.resolveJob(collegeId, jobId, viewer);
     const round = await this.prisma.jobRound.findFirst({
       where: { id: roundId, jobId, collegeId },
     });
@@ -430,8 +442,9 @@ export class RoundsService {
     jobId: string,
     roundId: string,
     records: { applicationId: string; attended: boolean }[],
+    viewer?: Viewer,
   ) {
-    await this.resolveJob(collegeId, jobId);
+    await this.resolveJob(collegeId, jobId, viewer);
     const round = await this.prisma.jobRound.findFirst({ where: { id: roundId, jobId, collegeId } });
     if (!round) throw new NotFoundException('Round not found');
 
@@ -455,8 +468,14 @@ export class RoundsService {
   }
 
   // ─────────────── Decide a round (advance some, auto-reject the rest) ───────────────
-  async decideRound(collegeId: string, jobId: string, roundId: string, advanceIds: string[]) {
-    const job = await this.resolveJob(collegeId, jobId);
+  async decideRound(
+    collegeId: string,
+    jobId: string,
+    roundId: string,
+    advanceIds: string[],
+    viewer?: Viewer,
+  ) {
+    const job = await this.resolveJob(collegeId, jobId, viewer);
     const round = await this.prisma.jobRound.findFirst({
       where: { id: roundId, jobId, collegeId },
     });
@@ -532,8 +551,14 @@ export class RoundsService {
   }
 
   // ─────────────── Select / place a finalist ───────────────
-  async place(collegeId: string, jobId: string, applicationId: string, dto: PlaceApplicantDto) {
-    const job = await this.resolveJob(collegeId, jobId);
+  async place(
+    collegeId: string,
+    jobId: string,
+    applicationId: string,
+    dto: PlaceApplicantDto,
+    viewer?: Viewer,
+  ) {
+    const job = await this.resolveJob(collegeId, jobId, viewer);
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, jobId, collegeId },
       include: { student: { select: { userId: true } } },
@@ -567,8 +592,14 @@ export class RoundsService {
   }
 
   // Manual reject (outside a round decision).
-  async reject(collegeId: string, jobId: string, applicationId: string, reason?: string) {
-    const job = await this.resolveJob(collegeId, jobId);
+  async reject(
+    collegeId: string,
+    jobId: string,
+    applicationId: string,
+    reason?: string,
+    viewer?: Viewer,
+  ) {
+    const job = await this.resolveJob(collegeId, jobId, viewer);
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, jobId, collegeId },
       include: { student: { select: { userId: true } } },
@@ -640,37 +671,14 @@ export class RoundsService {
       },
     });
 
-    // Unlike a single college starting a round on a shared platform job (which
-    // must NOT flip the job closed — that would end applications for every
-    // other college mid-cycle), the platform starting its OWN round track is
-    // the platform's call to make across the whole broadcast.
-    if (job.status === 'PUBLISHED') {
-      await this.prisma.job.update({
-        where: { id: jobId },
-        data: { status: 'CLOSED', closedAt: new Date() },
-      });
-
-      const nonApplicants = await this.prisma.student.findMany({
-        where: { ...collegeScope, isActive: true, applications: { none: { jobId } } },
-        select: { userId: true, collegeId: true },
-      });
-      const nonApplicantsByCollege = new Map<string, string[]>();
-      for (const s of nonApplicants) {
-        const list = nonApplicantsByCollege.get(s.collegeId) ?? [];
-        list.push(s.userId);
-        nonApplicantsByCollege.set(s.collegeId, list);
-      }
-      await Promise.all(
-        [...nonApplicantsByCollege.entries()].map(([cid, userIds]) =>
-          this.notifications.notifyMany(userIds, cid, {
-            type: 'GENERAL',
-            title: `Applications closed — ${job.title}`,
-            body: `${job.title} at ${this.companyName(job)} has moved to interviews; applications are now closed.`,
-            link: `/me/jobs/${jobId}`,
-          }),
-        ),
-      );
-    }
+    // Unlike a college's own job, starting a round here must NOT flip the
+    // shared Job.status to CLOSED — the same reason a single college starting
+    // its own round on a broadcast job is excluded from that flip (see
+    // createRound above): this job is still open to other targeted colleges'
+    // students who may not have applied yet, and the platform's own track
+    // starting doesn't mean every college is done collecting applications.
+    // The only way to actually close a PLATFORM job is the explicit Close
+    // action on the platform jobs list.
 
     let cohort: string[];
     if (seq === 1) {
