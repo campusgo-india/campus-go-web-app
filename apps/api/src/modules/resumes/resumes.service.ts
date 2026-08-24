@@ -166,6 +166,21 @@ export class ResumesService {
     };
   }
 
+  // Same as getForOfficer but unscoped by college — Platform Admin oversees
+  // every college, so no collegeId filter applies here.
+  async getForPlatformAdmin(studentId: string) {
+    const student = await this.prisma.student.findFirst({
+      where: { id: studentId },
+      include: { user: { select: { fullName: true } }, resume: true },
+    });
+    if (!student) throw new NotFoundException('Student not found');
+    if (!student.resume) throw new NotFoundException('This student has not uploaded a resume yet');
+    return {
+      ...this.publicShape(student.resume),
+      fullName: student.user.fullName,
+    };
+  }
+
   private async studentForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
       where: { userId },

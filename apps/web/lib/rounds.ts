@@ -36,6 +36,8 @@ export interface FunnelStudent {
   status: string;
   offerCtc: number | null;
   offerLetterUrl: string | null;
+  // Only present on the platform funnel — applicants span multiple colleges there.
+  collegeName?: string;
 }
 
 export interface FunnelParticipant extends FunnelStudent {
@@ -124,3 +126,60 @@ export const rejectApplicant = (jobId: string, appId: string, reason?: string) =
   });
 
 export const listPendingResults = () => api<PendingResult[]>('/jobs/rounds/pending');
+
+// ─── Platform Admin's own round track for a broadcast job ───
+// Runs alongside each targeted college's own independent track on the same
+// job — same shapes as above, just scoped under /platform/jobs instead of
+// /jobs, and applicants carry a collegeName since they span multiple colleges.
+
+export const getPlatformFunnel = (jobId: string) => api<Funnel>(`/platform/jobs/${jobId}/funnel`);
+
+export const createPlatformRound = (
+  jobId: string,
+  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
+) => api(`/platform/jobs/${jobId}/rounds`, { method: 'POST', body: JSON.stringify(input) });
+
+export const updatePlatformRound = (
+  jobId: string,
+  roundId: string,
+  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
+) =>
+  api(`/platform/jobs/${jobId}/rounds/${roundId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+
+export const deletePlatformRound = (jobId: string, roundId: string) =>
+  api(`/platform/jobs/${jobId}/rounds/${roundId}`, { method: 'DELETE' });
+
+export const decidePlatformRound = (jobId: string, roundId: string, advanceIds: string[]) =>
+  api(`/platform/jobs/${jobId}/rounds/${roundId}/decide`, {
+    method: 'POST',
+    body: JSON.stringify({ advanceIds }),
+  });
+
+export const markPlatformRoundAttendance = (
+  jobId: string,
+  roundId: string,
+  records: { applicationId: string; attended: boolean }[],
+) =>
+  api(`/platform/jobs/${jobId}/rounds/${roundId}/attendance`, {
+    method: 'POST',
+    body: JSON.stringify({ records }),
+  });
+
+export const placePlatformApplicant = (
+  jobId: string,
+  appId: string,
+  input: { offerCtc?: number; offerLetterUrl?: string },
+) =>
+  api(`/platform/jobs/${jobId}/applications/${appId}/place`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+
+export const rejectPlatformApplicant = (jobId: string, appId: string, reason?: string) =>
+  api(`/platform/jobs/${jobId}/applications/${appId}/reject`, {
+    method: 'POST',
+    body: JSON.stringify(reason ? { reason } : {}),
+  });

@@ -63,10 +63,15 @@ export class ResumesController {
     return { data: await this.resumes.getPublic(slug) };
   }
 
-  // Officer/admin: view any of their college's students' resumes.
+  // Officer/admin: view any of their college's students' resumes. Platform
+  // Admin: any student's resume, unscoped — needed to review applicants while
+  // running their own round track on a broadcast job (see RoundsService).
   @Get('students/:studentId/resume')
-  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLATFORM_ADMIN)
   async getForStudent(@CurrentUser() user: JwtPayload, @Param('studentId') studentId: string) {
+    if (user.role === UserRole.PLATFORM_ADMIN) {
+      return { data: await this.resumes.getForPlatformAdmin(studentId) };
+    }
     if (!user.collegeId) throw new BadRequestException('No college context');
     return { data: await this.resumes.getForOfficer(user.collegeId, studentId) };
   }

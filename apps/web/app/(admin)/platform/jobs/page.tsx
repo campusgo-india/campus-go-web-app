@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { listColleges, type College } from '../../../../lib/colleges';
 import { JobCard } from '../../../../components/job-card';
@@ -24,6 +25,7 @@ const JOB_TYPES = ['FULL_TIME', 'INTERNSHIP', 'INTERNSHIP_PPO'];
 const WORK_MODES = ['ONSITE', 'HYBRID', 'REMOTE'];
 
 export default function PlatformJobsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<PlatformJob[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
   const [status, setStatus] = useState('');
@@ -125,9 +127,10 @@ export default function PlatformJobsPage() {
                 job={j as unknown as Job}
                 delay={i * 60}
                 hideCtc
+                onOpen={() => router.push(`/platform/jobs/${j.id}/pipeline`)}
                 topRight={<Badge tint={STATUS_TINT[j.status] ?? 'primary'}>{j.status}</Badge>}
                 footer={
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {j.status === 'DRAFT' && (
                       <Button
                         size="sm"
@@ -147,6 +150,13 @@ export default function PlatformJobsPage() {
                         Close
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => router.push(`/platform/jobs/${j.id}/pipeline`)}
+                    >
+                      Applicants &amp; rounds
+                    </Button>
                   </div>
                 }
               >

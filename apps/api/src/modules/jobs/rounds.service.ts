@@ -14,7 +14,20 @@ const STUDENT_INCLUDE = {
   },
 } satisfies Prisma.StudentDefaultArgs;
 
-// Shape of a student on the funnel screen.
+// Same, plus the college name — only the platform funnel needs it (applicants
+// span multiple colleges there; the single-college funnel already knows which
+// college it's looking at).
+const PLATFORM_STUDENT_INCLUDE = {
+  include: {
+    user: { select: { fullName: true, email: true } },
+    resume: { select: { publicSlug: true, isPublished: true } },
+    college: { select: { name: true } },
+  },
+} satisfies Prisma.StudentDefaultArgs;
+
+// Shape of a student on the funnel screen. collegeName is only populated on
+// the platform funnel (applicants span multiple colleges there); undefined on
+// the single-college funnel where it'd be redundant.
 interface FunnelStudent {
   applicationId: string;
   studentId: string;
@@ -27,12 +40,21 @@ interface FunnelStudent {
   status: string;
   offerCtc: number | null;
   offerLetterUrl: string | null;
+  collegeName?: string;
 }
 
 interface Viewer {
   role: string;
   userId: string;
 }
+
+// A Platform-Admin-run round track for a PLATFORM-scope job. `JobRound.collegeId`
+// has no FK constraint at the DB level (it's a bare scalar, checked only in
+// application code), so this reserved value safely marks "this round belongs to
+// the platform's own track, spanning every targeted college" without a schema
+// migration or a nullable column. Never a real college id (collides with
+// nothing — collegeId values are always real UUIDs).
+const PLATFORM_ROUND_SCOPE = 'PLATFORM';
 
 @Injectable()
 export class RoundsService {
@@ -66,6 +88,29 @@ export class RoundsService {
         applicationDeadline: true,
         status: true,
         scope: true,
+        company: { select: { name: true } },
+      },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+    return job;
+  }
+
+  // The Platform Admin's own round track for a broadcast job — spans every
+  // targeted college's applicants (not scoped to one college). Runs alongside
+  // each targeted college's own independent round track on the same job;
+  // whichever side (platform or a college) acts on a given applicant last
+  // wins on that applicant's Application.status (no separate reconciliation).
+  private async resolvePlatformJob(jobId: string) {
+    const job = await this.prisma.job.findFirst({
+      where: { id: jobId, scope: 'PLATFORM' },
+      select: {
+        id: true,
+        title: true,
+        companyName: true,
+        applicationDeadline: true,
+        status: true,
+        scope: true,
+        targetCollegeIds: true,
         company: { select: { name: true } },
       },
     });
@@ -148,6 +193,68 @@ export class RoundsService {
         .filter((a) => a.status === 'IN_PROGRESS' && !pendingInOpen.has(a.id))
         .map(pub),
       placed: apps.filter((a) => a.status === 'SELECTED').map(pub),
+    };
+  }
+
+  // The Platform Admin's own funnel for a broadcast job — same shape as
+  // funnel() above, but applicants span every targeted college (no single
+  // collegeId to scope by) and each row carries which college it's from.
+  async platformFunnel(jobId: string) {
+    const job = await this.resolvePlatformJob(jobId);
+    const collegeScope = { collegeId: { in: job.targetCollegeIds } };
+
+    const [roundsRaw, appsRaw] = await Promise.all([
+      this.prisma.jobRound.findMany({
+        where: { jobId, collegeId: PLATFORM_ROUND_SCOPE },
+        orderBy: { seq: 'asc' },
+        include: {
+          participants: {
+            include: { application: { include: { student: PLATFORM_STUDENT_INCLUDE } } },
+          },
+        },
+      }),
+      this.prisma.application.findMany({
+        where: { jobId, ...collegeScope },
+        orderBy: { appliedAt: 'asc' },
+        include: { student: PLATFORM_STUDENT_INCLUDE },
+      }),
+    ]);
+
+    const openRoundIds = new Set(roundsRaw.filter((r) => r.status === 'OPEN').map((r) => r.id));
+    const pendingInOpen = new Set(
+      roundsRaw
+        .flatMap((r) => r.participants)
+        .filter((p) => openRoundIds.has(p.roundId) && p.outcome === 'PENDING')
+        .map((p) => p.applicationId),
+    );
+
+    const pub = (a: (typeof appsRaw)[number]) => this.toStudent(a);
+
+    return {
+      applicantsTotal: appsRaw.length,
+      inProgress: appsRaw.filter((a) => a.status === 'IN_PROGRESS').length,
+      selectedCount: appsRaw.filter((a) => a.status === 'SELECTED').length,
+      rejectedCount: appsRaw.filter((a) => a.status === 'REJECTED').length,
+      rounds: roundsRaw.map((r) => ({
+        id: r.id,
+        seq: r.seq,
+        title: r.title,
+        roundType: r.roundType,
+        description: r.description,
+        scheduledAt: r.scheduledAt,
+        status: r.status,
+        overdue: !!r.scheduledAt && r.status === 'OPEN' && r.scheduledAt.getTime() < Date.now(),
+        participants: r.participants.map((p) => ({
+          ...this.toStudent(p.application),
+          outcome: p.outcome,
+          attended: p.attended,
+        })),
+      })),
+      pool: appsRaw.filter((a) => a.status === 'APPLIED').map(pub),
+      finalists: appsRaw
+        .filter((a) => a.status === 'IN_PROGRESS' && !pendingInOpen.has(a.id))
+        .map(pub),
+      placed: appsRaw.filter((a) => a.status === 'SELECTED').map(pub),
     };
   }
 
@@ -488,6 +595,342 @@ export class RoundsService {
     return { success: true };
   }
 
+  // ─────────────── Platform Admin: their own round track ───────────────
+  // Mirrors the college-scoped lifecycle above exactly, except the cohort is
+  // pulled from every targeted college (collegeId IN targetCollegeIds) and the
+  // round rows live under the PLATFORM_ROUND_SCOPE sentinel. Each notification
+  // uses the affected application's own collegeId (not a single shared one —
+  // applicants span multiple colleges here), so email branding stays correct
+  // per recipient.
+  async createPlatformRound(jobId: string, createdById: string, dto: CreateRoundDto) {
+    const job = await this.resolvePlatformJob(jobId);
+    const collegeScope = { collegeId: { in: job.targetCollegeIds } };
+
+    const alreadySelected = await this.prisma.application.count({
+      where: { jobId, ...collegeScope, status: 'SELECTED' },
+    });
+    if (alreadySelected > 0) {
+      throw new BadRequestException(
+        'Candidates have already been selected for this job — no further rounds can be added.',
+      );
+    }
+
+    const last = await this.prisma.jobRound.findFirst({
+      where: { jobId, collegeId: PLATFORM_ROUND_SCOPE },
+      orderBy: { seq: 'desc' },
+    });
+    const seq = (last?.seq ?? 0) + 1;
+    if (last && last.status === 'OPEN') {
+      throw new BadRequestException(
+        `Close "${last.title}" by selecting who advances before adding another round.`,
+      );
+    }
+    const title = dto.title?.trim() || `Round ${seq}`;
+
+    const round = await this.prisma.jobRound.create({
+      data: {
+        jobId,
+        collegeId: PLATFORM_ROUND_SCOPE,
+        seq,
+        title,
+        roundType: dto.roundType ?? null,
+        description: dto.description ?? null,
+        scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
+        createdById,
+      },
+    });
+
+    // Unlike a single college starting a round on a shared platform job (which
+    // must NOT flip the job closed — that would end applications for every
+    // other college mid-cycle), the platform starting its OWN round track is
+    // the platform's call to make across the whole broadcast.
+    if (job.status === 'PUBLISHED') {
+      await this.prisma.job.update({
+        where: { id: jobId },
+        data: { status: 'CLOSED', closedAt: new Date() },
+      });
+
+      const nonApplicants = await this.prisma.student.findMany({
+        where: { ...collegeScope, isActive: true, applications: { none: { jobId } } },
+        select: { userId: true, collegeId: true },
+      });
+      const nonApplicantsByCollege = new Map<string, string[]>();
+      for (const s of nonApplicants) {
+        const list = nonApplicantsByCollege.get(s.collegeId) ?? [];
+        list.push(s.userId);
+        nonApplicantsByCollege.set(s.collegeId, list);
+      }
+      await Promise.all(
+        [...nonApplicantsByCollege.entries()].map(([cid, userIds]) =>
+          this.notifications.notifyMany(userIds, cid, {
+            type: 'GENERAL',
+            title: `Applications closed — ${job.title}`,
+            body: `${job.title} at ${this.companyName(job)} has moved to interviews; applications are now closed.`,
+            link: `/me/jobs/${jobId}`,
+          }),
+        ),
+      );
+    }
+
+    let cohort: string[];
+    if (seq === 1) {
+      const rows = await this.prisma.application.findMany({
+        where: { jobId, ...collegeScope, status: { in: ['APPLIED', 'IN_PROGRESS'] } },
+        select: { id: true },
+      });
+      cohort = rows.map((r) => r.id);
+    } else {
+      const rows = await this.prisma.applicationRound.findMany({
+        where: {
+          round: { jobId, collegeId: PLATFORM_ROUND_SCOPE, seq: seq - 1 },
+          outcome: 'ADVANCED',
+          application: { status: 'IN_PROGRESS' },
+        },
+        select: { applicationId: true },
+      });
+      cohort = rows.map((r) => r.applicationId);
+    }
+
+    if (cohort.length > 0) {
+      await this.prisma.$transaction([
+        this.prisma.applicationRound.createMany({
+          data: cohort.map((applicationId) => ({ applicationId, roundId: round.id })),
+          skipDuplicates: true,
+        }),
+        this.prisma.application.updateMany({
+          where: { id: { in: cohort } },
+          data: { status: 'IN_PROGRESS' },
+        }),
+      ]);
+    }
+
+    const company = this.companyName(job);
+    const enrolledApps = await this.prisma.application.findMany({
+      where: { id: { in: cohort } },
+      select: { collegeId: true, student: { select: { userId: true } } },
+    });
+    await Promise.all(
+      enrolledApps.map((a) =>
+        this.notifications.notify({
+          userId: a.student.userId,
+          collegeId: a.collegeId,
+          type: 'APPLICATION_STAGE_CHANGED',
+          title: `New round — ${job.title}`,
+          body: `${title} has been scheduled${round.scheduledAt ? ` on ${round.scheduledAt.toLocaleDateString()}` : ''} for ${job.title} at ${company}.`,
+          link: `/me/jobs/${jobId}`,
+        }),
+      ),
+    );
+
+    return { ...round, enrolled: cohort.length };
+  }
+
+  async updatePlatformRound(jobId: string, roundId: string, dto: UpdateRoundDto) {
+    await this.resolvePlatformJob(jobId);
+    const round = await this.prisma.jobRound.findFirst({
+      where: { id: roundId, jobId, collegeId: PLATFORM_ROUND_SCOPE },
+    });
+    if (!round) throw new NotFoundException('Round not found');
+    return this.prisma.jobRound.update({
+      where: { id: roundId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title.trim() || round.title } : {}),
+        ...(dto.roundType !== undefined ? { roundType: dto.roundType ?? null } : {}),
+        ...(dto.description !== undefined ? { description: dto.description ?? null } : {}),
+        ...(dto.scheduledAt !== undefined
+          ? { scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null }
+          : {}),
+      },
+    });
+  }
+
+  async deletePlatformRound(jobId: string, roundId: string) {
+    await this.resolvePlatformJob(jobId);
+    const round = await this.prisma.jobRound.findFirst({
+      where: { id: roundId, jobId, collegeId: PLATFORM_ROUND_SCOPE },
+    });
+    if (!round) throw new NotFoundException('Round not found');
+    if (round.status === 'DECIDED') {
+      throw new BadRequestException('A decided round cannot be deleted.');
+    }
+    const latest = await this.prisma.jobRound.findFirst({
+      where: { jobId, collegeId: PLATFORM_ROUND_SCOPE },
+      orderBy: { seq: 'desc' },
+      select: { id: true },
+    });
+    if (latest?.id !== roundId) {
+      throw new BadRequestException('Only the most recent round can be removed.');
+    }
+    await this.prisma.jobRound.delete({ where: { id: roundId } });
+    return { success: true };
+  }
+
+  async markPlatformRoundAttendance(
+    jobId: string,
+    roundId: string,
+    records: { applicationId: string; attended: boolean }[],
+  ) {
+    await this.resolvePlatformJob(jobId);
+    const round = await this.prisma.jobRound.findFirst({
+      where: { id: roundId, jobId, collegeId: PLATFORM_ROUND_SCOPE },
+    });
+    if (!round) throw new NotFoundException('Round not found');
+
+    const participants = await this.prisma.applicationRound.findMany({
+      where: { roundId, applicationId: { in: records.map((r) => r.applicationId) } },
+      select: { id: true, applicationId: true },
+    });
+    const byAppId = new Map(participants.map((p) => [p.applicationId, p.id]));
+
+    await this.prisma.$transaction(
+      records
+        .filter((r) => byAppId.has(r.applicationId))
+        .map((r) =>
+          this.prisma.applicationRound.update({
+            where: { id: byAppId.get(r.applicationId)! },
+            data: { attended: r.attended },
+          }),
+        ),
+    );
+    return { success: true, marked: records.filter((r) => byAppId.has(r.applicationId)).length };
+  }
+
+  async decidePlatformRound(jobId: string, roundId: string, advanceIds: string[]) {
+    const job = await this.resolvePlatformJob(jobId);
+    const round = await this.prisma.jobRound.findFirst({
+      where: { id: roundId, jobId, collegeId: PLATFORM_ROUND_SCOPE },
+    });
+    if (!round) throw new NotFoundException('Round not found');
+    if (round.status === 'DECIDED') throw new BadRequestException('This round is already decided.');
+
+    const parts = await this.prisma.applicationRound.findMany({
+      where: { roundId, outcome: 'PENDING' },
+      include: {
+        application: {
+          select: { id: true, studentId: true, collegeId: true, student: { select: { userId: true } } },
+        },
+      },
+    });
+    const advance = new Set(advanceIds);
+    const advanced = parts.filter((p) => advance.has(p.applicationId));
+    const rejected = parts.filter((p) => !advance.has(p.applicationId));
+
+    const now = new Date();
+    await this.prisma.$transaction([
+      ...advanced.map((p) =>
+        this.prisma.applicationRound.update({
+          where: { id: p.id },
+          data: { outcome: 'ADVANCED', decidedAt: now },
+        }),
+      ),
+      ...rejected.map((p) =>
+        this.prisma.applicationRound.update({
+          where: { id: p.id },
+          data: { outcome: 'REJECTED', decidedAt: now },
+        }),
+      ),
+      ...rejected.map((p) =>
+        this.prisma.application.update({
+          where: { id: p.applicationId },
+          data: {
+            status: 'REJECTED',
+            stage: 'REJECTED',
+            rejectedAt: now,
+            rejectionReason: `Not selected in ${round.title}`,
+          },
+        }),
+      ),
+      this.prisma.jobRound.update({ where: { id: roundId }, data: { status: 'DECIDED' } }),
+    ]);
+
+    const company = this.companyName(job);
+    await Promise.all([
+      ...advanced.map((p) =>
+        this.notifications.notify({
+          userId: p.application.student.userId,
+          collegeId: p.application.collegeId,
+          type: 'APPLICATION_STAGE_CHANGED',
+          title: `Cleared ${round.title} — ${company}`,
+          body: `You've advanced past ${round.title} for ${job.title}.`,
+          link: `/me/jobs/${job.id}`,
+        }),
+      ),
+      ...rejected.map((p) =>
+        this.notifications.notify({
+          userId: p.application.student.userId,
+          collegeId: p.application.collegeId,
+          type: 'APPLICATION_STAGE_CHANGED',
+          title: `Update — ${job.title}`,
+          body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
+          link: `/me/jobs/${job.id}`,
+        }),
+      ),
+    ]);
+
+    return { advanced: advanced.length, rejected: rejected.length };
+  }
+
+  async placePlatform(jobId: string, applicationId: string, dto: PlaceApplicantDto) {
+    const job = await this.resolvePlatformJob(jobId);
+    const app = await this.prisma.application.findFirst({
+      where: { id: applicationId, jobId, collegeId: { in: job.targetCollegeIds } },
+      include: { student: { select: { userId: true } } },
+    });
+    if (!app) throw new NotFoundException('Application not found');
+    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
+      throw new BadRequestException('This applicant is no longer in the running.');
+    }
+
+    await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: 'SELECTED',
+        stage: 'OFFER_ACCEPTED',
+        ...(dto.offerCtc != null ? { offerCtc: new Prisma.Decimal(dto.offerCtc) } : {}),
+        ...(dto.offerLetterUrl !== undefined ? { offerLetterUrl: dto.offerLetterUrl || null } : {}),
+      },
+    });
+
+    await this.notifications.notify({
+      userId: app.student.userId,
+      collegeId: app.collegeId,
+      type: 'OFFER_RELEASED',
+      title: `Selected — ${this.companyName(job)} 🎉`,
+      body: `Congratulations! You've been selected for ${job.title}.`,
+      link: `/me/jobs/${job.id}`,
+    });
+
+    return { success: true };
+  }
+
+  async rejectPlatform(jobId: string, applicationId: string, reason?: string) {
+    const job = await this.resolvePlatformJob(jobId);
+    const app = await this.prisma.application.findFirst({
+      where: { id: applicationId, jobId, collegeId: { in: job.targetCollegeIds } },
+      include: { student: { select: { userId: true } } },
+    });
+    if (!app) throw new NotFoundException('Application not found');
+
+    await this.prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: 'REJECTED',
+        stage: 'REJECTED',
+        rejectedAt: new Date(),
+        rejectionReason: reason ?? 'Not shortlisted',
+      },
+    });
+    await this.notifications.notify({
+      userId: app.student.userId,
+      collegeId: app.collegeId,
+      type: 'APPLICATION_STAGE_CHANGED',
+      title: `Update — ${job.title}`,
+      body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward.`,
+      link: `/me/jobs/${job.id}`,
+    });
+    return { success: true };
+  }
+
   // ─────────────── Officer alert: rounds whose date has passed, still undecided ───────────────
   async pendingResults(collegeId: string) {
     const rounds = await this.prisma.jobRound.findMany({
@@ -521,6 +964,7 @@ export class RoundsService {
       programme: string;
       user: { fullName: string; email: string };
       resume: { publicSlug: string; isPublished: boolean } | null;
+      college?: { name: string };
     };
   }): FunnelStudent {
     return {
@@ -537,6 +981,7 @@ export class RoundsService {
       status: a.status,
       offerCtc: a.offerCtc != null ? Number(a.offerCtc) : null,
       offerLetterUrl: a.offerLetterUrl,
+      ...(a.student.college ? { collegeName: a.student.college.name } : {}),
     };
   }
 }

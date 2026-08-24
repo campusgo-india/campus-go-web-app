@@ -141,15 +141,46 @@ export class ApplicationsService {
     }));
   }
 
+  // The College Head (placement head/HOD) is who a recruiter/platform admin
+  // should contact about a college's applicants — see the `isCollegeHead`
+  // comment on the User model. Every college is seeded with exactly one at
+  // creation time; falls back to null if that's since been left unassigned.
+  private async collegeHeadContact(
+    collegeId: string,
+  ): Promise<{ name: string; email: string; phone: string } | null> {
+    const head = await this.prisma.user.findFirst({
+      where: { collegeId, isCollegeHead: true },
+      select: { fullName: true, email: true, phone: true },
+    });
+    return head ? { name: head.fullName, email: head.email, phone: head.phone ?? '' } : null;
+  }
+
+  // Batch version for a platform-wide export spanning multiple colleges —
+  // one query instead of one per college.
+  private async collegeHeadContacts(
+    collegeIds: string[],
+  ): Promise<Map<string, { name: string; email: string; phone: string }>> {
+    const heads = await this.prisma.user.findMany({
+      where: { collegeId: { in: collegeIds }, isCollegeHead: true },
+      select: { collegeId: true, fullName: true, email: true, phone: true },
+    });
+    return new Map(
+      heads
+        .filter((h): h is typeof h & { collegeId: string } => h.collegeId != null)
+        .map((h) => [h.collegeId, { name: h.fullName, email: h.email, phone: h.phone ?? '' }]),
+    );
+  }
+
   // Applicant contact + resume export for an officer to share with an HR outside
   // the app. Resume link only if published (so the link actually resolves).
   async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
-    const [job, college] = await Promise.all([
+    const [job, college, officer] = await Promise.all([
       this.prisma.job.findFirst({
         where: { id: jobId, ...jobVisibleToCollege(collegeId) },
         include: { company: { select: { name: true } } },
       }),
       this.prisma.college.findUnique({ where: { id: collegeId }, select: { name: true } }),
+      this.collegeHeadContact(collegeId),
     ]);
     if (!job) throw new NotFoundException('Job not found');
 
@@ -170,6 +201,7 @@ export class ApplicationsService {
     });
 
     const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+    const collegeName = college?.name ?? 'College';
     const rows = apps.map((a) => ({
       rollNumber: a.student.rollNumber,
       fullName: a.student.user.fullName,
@@ -183,10 +215,13 @@ export class ApplicationsService {
         : '',
       stage: a.stage,
       appliedAt: a.appliedAt.toISOString().slice(0, 10),
+      college: collegeName,
+      placementOfficerName: officer?.name ?? '',
+      placementOfficerEmail: officer?.email ?? '',
+      placementOfficerPhone: officer?.phone ?? '',
     }));
 
     const companyName = job.company?.name ?? job.companyName ?? 'Company';
-    const collegeName = college?.name ?? 'College';
     const stamp = new Date().toISOString().slice(0, 10);
     const filename = `${sanitizeFilenamePart(companyName)}-${sanitizeFilenamePart(collegeName)}-applicants-${stamp}`;
 
@@ -202,6 +237,92 @@ export class ApplicationsService {
         { key: 'resumeLink', label: 'Resume link' },
         { key: 'stage', label: 'Stage' },
         { key: 'appliedAt', label: 'Applied on' },
+        { key: 'college', label: 'College' },
+        { key: 'placementOfficerName', label: 'Placement Officer' },
+        { key: 'placementOfficerEmail', label: 'Officer Email' },
+        { key: 'placementOfficerPhone', label: 'Officer Phone' },
+      ],
+      rows,
+    };
+  }
+
+  // Same shape as exportApplicantsDataset, but for a PLATFORM-broadcast job:
+  // applicants span every targeted college, so College + that college's own
+  // Placement Officer contact vary per row (this is the whole point — whoever
+  // downloads this needs to know who to call about a given applicant).
+  async exportPlatformApplicantsDataset(jobId: string): Promise<ReportDataset> {
+    const job = await this.prisma.job.findFirst({
+      where: { id: jobId, scope: 'PLATFORM' },
+      include: { company: { select: { name: true } } },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const [apps, colleges, officerByCollege] = await Promise.all([
+      this.prisma.application.findMany({
+        where: { jobId, collegeId: { in: job.targetCollegeIds } },
+        include: {
+          student: {
+            select: {
+              rollNumber: true,
+              dateOfBirth: true,
+              personalEmail: true,
+              collegeId: true,
+              user: { select: { fullName: true, email: true, phone: true } },
+              resume: { select: { publicSlug: true, isPublished: true } },
+            },
+          },
+        },
+        orderBy: { appliedAt: 'asc' },
+      }),
+      this.prisma.college.findMany({
+        where: { id: { in: job.targetCollegeIds } },
+        select: { id: true, name: true },
+      }),
+      this.collegeHeadContacts(job.targetCollegeIds),
+    ]);
+
+    const collegeNameById = new Map(colleges.map((c) => [c.id, c.name]));
+    const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+    const rows = apps.map((a) => {
+      const officer = officerByCollege.get(a.student.collegeId);
+      return {
+        rollNumber: a.student.rollNumber,
+        fullName: a.student.user.fullName,
+        email: a.student.personalEmail || a.student.user.email,
+        phone: a.student.user.phone ?? '',
+        dateOfBirth: a.student.dateOfBirth ? a.student.dateOfBirth.toISOString().slice(0, 10) : '',
+        resumeLink: a.student.resume?.isPublished
+          ? `${webOrigin}/r/${a.student.resume.publicSlug}`
+          : '',
+        stage: a.stage,
+        appliedAt: a.appliedAt.toISOString().slice(0, 10),
+        college: collegeNameById.get(a.student.collegeId) ?? 'College',
+        placementOfficerName: officer?.name ?? '',
+        placementOfficerEmail: officer?.email ?? '',
+        placementOfficerPhone: officer?.phone ?? '',
+      };
+    });
+
+    const companyName = job.company?.name ?? job.companyName ?? 'Company';
+    const stamp = new Date().toISOString().slice(0, 10);
+    const filename = `${sanitizeFilenamePart(companyName)}-platform-applicants-${stamp}`;
+
+    return {
+      filename,
+      title: `${job.title} applicants`,
+      columns: [
+        { key: 'rollNumber', label: 'Reg No' },
+        { key: 'fullName', label: 'Name' },
+        { key: 'email', label: 'Email' },
+        { key: 'phone', label: 'Mobile' },
+        { key: 'dateOfBirth', label: 'DOB' },
+        { key: 'resumeLink', label: 'Resume link' },
+        { key: 'stage', label: 'Stage' },
+        { key: 'appliedAt', label: 'Applied on' },
+        { key: 'college', label: 'College' },
+        { key: 'placementOfficerName', label: 'Placement Officer' },
+        { key: 'placementOfficerEmail', label: 'Officer Email' },
+        { key: 'placementOfficerPhone', label: 'Officer Phone' },
       ],
       rows,
     };

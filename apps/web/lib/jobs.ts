@@ -231,9 +231,21 @@ export async function downloadJobApplicants(
   id: string,
   format: ApplicantExportFormat,
 ): Promise<void> {
+  return downloadApplicantsFrom(`/jobs/${id}/applicants-export?format=${format}`, format);
+}
+
+/** Same export, for a Platform Admin's own broadcast job (rows span every targeted college). */
+export async function downloadPlatformJobApplicants(
+  id: string,
+  format: ApplicantExportFormat,
+): Promise<void> {
+  return downloadApplicantsFrom(`/platform/jobs/${id}/applicants-export?format=${format}`, format);
+}
+
+async function downloadApplicantsFrom(path: string, format: ApplicantExportFormat): Promise<void> {
   const send = () => {
     const token = getAccessToken();
-    return fetch(`${API_URL}/jobs/${id}/applicants-export?format=${format}`, {
+    return fetch(`${API_URL}${path}`, {
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
