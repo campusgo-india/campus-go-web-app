@@ -5,7 +5,12 @@ import { Badge, Card, ProgressBar, StatTile } from '@campusgo/ui';
 import type { BadgeProps } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../components/page-skeleton';
 import { useApi } from '../../../../lib/use-api';
-import { getMyDashboard, type EmployabilityDashboard, type EmployabilityTier } from '../../../../lib/training';
+import {
+  getMyDashboard,
+  PILLAR_COMPONENTS,
+  type EmployabilityDashboard,
+  type EmployabilityTier,
+} from '../../../../lib/training';
 
 const fmt = (d: string) =>
   new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
@@ -138,12 +143,14 @@ export default function MyEmployabilityPage() {
       <Card className="space-y-4 p-5">
         <p className="text-sm font-semibold text-strong">Skill breakdown</p>
         {data.pillars.map((p) => (
-          <ProgressBar
-            key={p.pillar}
-            label={p.label}
-            caption={p.percentage != null ? `${p.percentage}%` : 'No data yet'}
-            value={p.percentage ?? 0}
-          />
+          <div key={p.pillar}>
+            <ProgressBar
+              label={p.label}
+              caption={p.percentage != null ? `${p.percentage}%` : 'No data yet'}
+              value={p.percentage ?? 0}
+            />
+            <p className="mt-1 text-xs text-subtle">{PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
+          </div>
         ))}
         <Link href="/me/training/assessments" className="block text-sm font-medium text-primary-600">
           Take an assessment →

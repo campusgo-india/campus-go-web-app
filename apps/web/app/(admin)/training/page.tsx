@@ -9,7 +9,9 @@ import {
   deleteAssessment,
   listAssessments,
   listBatches,
+  PILLAR_COMPONENTS,
   PILLAR_LABEL,
+  TRAINING_PILLARS,
   updateAssessment,
   type Assessment,
   type TrainingBatch,
@@ -106,6 +108,26 @@ export default function TrainingAssessmentsPage() {
           </Link>
         </div>
       </div>
+
+      <Card className="space-y-3 p-5">
+        <p className="text-sm font-semibold text-strong">Evaluation framework — 4 skill pillars</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {TRAINING_PILLARS.map((p) => (
+            <div key={p} className="space-y-1">
+              <p className="text-xs font-semibold text-primary-600">{PILLAR_LABEL[p]}</p>
+              <ul className="space-y-0.5 text-xs text-subtle">
+                {PILLAR_COMPONENTS[p].map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-subtle">
+          Every assessment and session is scored under one of these pillars — pick the one that
+          best matches what it evaluates when creating a new one.
+        </p>
+      </Card>
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

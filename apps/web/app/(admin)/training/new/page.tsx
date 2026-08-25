@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
 import { TrainingTargetPicker } from '../../../../components/training-target-picker';
-import { createAssessment, PILLAR_LABEL, TRAINING_PILLARS } from '../../../../lib/training';
+import {
+  createAssessment,
+  PILLAR_COMPONENTS,
+  PILLAR_LABEL,
+  TRAINING_PILLARS,
+} from '../../../../lib/training';
 
 export default function NewAssessmentPage() {
   const router = useRouter();
@@ -80,6 +85,9 @@ export default function NewAssessmentPage() {
                 </option>
               ))}
             </select>
+            <span className="block text-xs text-subtle">
+              Covers: {PILLAR_COMPONENTS[pillar].join(', ')}
+            </span>
           </label>
           <label className="space-y-1 block">
             <span className="text-xs font-medium text-subtle">Pre or post test *</span>

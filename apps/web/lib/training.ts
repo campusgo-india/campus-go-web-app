@@ -17,6 +17,16 @@ export const PILLAR_LABEL: Record<TrainingPillar, string> = {
   CAREER_READINESS: 'Career Readiness',
 };
 
+// What each pillar is meant to cover — shown to officers (so a new college
+// knows what to map assessments to) and to students (so a readiness % means
+// something concrete, not just a bare number).
+export const PILLAR_COMPONENTS: Record<TrainingPillar, string[]> = {
+  APTITUDE_REASONING: ['Quantitative Aptitude', 'Logical Reasoning', 'Verbal Ability'],
+  TECHNICAL_TOOLS: ['Excel', 'Power BI', 'Programming / Domain Skills'],
+  SOFT_SKILLS_COMMUNICATION: ['Verbal Communication', 'Group Discussion'],
+  CAREER_READINESS: ['Resume', 'LinkedIn Profile', 'Mock Interview Performance'],
+};
+
 export type AssessmentPhase = 'PRE' | 'POST';
 export type SessionStatus = 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
 
