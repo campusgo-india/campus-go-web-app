@@ -8,6 +8,7 @@ import { useApi } from '../../../../lib/use-api';
 import {
   getMyDashboard,
   PILLAR_COMPONENTS,
+  pillarReadinessMessage,
   type EmployabilityDashboard,
   type EmployabilityTier,
 } from '../../../../lib/training';
@@ -140,18 +141,24 @@ export default function MyEmployabilityPage() {
       </Card>
 
       {/* Skill breakdown */}
-      <Card className="space-y-4 p-5">
+      <Card className="space-y-5 p-5">
         <p className="text-sm font-semibold text-strong">Skill breakdown</p>
-        {data.pillars.map((p) => (
-          <div key={p.pillar}>
-            <ProgressBar
-              label={p.label}
-              caption={p.percentage != null ? `${p.percentage}%` : 'No data yet'}
-              value={p.percentage ?? 0}
-            />
-            <p className="mt-1 text-xs text-subtle">{PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
-          </div>
-        ))}
+        {data.pillars.map((p) => {
+          const message = pillarReadinessMessage(p.pillar, p.percentage);
+          return (
+            <div key={p.pillar}>
+              <ProgressBar
+                label={p.label}
+                caption={p.percentage != null ? `${p.percentage}%` : 'No data yet'}
+                value={p.percentage ?? 0}
+              />
+              <p className="mt-1.5 text-sm text-body">
+                {message ?? `Take a ${p.label.toLowerCase()} assessment to see your readiness here.`}
+              </p>
+              <p className="mt-0.5 text-xs text-subtle">Covers: {PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
+            </div>
+          );
+        })}
         <Link href="/me/training/assessments" className="block text-sm font-medium text-primary-600">
           Take an assessment →
         </Link>

@@ -27,6 +27,55 @@ export const PILLAR_COMPONENTS: Record<TrainingPillar, string[]> = {
   CAREER_READINESS: ['Resume', 'LinkedIn Profile', 'Mock Interview Performance'],
 };
 
+// Score-band encouragement copy per pillar, shown on the student's readiness
+// breakdown. Bands are checked highest-first; the first one the score meets
+// or exceeds wins.
+const READINESS_BANDS = [
+  { min: 80, key: 'strong' },
+  { min: 70, key: 'good' },
+  { min: 60, key: 'solid' },
+  { min: 50, key: 'needsWork' },
+  { min: 0, key: 'start' },
+] as const;
+
+const PILLAR_READINESS_MESSAGES: Record<TrainingPillar, Record<(typeof READINESS_BANDS)[number]['key'], string>> = {
+  APTITUDE_REASONING: {
+    strong: 'Strong work — your quant, logical and verbal reasoning are placement-ready. Keep practising to stay sharp.',
+    good: 'Good performance. A little more practice on speed and accuracy will get you to the top tier.',
+    solid: 'Solid foundation. Regular practice in quant, logical and verbal reasoning will move the needle.',
+    needsWork: 'Your fundamentals need work. Build them up with steady quant, logical and verbal practice.',
+    start: 'Start from the basics — follow the recommended aptitude modules to build your foundation.',
+  },
+  TECHNICAL_TOOLS: {
+    strong: 'Strong technical and tool skills. Keep them current with the languages, tools or software relevant to your field.',
+    good: 'Good progress — keep building on the coding, software or domain tools relevant to your target roles.',
+    solid: "You've got a starting point. More hands-on practice with the tools relevant to your field will strengthen your readiness.",
+    needsWork: 'You need more hands-on practice. Focus on the coding skills or domain tools relevant to your target jobs.',
+    start: 'Build your technical foundation through guided training and hands-on practice in tools relevant to your field.',
+  },
+  SOFT_SKILLS_COMMUNICATION: {
+    strong: 'Strong communication and interpersonal skills. Keep sharpening them through real discussions.',
+    good: 'Good performance — keep practising communication and group discussions to build more confidence.',
+    solid: "You're making progress. More speaking and discussion practice will boost your confidence.",
+    needsWork: 'Focus on building communication confidence through regular speaking and presentation practice.',
+    start: 'Communication is a key placement skill — start with regular speaking practice and build up from there.',
+  },
+  CAREER_READINESS: {
+    strong: 'Strong prep — keep your resume and LinkedIn updated and stay sharp with interview practice.',
+    good: 'Good progress. Strengthen your resume, LinkedIn and interview skills to be fully placement-ready.',
+    solid: 'Solid foundation. Keep improving your resume, LinkedIn and interview performance.',
+    needsWork: 'More prep needed — work on your resume, LinkedIn profile and mock interviews.',
+    start: "Let's build this up — start with your resume, LinkedIn profile and mock interview practice.",
+  },
+};
+
+/** Personalized encouragement copy for one pillar's score — null until the pillar has any data. */
+export function pillarReadinessMessage(pillar: TrainingPillar, percentage: number | null): string | null {
+  if (percentage == null) return null;
+  const band = READINESS_BANDS.find((b) => percentage >= b.min)!;
+  return PILLAR_READINESS_MESSAGES[pillar][band.key];
+}
+
 export type AssessmentPhase = 'PRE' | 'POST';
 export type SessionStatus = 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
 
