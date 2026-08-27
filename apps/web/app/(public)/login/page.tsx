@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
-import { homePathForRole } from '@campusgo/auth';
+import { changePasswordPathForRole, homePathForRole } from '@campusgo/auth';
 import { login } from '../../../lib/auth-actions';
 import { PasswordInput } from '../../../components/password-input';
 
@@ -31,7 +31,7 @@ function LoginForm() {
     try {
       const user = await login(email, password);
       if (user.mustChangePassword) {
-        router.push('/me/change-password');
+        router.push(changePasswordPathForRole(user.role));
         return;
       }
       const next = params.get('next');

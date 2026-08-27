@@ -18,6 +18,7 @@ export default function NewAssessmentPage() {
   const [pillar, setPillar] = useState<(typeof TRAINING_PILLARS)[number]>('APTITUDE_REASONING');
   const [phase, setPhase] = useState<'PRE' | 'POST'>('PRE');
   const [externalUrl, setExternalUrl] = useState('');
+  const [description, setDescription] = useState('');
   const [maxMarks, setMaxMarks] = useState('100');
   const [scheduledAt, setScheduledAt] = useState('');
   const [targetProgrammes, setTargetProgrammes] = useState<string[]>([]);
@@ -42,6 +43,7 @@ export default function NewAssessmentPage() {
         pillar,
         phase,
         externalUrl: externalUrl.trim(),
+        description: description.trim() || undefined,
         maxMarks: marks,
         ...(scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
         targetProgrammes,
@@ -105,6 +107,17 @@ export default function NewAssessmentPage() {
             value={externalUrl}
             onChange={(e) => setExternalUrl(e.target.value)}
             placeholder="https://forms.example.com/test-123"
+          />
+        </label>
+
+        <label className="space-y-1 block">
+          <span className="text-xs font-medium text-subtle">Description/Instructions</span>
+          <textarea
+            className="w-full rounded-md border border-border bg-white p-3 text-sm outline-none focus:border-primary-400"
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Venue, link, prerequisites, or any other details students should know…"
           />
         </label>
 

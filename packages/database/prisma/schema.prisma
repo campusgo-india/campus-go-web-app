@@ -238,8 +238,9 @@ model Student {
   school             String
   programme          String
   graduationYear     Int                @map("graduation_year")
-  // Current year of study (1, 2, …) — e.g. MBA II YEAR = 2. Null = not tracked.
-  currentYear        Int?               @map("current_year")
+  // Academic session the student is currently in, e.g. "2026-27" — not an
+  // ordinal year-of-programme count (programmes vary in length). Null = not tracked.
+  academicYear       String?            @map("academic_year")
   cgpa               Decimal?           @db.Decimal(4, 2)
   activeBacklogs     Int                @default(0) @map("active_backlogs")
   totalBacklogs      Int                @default(0) @map("total_backlogs")
@@ -849,6 +850,10 @@ model Assessment {
   pillar      TrainingPillar
   phase       AssessmentPhase
   externalUrl String          @map("external_url")
+  // Venue, prerequisites, or any other details a student should know before
+  // taking the test — separate from externalUrl, which stays a clean URL so
+  // the student's "Take Assessment" button always resolves correctly.
+  description String?         @map("description")
   maxMarks    Int             @map("max_marks")
   // When the test is scheduled/due — optional since some tests are open-ended.
   scheduledAt DateTime?       @map("scheduled_at")

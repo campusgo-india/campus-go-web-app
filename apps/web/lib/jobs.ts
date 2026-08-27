@@ -113,6 +113,9 @@ export interface Job {
   companyName?: string | null;
   targetCollegeIds?: string[];
   applicationCount?: number;
+  // Only populated on the list endpoint — how many of this college's
+  // applicants have been placed on this job.
+  selectedCount?: number;
   // student feed annotations
   applied?: boolean;
   myStage?: string | null;

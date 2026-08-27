@@ -93,6 +93,15 @@ export function withdrawApplication(id: string): Promise<{ id: string }> {
   return api(`/me/applications/${id}/withdraw`, { method: 'POST' });
 }
 
+// Attach the student's own offer letter to a SELECTED application — most offer
+// letters land in the student's inbox first, not the officer's.
+export function setOwnOfferLetter(id: string, offerLetterUrl: string): Promise<Application> {
+  return api(`/me/applications/${id}/offer-letter`, {
+    method: 'PATCH',
+    body: JSON.stringify({ offerLetterUrl }),
+  });
+}
+
 // ─── Placement Officer ───
 export function getPipeline(jobId: string): Promise<PipelineEntry[]> {
   return api<PipelineEntry[]>(`/jobs/${jobId}/applications`);

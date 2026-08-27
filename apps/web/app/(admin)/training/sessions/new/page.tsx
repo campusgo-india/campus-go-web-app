@@ -7,6 +7,12 @@ import { Button, Card } from '@campusgo/ui';
 import { TrainingTargetPicker } from '../../../../../components/training-target-picker';
 import { createSession, PILLAR_LABEL, TRAINING_PILLARS } from '../../../../../lib/training';
 
+/** Formats a Date as the local `YYYY-MM-DDTHH:mm` value a datetime-local input expects. */
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function NewSessionPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -15,6 +21,28 @@ export default function NewSessionPage() {
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
+  const [durationHours, setDurationHours] = useState('');
+
+  // Convenience: typing a duration auto-fills the end time from the start
+  // time, so officers don't have to do the arithmetic themselves — the end
+  // time can still be hand-edited afterwards if the session ran long/short.
+  function onDurationChange(v: string) {
+    setDurationHours(v);
+    const hours = Number(v);
+    if (!startsAt || !v.trim() || !Number.isFinite(hours) || hours <= 0) return;
+    const start = new Date(startsAt);
+    const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+    setEndsAt(toLocalInputValue(end));
+  }
+
+  function onStartsAtChange(v: string) {
+    setStartsAt(v);
+    const hours = Number(durationHours);
+    if (!v || !durationHours.trim() || !Number.isFinite(hours) || hours <= 0) return;
+    const start = new Date(v);
+    const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+    setEndsAt(toLocalInputValue(end));
+  }
   const [targetProgrammes, setTargetProgrammes] = useState<string[]>([]);
   const [targetBatchIds, setTargetBatchIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,9 +94,9 @@ export default function NewSessionPage() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="space-y-1 block">
-            <span className="text-xs font-medium text-subtle">Pillar (optional)</span>
+            <span className="text-xs font-medium text-subtle">Training Pillar (optional)</span>
             <select className={inputCls} value={pillar} onChange={(e) => setPillar(e.target.value as typeof pillar)}>
-              <option value="">Not tagged</option>
+              <option value="">Other</option>
               {TRAINING_PILLARS.map((p) => (
                 <option key={p} value={p}>
                   {PILLAR_LABEL[p]}
@@ -89,19 +117,35 @@ export default function NewSessionPage() {
               type="datetime-local"
               className={inputCls}
               value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
+              onChange={(e) => onStartsAtChange(e.target.value)}
             />
           </label>
           <label className="space-y-1 block">
-            <span className="text-xs font-medium text-subtle">Ends at *</span>
+            <span className="text-xs font-medium text-subtle">Duration in hours</span>
             <input
-              type="datetime-local"
+              type="number"
+              min="0"
+              step="0.5"
               className={inputCls}
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
+              value={durationHours}
+              onChange={(e) => onDurationChange(e.target.value)}
+              placeholder="e.g. 2"
             />
           </label>
         </div>
+
+        <label className="space-y-1 block">
+          <span className="text-xs font-medium text-subtle">Ends at *</span>
+          <input
+            type="datetime-local"
+            className={inputCls}
+            value={endsAt}
+            onChange={(e) => setEndsAt(e.target.value)}
+          />
+          <span className="block text-xs text-subtle">
+            Auto-filled from the duration above — adjust by hand if the session ran long or short.
+          </span>
+        </label>
 
         <label className="space-y-1 block">
           <span className="text-xs font-medium text-subtle">Description</span>

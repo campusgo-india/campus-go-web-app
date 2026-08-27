@@ -1,6 +1,6 @@
 'use client';
 
-import { api } from './api';
+import { api, API_URL, getAccessToken, tryRefresh } from './api';
 
 export const EMPLOYMENT_TYPES = ['FULL_TIME', 'PART_TIME'] as const;
 export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
@@ -78,3 +78,31 @@ export const updateInternship = (id: string, input: Partial<InternshipInput>) =>
 
 export const deleteInternship = (id: string) =>
   api<{ success: boolean }>(`/internships/${id}`, { method: 'DELETE' });
+
+/** Downloads every internship at the college as one XLSX file. */
+export async function downloadInternships(): Promise<void> {
+  const send = () => {
+    const token = getAccessToken();
+    return fetch(`${API_URL}/internships/export`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  };
+  let res = await send();
+  if (res.status === 401 && (await tryRefresh())) res = await send();
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error?.message ?? `Export failed (${res.status})`);
+  }
+  const blob = await res.blob();
+  const match = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] ?? 'internships.xlsx';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

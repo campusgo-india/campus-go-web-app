@@ -9,6 +9,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { Internship, PrismaClient } from '@campusgo/database';
 import { CreateInternshipDto, OfficerCreateInternshipDto, UpdateInternshipDto } from './dto';
+import type { ReportDataset } from '../reports/report-serializers';
 
 const MAX_INTERNSHIPS_PER_STUDENT = 3;
 const dec = (v: Prisma.Decimal | null) => (v != null ? Number(v) : null);
@@ -182,6 +183,35 @@ export class InternshipsService {
       },
     });
     return rows.map((r) => this.toPublic(r));
+  }
+
+  async exportDataset(collegeId: string): Promise<ReportDataset> {
+    const items = await this.list(collegeId);
+    return {
+      filename: `internships-${new Date().toISOString().slice(0, 10)}`,
+      title: 'Internships',
+      columns: [
+        { key: 'studentName', label: 'Student' },
+        { key: 'rollNumber', label: 'Roll No' },
+        { key: 'studentSchool', label: 'School' },
+        { key: 'graduationYear', label: 'Graduation Year' },
+        { key: 'companyName', label: 'Company' },
+        { key: 'role', label: 'Role' },
+        { key: 'employmentType', label: 'Employment Type' },
+        { key: 'domain', label: 'Domain' },
+        { key: 'location', label: 'Location' },
+        { key: 'isPaid', label: 'Paid' },
+        { key: 'stipend', label: 'Stipend' },
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'endDate', label: 'End Date' },
+        { key: 'isPpo', label: 'PPO' },
+        { key: 'status', label: 'Status' },
+        { key: 'pocName', label: 'POC Name' },
+        { key: 'pocEmail', label: 'POC Email' },
+        { key: 'pocPhone', label: 'POC Phone' },
+      ],
+      rows: items,
+    };
   }
 
   async create(collegeId: string, dto: OfficerCreateInternshipDto) {

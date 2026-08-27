@@ -10,7 +10,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
-import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
+import { jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
 import type { ReportDataset } from '../reports/report-serializers';
 
@@ -75,6 +75,23 @@ export class ApplicationsService {
     return apps.map((a) => this.publicApplication(a));
   }
 
+  // A selected student can attach their own offer letter — in most cases the
+  // student receives it directly from the recruiter before the officer does.
+  async setOwnOfferLetter(userId: string, applicationId: string, offerLetterUrl: string) {
+    const student = await this.studentForUser(userId);
+    const app = await this.prisma.application.findFirst({
+      where: { id: applicationId, studentId: student.id },
+    });
+    if (!app) throw new NotFoundException('Application not found');
+    if (app.status !== 'SELECTED') {
+      throw new BadRequestException('Only a selected application can have an offer letter attached.');
+    }
+    return this.prisma.application.update({
+      where: { id: applicationId },
+      data: { offerLetterUrl },
+    });
+  }
+
   async withdraw(userId: string, applicationId: string) {
     const student = await this.studentForUser(userId);
     const app = await this.prisma.application.findFirst({
@@ -104,7 +121,10 @@ export class ApplicationsService {
 
   // ─────────────── Placement Officer: pipeline + ATS ───────────────
 
-  async pipeline(collegeId: string, jobId: string, viewer?: Viewer) {
+  // View-only: any officer at the college can see any of the college's job
+  // pipelines, not just the ones they posted — the actual stage/round actions
+  // are gated separately (assertOwnJob on the round endpoints).
+  async pipeline(collegeId: string, jobId: string) {
     // Own college job, or a platform job broadcast to this college. Either way the
     // applicant query below is scoped to collegeId, so officers only see their own.
     const job = await this.prisma.job.findFirst({
@@ -114,7 +134,6 @@ export class ApplicationsService {
       },
     });
     if (!job) throw new NotFoundException('Job not found');
-    assertOwnJob(job, viewer);
 
     const apps = await this.prisma.application.findMany({
       where: { jobId, collegeId },
@@ -169,11 +188,7 @@ export class ApplicationsService {
 
   // Applicant contact + resume export for an officer to share with an HR outside
   // the app. Resume link only if published (so the link actually resolves).
-  async exportApplicantsDataset(
-    collegeId: string,
-    jobId: string,
-    viewer?: Viewer,
-  ): Promise<ReportDataset> {
+  async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
     const [job, college, officer] = await Promise.all([
       this.prisma.job.findFirst({
         where: { id: jobId, ...jobVisibleToCollege(collegeId) },
@@ -183,7 +198,6 @@ export class ApplicationsService {
       this.collegeHeadContact(collegeId),
     ]);
     if (!job) throw new NotFoundException('Job not found');
-    assertOwnJob(job, viewer);
 
     const apps = await this.prisma.application.findMany({
       where: { collegeId, jobId },

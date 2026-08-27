@@ -16,7 +16,7 @@ import {
   UpdatePlatformJobDto,
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { assertOwnJob, jobVisibleToCollege, ownJobWhere, type Viewer } from './job-scope.util';
+import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import {
   checkEligibility,
   checkApplyEligibility,
@@ -95,15 +95,15 @@ export class JobsService {
   async list(collegeId: string, q: ListJobsQuery, viewer?: Viewer) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 25;
-    // The officer's list shows their own college jobs PLUS platform jobs broadcast
-    // to their college (read-only — they can manage their applicants but not the job).
+    // Every officer at the college sees every one of the college's jobs (plus
+    // platform jobs broadcast to it) — view-only for a job they didn't post;
+    // `assertOwnJob` still gates the actual manage/edit/round actions on it.
     // Each condition below may itself carry an OR clause, so they're combined via
     // AND (not a flat spread) to avoid one OR silently clobbering another —
     // notably, `visibleToCollege` must never be dropped by `q.search`'s OR.
     const where: Prisma.JobWhereInput = {
       AND: [
         this.visibleToCollege(collegeId),
-        ownJobWhere(viewer),
         ...(q.status ? [{ status: q.status as Prisma.JobWhereInput['status'] }] : []),
         ...(q.createdById ? [{ createdById: q.createdById }] : []),
         ...(q.search
@@ -136,13 +136,26 @@ export class JobsService {
       }),
     ]);
 
+    // How many of this college's applicants have been placed on each job — a
+    // second query because Prisma's `_count` can't filter the same relation
+    // twice (once for "all applicants", once for "selected") in one include.
+    const selectedByJob = await this.prisma.application.groupBy({
+      by: ['jobId'],
+      where: { jobId: { in: jobs.map((j) => j.id) }, collegeId, status: 'SELECTED' },
+      _count: { id: true },
+    });
+    const selectedCountById = new Map(selectedByJob.map((s) => [s.jobId, s._count.id]));
+
     return {
-      items: jobs.map((j) => this.publicJob(j)),
+      items: jobs.map((j) => this.publicJob(j, { selectedCount: selectedCountById.get(j.id) ?? 0 })),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   }
 
-  async findOne(collegeId: string, id: string, viewer?: Viewer) {
+  // View-only: any officer at the college can see any of the college's job
+  // details, not just the ones they posted — assertOwnJob only gates managing
+  // (edit/publish/close/delete/rounds) it, in the methods below.
+  async findOne(collegeId: string, id: string) {
     const job = await this.prisma.job.findFirst({
       where: { id, ...this.visibleToCollege(collegeId) },
       include: {
@@ -152,7 +165,6 @@ export class JobsService {
       },
     });
     if (!job) throw new NotFoundException('Job not found');
-    assertOwnJob(job, viewer);
     return this.publicJob(job);
   }
 
@@ -798,7 +810,7 @@ export class JobsService {
     createdById?: string;
     createdBy?: { id: string; fullName: string } | null;
     _count?: { applications: number };
-  }) {
+  }, extra?: { selectedCount?: number }) {
     const isPlatform = j.scope === 'PLATFORM';
     return {
       id: j.id,
@@ -849,6 +861,7 @@ export class JobsService {
       createdById: j.createdById,
       createdBy: j.createdBy ?? undefined,
       applicationCount: j._count?.applications,
+      selectedCount: extra?.selectedCount,
     };
   }
 }

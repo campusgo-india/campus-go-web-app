@@ -20,24 +20,17 @@ export interface Viewer {
   userId: string;
 }
 
-// A Placement Officer only ever sees/manages COLLEGE-scoped jobs they
-// personally posted — College Admin keeps full college-wide visibility (they
-// oversee the whole team). Coordinators are scoped separately, by programme,
-// not by creator. PLATFORM-broadcast jobs are excluded from this restriction:
-// they're never "owned" by any one officer, and every officer at a targeted
-// college retains read/manage access to their own applicants on them.
+// A Placement Officer can VIEW every COLLEGE-scoped job (list, detail,
+// pipeline, funnel) — only MANAGING one (edit, publish, close, delete, or any
+// round action: create/update/delete/attendance/decide/place/reject) is
+// restricted to the officer who personally posted it, or College Admin (who
+// keeps full manage access over the whole team). Coordinators are scoped
+// separately, by programme, not by creator. PLATFORM-broadcast jobs are
+// excluded from this restriction: they're never "owned" by any one officer.
 //
 // Shared across jobs.service.ts, rounds.service.ts, and applications.service.ts
-// so an officer scoped out of a colleague's job on the list/detail view is
-// scoped out of its rounds, pipeline, and applicant export too — not just the
-// job record itself.
-export function ownJobWhere(viewer?: Viewer): Prisma.JobWhereInput {
-  if (viewer?.role === 'PLACEMENT_OFFICER') {
-    return { OR: [{ createdById: viewer.userId }, { scope: 'PLATFORM' }] };
-  }
-  return {};
-}
-
+// — call this only at the write call sites; read call sites (list/findOne/
+// pipeline/funnel/export) intentionally skip it so every officer can view.
 export function assertOwnJob(
   job: { createdById?: string | null; scope?: string },
   viewer?: Viewer,

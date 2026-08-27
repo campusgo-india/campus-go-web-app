@@ -9,6 +9,7 @@ import { ListSkeleton } from '../../../components/page-skeleton';
 import { useConfirm } from '../../../components/confirm-provider';
 import {
   deleteInternship,
+  downloadInternships,
   employmentTypeLabel,
   EMPLOYMENT_TYPES,
   listInternships,
@@ -47,6 +48,19 @@ export default function InternshipsPage() {
   const [view, setView] = useState<ViewState>({ mode: 'years' });
   const [editing, setEditing] = useState<Internship | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function onExport() {
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadInternships();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -158,6 +172,9 @@ export default function InternshipsPage() {
           <h1 className="text-2xl font-semibold text-strong">{title}</h1>
           <p className="text-sm text-subtle">{subtitle}</p>
         </div>
+        <Button variant="outline" onClick={onExport} loading={exporting} disabled={exporting}>
+          {exporting ? 'Exporting…' : 'Export to Excel'}
+        </Button>
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}

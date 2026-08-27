@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge, SectionCard, StatTile } from '@campusgo/ui';
+import { Badge, Card, SectionCard, StatTile } from '@campusgo/ui';
 import { useSession } from '../../../lib/session';
 import { useApi } from '../../../lib/use-api';
 import {
@@ -22,6 +22,7 @@ import {
   type ProgrammeWiseRow,
 } from '../../../lib/analytics';
 import { formatLpa } from '../../../lib/jobs';
+import { listPendingResults, type PendingResult } from '../../../lib/rounds';
 import { PageSkeleton, InlineSkeleton } from '../../../components/page-skeleton';
 
 type MetricFormat = 'int' | 'pct' | 'ctc';
@@ -74,6 +75,14 @@ export default function PlacementDashboardPage() {
     getStudentsRequiringAttention,
   );
 
+  const [pending, setPending] = useState<PendingResult[]>([]);
+  useEffect(() => {
+    if (!ready) return;
+    listPendingResults()
+      .then(setPending)
+      .catch(() => {});
+  }, [ready]);
+
   if (!data) return <PageSkeleton />;
 
   const { overall, ug, pg } = data;
@@ -87,6 +96,32 @@ export default function PlacementDashboardPage() {
           postgraduate combined
         </p>
       </header>
+
+      {/* Rounds whose interview date has passed but results aren't entered yet */}
+      {pending.length > 0 && (
+        <Card className="space-y-2 border border-warning/40 bg-warning/5 p-4">
+          <p className="text-sm font-semibold text-strong">
+            ⚠ {pending.length} round result{pending.length === 1 ? '' : 's'} pending
+          </p>
+          <div className="space-y-1">
+            {pending.map((p) => (
+              <Link
+                key={p.roundId}
+                href={`/jobs/${p.jobId}/pipeline`}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition hover:bg-white"
+              >
+                <span className="text-body">
+                  <span className="font-medium text-strong">{p.jobTitle}</span> · {p.roundTitle}
+                </span>
+                <span className="text-xs text-warning">
+                  due {p.scheduledAt ? new Date(p.scheduledAt).toLocaleDateString() : ''} · enter
+                  results →
+                </span>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile
@@ -152,8 +187,8 @@ export default function PlacementDashboardPage() {
         )}
         <p className="mt-4 text-xs text-subtle">
           Eligible = verified profile with a résumé on file. Round 1/2/3 are cumulative — reaching
-          Round 3 counts a student in Round 1 and 2 as well. Selected / Offered / Joined come from
-          each student&apos;s application and interview-round history.
+          Round 3 counts a student in Round 1 and 2 as well. Selected / Offered come from each
+          student&apos;s application and interview-round history.
         </p>
       </SectionCard>
 
@@ -249,7 +284,6 @@ const FUNNEL_STAGES: { key: keyof FunnelStages; label: string }[] = [
   { key: 'round3', label: 'Round 3' },
   { key: 'selected', label: 'Selected' },
   { key: 'offered', label: 'Offered' },
-  { key: 'joined', label: 'Joined' },
 ];
 
 function FunnelChart({

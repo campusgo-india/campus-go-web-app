@@ -224,7 +224,9 @@ export default function JobsPage() {
                 <th className="px-4 py-3 font-medium">Job</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">CTC</th>
+                <th className="px-4 py-3 font-medium">Posted</th>
                 <th className="px-4 py-3 font-medium">Applicants</th>
+                <th className="px-4 py-3 font-medium">Selected</th>
                 <th className="px-4 py-3 font-medium">Posted by</th>
               </tr>
             </thead>
@@ -248,7 +250,21 @@ export default function JobsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-body">{formatCtc(j.ctcMin, j.ctcMax)}</td>
+                    <td className="px-4 py-3 text-subtle">
+                      {new Date(j.createdAt).toLocaleDateString(undefined, {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
                     <td className="px-4 py-3 text-body">{j.applicationCount ?? 0}</td>
+                    <td className="px-4 py-3 text-body">
+                      {(j.selectedCount ?? 0) > 0 ? (
+                        <span className="font-medium text-success">{j.selectedCount}</span>
+                      ) : (
+                        0
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-subtle">{j.createdBy?.fullName ?? '—'}</td>
                   </tr>
                 );

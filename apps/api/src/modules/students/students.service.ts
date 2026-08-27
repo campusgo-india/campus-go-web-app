@@ -113,7 +113,7 @@ export class StudentsService {
           school: dto.school,
           programme: dto.programme,
           graduationYear: dto.graduationYear,
-          currentYear: dto.currentYear ?? null,
+          academicYear: dto.academicYear ?? null,
           cgpa: dto.cgpa != null ? new Prisma.Decimal(dto.cgpa) : null,
           activeBacklogs: dto.activeBacklogs ?? 0,
           totalBacklogs: dto.totalBacklogs ?? 0,
@@ -214,7 +214,7 @@ export class StudentsService {
         school: d.school,
         programme: d.programme,
         graduationYear: d.graduationYear,
-        currentYear: d.currentYear ?? null,
+        academicYear: d.academicYear ?? null,
         cgpa: d.cgpa != null ? new Prisma.Decimal(d.cgpa) : null,
         ugPercentage: d.ugPercentage != null ? new Prisma.Decimal(d.ugPercentage) : null,
         tenthPercentage: d.tenthPercentage != null ? new Prisma.Decimal(d.tenthPercentage) : null,
@@ -879,7 +879,7 @@ export class StudentsService {
     const gradYear = num('graduationyear', 'graduationYear') ?? defaults.graduationYear;
     if (gradYear == null)
       throw new BadRequestException('passout year is required (set it on the form)');
-    const currentYear = num('currentyear', 'currentYear') ?? defaults.currentYear;
+    const academicYear = first('academicyear', 'academicyearsession') || defaults.academicYear;
 
     return {
       fullName,
@@ -888,7 +888,7 @@ export class StudentsService {
       school,
       programme,
       graduationYear: gradYear,
-      currentYear,
+      academicYear: academicYear || undefined,
       enrollmentNumber: get('enrollmentnumber') || undefined,
       phone: get('phone') || undefined,
       cgpa: num('cgpa', 'cgpa'),
@@ -941,7 +941,7 @@ export class StudentsService {
     school: string;
     programme: string;
     graduationYear: number;
-    currentYear: number | null;
+    academicYear: string | null;
     cgpa: Prisma.Decimal | null;
     activeBacklogs: number;
     totalBacklogs: number;
@@ -1009,7 +1009,7 @@ export class StudentsService {
       school: s.school,
       programme: s.programme,
       graduationYear: s.graduationYear,
-      currentYear: s.currentYear,
+      academicYear: s.academicYear,
       cgpa: s.cgpa != null ? Number(s.cgpa) : null,
       activeBacklogs: s.activeBacklogs,
       totalBacklogs: s.totalBacklogs,

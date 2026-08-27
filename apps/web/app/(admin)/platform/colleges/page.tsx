@@ -15,6 +15,7 @@ import {
   removeCollegeLogo,
   resetCollegeAdminPassword,
   setCollegeStatus,
+  updateCollege,
   uploadCollegeLogo,
   type College,
   type CreateCollegeResult,
@@ -33,6 +34,7 @@ export default function PlatformCollegesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [schoolsFor, setSchoolsFor] = useState<string | null>(null);
   const [logoFor, setLogoFor] = useState<string | null>(null);
+  const [editFor, setEditFor] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -244,6 +246,12 @@ export default function PlatformCollegesPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
                         <button
+                          onClick={() => setEditFor((id) => (id === c.id ? null : c.id))}
+                          className="text-xs font-medium text-primary-600 hover:underline"
+                        >
+                          {editFor === c.id ? 'Hide edit' : 'Edit details'}
+                        </button>
+                        <button
                           onClick={() => setSchoolsFor((id) => (id === c.id ? null : c.id))}
                           className="text-xs font-medium text-primary-600 hover:underline"
                         >
@@ -277,6 +285,13 @@ export default function PlatformCollegesPage() {
                       </div>
                     </td>
                   </tr>
+                  {editFor === c.id && (
+                    <tr className="border-b border-border">
+                      <td colSpan={5} className="px-4 py-3">
+                        <EditDetailsPanel college={c} onUpdated={load} />
+                      </td>
+                    </tr>
+                  )}
                   {schoolsFor === c.id && (
                     <tr className="border-b border-border">
                       <td colSpan={5} className="px-4 py-3">
@@ -307,6 +322,106 @@ const slugify = (s: string) =>
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+/** Inline panel to edit a college's core details — name, contact, plan (Platform Admin only). */
+function EditDetailsPanel({ college, onUpdated }: { college: College; onUpdated: () => void }) {
+  const [form, setForm] = useState({
+    name: college.name,
+    contactPhone: college.contactPhone ?? '',
+    city: college.city ?? '',
+    state: college.state ?? '',
+    subscriptionPlan: college.subscriptionPlan,
+    subscriptionStatus: college.subscriptionStatus,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const phoneOk = !form.contactPhone.trim() || isValidPhone(form.contactPhone);
+  const ready = form.name.trim() && phoneOk;
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      await updateCollege(college.id, {
+        name: form.name.trim(),
+        contactPhone: form.contactPhone.trim() || undefined,
+        city: form.city.trim() ? toTitleCase(form.city) : undefined,
+        state: form.state.trim() ? toTitleCase(form.state) : undefined,
+        subscriptionPlan: form.subscriptionPlan.trim() || undefined,
+        subscriptionStatus: form.subscriptionStatus.trim() || undefined,
+      });
+      setSaved(true);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update college');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Name *">
+          <input
+            className={inputCls}
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          />
+        </Field>
+        <Field label="Contact phone">
+          <input
+            className={inputCls}
+            value={form.contactPhone}
+            onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
+            placeholder="10-digit mobile"
+          />
+          {!phoneOk && <FieldError>Enter a valid 10-digit mobile number.</FieldError>}
+        </Field>
+        <Field label="City">
+          <input
+            className={inputCls}
+            value={form.city}
+            onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+          />
+        </Field>
+        <Field label="State">
+          <input
+            className={inputCls}
+            value={form.state}
+            onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+          />
+        </Field>
+        <Field label="Subscription plan">
+          <input
+            className={inputCls}
+            value={form.subscriptionPlan}
+            onChange={(e) => setForm((f) => ({ ...f, subscriptionPlan: e.target.value }))}
+          />
+        </Field>
+        <Field label="Subscription status">
+          <input
+            className={inputCls}
+            value={form.subscriptionStatus}
+            onChange={(e) => setForm((f) => ({ ...f, subscriptionStatus: e.target.value }))}
+          />
+        </Field>
+      </div>
+      <p className="text-xs text-subtle">
+        Slug, contact email, and country aren&apos;t editable here to avoid breaking existing
+        logins/links — contact engineering if one of those needs to change.
+      </p>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      {saved && !error && <p className="text-sm text-success">Saved.</p>}
+      <Button size="sm" onClick={save} loading={saving} disabled={!ready || saving}>
+        {saving ? 'Saving…' : 'Save details'}
+      </Button>
+    </div>
+  );
+}
 
 /** Inline panel to upload/replace/remove a college's logo (Platform Admin only). */
 function LogoPanel({ college, onUpdated }: { college: College; onUpdated: () => void }) {

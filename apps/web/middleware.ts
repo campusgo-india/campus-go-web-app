@@ -31,6 +31,7 @@ function isPublic(pathname: string): boolean {
 const STUDENT_PREFIXES = ['/me'];
 const ADMIN_PREFIXES = [
   '/dashboard',
+  '/placement',
   '/platform',
   '/students',
   '/companies',
@@ -87,7 +88,7 @@ function homeFor(role: UserRole): string {
   if (role === UserRole.STUDENT) return '/me';
   if (role === UserRole.PLATFORM_ADMIN) return '/platform/dashboard';
   if (role === UserRole.PLACEMENT_COORDINATOR) return '/jobs';
-  return '/dashboard';
+  return '/placement';
 }
 
 export const config = {

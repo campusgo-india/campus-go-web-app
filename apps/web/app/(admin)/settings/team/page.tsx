@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Badge, Button, Card, SectionCard } from '@campusgo/ui';
 import { isValidEmail, isValidPhone } from '@campusgo/shared';
 import { useSession } from '../../../../lib/session';
@@ -36,6 +36,7 @@ export default function TeamSettingsPage() {
   const [resetFor, setResetFor] = useState<{ member: TeamMember; tempPassword: string } | null>(
     null,
   );
+  const [editProgrammesFor, setEditProgrammesFor] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -232,7 +233,8 @@ export default function TeamSettingsPage() {
               members.map((m) => {
                 const isSelf = m.id === user?.id;
                 return (
-                  <tr key={m.id} className="border-b border-border last:border-0 hover:bg-app/50">
+                  <Fragment key={m.id}>
+                  <tr className="border-b border-border last:border-0 hover:bg-app/50">
                     <td className="px-5 py-3">
                       <p className="font-medium text-strong">
                         {m.fullName}
@@ -280,6 +282,14 @@ export default function TeamSettingsPage() {
                     </td>
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
+                        {m.role === 'PLACEMENT_COORDINATOR' && m.isActive && (
+                          <button
+                            onClick={() => setEditProgrammesFor((id) => (id === m.id ? null : m.id))}
+                            className="text-xs font-medium text-primary-600 hover:underline"
+                          >
+                            {editProgrammesFor === m.id ? 'Hide' : 'Edit programmes'}
+                          </button>
+                        )}
                         {!isSelf && m.isActive && (
                           <button
                             onClick={() => onResetPassword(m)}
@@ -309,12 +319,117 @@ export default function TeamSettingsPage() {
                       </div>
                     </td>
                   </tr>
+                  {editProgrammesFor === m.id && (
+                    <tr className="border-b border-border">
+                      <td colSpan={5} className="bg-app/30 px-5 py-4">
+                        <EditProgrammesPanel
+                          member={m}
+                          onUpdated={() => {
+                            setEditProgrammesFor(null);
+                            load();
+                          }}
+                          onCancel={() => setEditProgrammesFor(null)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })
             )}
           </tbody>
         </table>
       </SectionCard>
+    </div>
+  );
+}
+
+/** Reassign the programmes a coordinator covers — the only field NewMemberForm
+ * can't fix after the fact, which used to mean deleting and recreating the
+ * account (losing their login) just to correct a wrong/empty assignment. */
+function EditProgrammesPanel({
+  member,
+  onUpdated,
+  onCancel,
+}: {
+  member: TeamMember;
+  onUpdated: () => void;
+  onCancel: () => void;
+}) {
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
+  const [assigned, setAssigned] = useState<string[]>(member.assignedProgrammes);
+  const [freeText, setFreeText] = useState(member.assignedProgrammes.join(', '));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listMySchools()
+      .then(setSchools)
+      .catch(() => {
+        /* non-fatal: falls back to free entry if this fails */
+      });
+  }, []);
+
+  const toggleProgramme = (programme: string) => {
+    setAssigned((a) => (a.includes(programme) ? a.filter((b) => b !== programme) : [...a, programme]));
+  };
+
+  async function save() {
+    const programmes = schools.length > 0 ? assigned : freeText.split(',').map((b) => b.trim()).filter(Boolean);
+    if (programmes.length === 0) {
+      setError('Pick at least one programme.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await updateUser(member.id, { assignedProgrammes: programmes });
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update programmes');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-subtle">
+        Programmes {member.fullName} covers — students outside these programmes stay invisible to them.
+      </p>
+      {schools.length > 0 ? (
+        <div className="space-y-3 rounded-md border border-border bg-white p-3">
+          {schools.map((c) => (
+            <div key={c.id}>
+              <p className="text-xs font-semibold text-strong">{c.name}</p>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                {(c.programmes.length > 0 ? c.programmes : [c.name]).map((b) => (
+                  <label key={b} className="flex items-center gap-1.5 text-sm text-body">
+                    <input type="checkbox" checked={assigned.includes(b)} onChange={() => toggleProgramme(b)} />
+                    {b}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <input
+          className={inputCls}
+          value={freeText}
+          onChange={(e) => setFreeText(e.target.value)}
+          placeholder="Comma-separated programmes"
+        />
+      )}
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <div className="flex gap-2">
+        <Button size="sm" onClick={save} loading={saving} disabled={saving}>
+          {saving ? 'Saving…' : 'Save programmes'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
     </div>
   );
 }

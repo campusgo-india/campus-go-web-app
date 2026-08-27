@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
 import {
+  academicYearOptions,
   getStudent,
   setStudentActive,
   updateStudent,
@@ -235,10 +236,7 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
             <Detail label="School/Department" value={student.school || '—'} />
             <Detail label="Programme" value={student.programme || '—'} />
             <Detail label="Passout year" value={String(student.graduationYear)} />
-            <Detail
-              label="Current year"
-              value={student.currentYear ? `Year ${student.currentYear}` : '—'}
-            />
+            <Detail label="Academic year" value={student.academicYear || '—'} />
             <Detail label="Percentage" value={student.cgpa != null ? `${student.cgpa}%` : '—'} />
             <Detail label="Active backlogs" value={String(student.activeBacklogs)} />
             <Detail label="Total backlogs" value={String(student.totalBacklogs)} />
@@ -398,7 +396,7 @@ function EditStudentForm({
     school: student.school,
     programme: student.programme,
     graduationYear: String(student.graduationYear),
-    currentYear: student.currentYear != null ? String(student.currentYear) : '',
+    academicYear: student.academicYear ?? '',
     cgpa: student.cgpa != null ? String(student.cgpa) : '',
     ugPercentage: student.ugPercentage != null ? String(student.ugPercentage) : '',
   });
@@ -419,7 +417,7 @@ function EditStudentForm({
         school: form.school.trim(),
         programme: form.programme.trim(),
         graduationYear: Number(form.graduationYear),
-        currentYear: form.currentYear === '' ? undefined : Number(form.currentYear),
+        academicYear: form.academicYear || undefined,
         cgpa: form.cgpa === '' ? undefined : Number(form.cgpa),
         ugPercentage: form.ugPercentage === '' ? undefined : Number(form.ugPercentage),
       });
@@ -445,17 +443,18 @@ function EditStudentForm({
           onChange={set('graduationYear')}
         />
         <label className="space-y-1">
-          <span className="text-xs font-medium text-subtle">Current year of study</span>
+          <span className="text-xs font-medium text-subtle">Academic year</span>
           <select
             className={editInputCls}
-            value={form.currentYear}
-            onChange={(e) => setForm((f) => ({ ...f, currentYear: e.target.value }))}
+            value={form.academicYear}
+            onChange={(e) => setForm((f) => ({ ...f, academicYear: e.target.value }))}
           >
             <option value="">Not tracked</option>
-            <option value="1">1st year</option>
-            <option value="2">2nd year</option>
-            <option value="3">3rd year</option>
-            <option value="4">4th year</option>
+            {academicYearOptions().map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
         </label>
         <EditField label="Phone" value={form.phone} onChange={set('phone')} />

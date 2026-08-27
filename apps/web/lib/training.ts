@@ -85,6 +85,8 @@ export interface Assessment {
   pillar: TrainingPillar;
   phase: AssessmentPhase;
   externalUrl: string;
+  // Venue, prerequisites, or any other details a student should know.
+  description: string | null;
   maxMarks: number;
   scheduledAt: string | null;
   isActive: boolean;
@@ -100,6 +102,7 @@ export interface AssessmentInput {
   pillar: TrainingPillar;
   phase: AssessmentPhase;
   externalUrl: string;
+  description?: string;
   maxMarks: number;
   scheduledAt?: string;
   isActive?: boolean;
@@ -254,6 +257,7 @@ export interface OfficerTrainingDashboard {
     name: string;
     pillar: TrainingPillar;
     phase: AssessmentPhase;
+    scheduledAt: string | null;
     averagePct: number | null;
     scoredCount: number;
     audience: string;

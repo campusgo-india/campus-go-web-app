@@ -62,6 +62,18 @@ export const setCollegeStatus = (id: string, isActive: boolean) =>
     body: JSON.stringify({ isActive }),
   });
 
+export interface UpdateCollegeInput {
+  name?: string;
+  contactPhone?: string;
+  city?: string;
+  state?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+}
+
+export const updateCollege = (id: string, input: UpdateCollegeInput) =>
+  api<College>(`/colleges/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+
 // Logo upload goes as multipart FormData (the api() wrapper skips the JSON
 // content-type for FormData bodies). PNG/JPEG/WebP only, max 2 MB (API-enforced).
 export const uploadCollegeLogo = (id: string, file: File) => {

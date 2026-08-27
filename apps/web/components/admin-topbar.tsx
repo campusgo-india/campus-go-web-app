@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@campusgo/ui';
 import { useSession } from '../lib/session';
 import { NotificationBell } from './notification-bell';
@@ -48,6 +49,12 @@ export function AdminTopbar() {
             </p>
           </div>
         </div>
+
+        <Link href="/settings/change-password">
+          <Button variant="ghost" size="sm">
+            Change password
+          </Button>
+        </Link>
 
         <Button variant="ghost" size="sm" onClick={signOut}>
           Sign out

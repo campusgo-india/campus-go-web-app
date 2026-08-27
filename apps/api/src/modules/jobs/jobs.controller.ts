@@ -82,9 +82,10 @@ export class JobsController {
 
   // Upload an offer letter to Vercel Blob (PUBLIC, unguessable URL — same trust
   // model as a public résumé link) so the officer and the placed student can open
-  // it directly. Officer/admin only.
+  // it directly. Officer/admin AND the student themselves (most offer letters
+  // land in the student's inbox first, not the officer's) may upload.
   @Post('upload-offer-letter')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.STUDENT)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   async uploadOfferLetter(@CurrentUser() user: JwtPayload, @UploadedFile() file?: UploadedPdf) {
     this.collegeId(user);
@@ -148,9 +149,7 @@ export class JobsController {
     if (user.role === UserRole.STUDENT) {
       return { data: await this.jobs.studentJobDetail(user.sub, id) };
     }
-    return {
-      data: await this.jobs.findOne(this.collegeId(user), id, { role: user.role, userId: user.sub }),
-    };
+    return { data: await this.jobs.findOne(this.collegeId(user), id) };
   }
 
   @Patch(':id')
@@ -210,10 +209,7 @@ export class JobsController {
     @Res() res: Response,
   ): Promise<void> {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const dataset = await this.applications.exportApplicantsDataset(this.collegeId(user), id, {
-      role: user.role,
-      userId: user.sub,
-    });
+    const dataset = await this.applications.exportApplicantsDataset(this.collegeId(user), id);
     const buffer = fmt === 'xlsx' ? await toXlsx(dataset) : toCsv(dataset);
 
     await this.audit.record(user, {
@@ -272,12 +268,7 @@ export class JobsController {
   @Get(':id/applications')
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async pipeline(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return {
-      data: await this.applications.pipeline(this.collegeId(user), id, {
-        role: user.role,
-        userId: user.sub,
-      }),
-    };
+    return { data: await this.applications.pipeline(this.collegeId(user), id) };
   }
 
   @Post(':id/apply')

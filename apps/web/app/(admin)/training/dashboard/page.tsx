@@ -196,6 +196,7 @@ export default function TrainingDashboardPage() {
                   <th className="px-4 py-3 font-medium">Department/Batch</th>
                   <th className="px-4 py-3 font-medium">Pillar</th>
                   <th className="px-4 py-3 font-medium">Phase</th>
+                  <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Average score</th>
                 </tr>
               </thead>
@@ -209,6 +210,15 @@ export default function TrainingDashboardPage() {
                     <td className="px-4 py-3 text-body">{PILLAR_LABEL[a.pillar]}</td>
                     <td className="px-4 py-3">
                       <Badge tint={a.phase === 'PRE' ? 'lavender' : 'mint'}>{a.phase}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-body">
+                      {a.scheduledAt
+                        ? new Date(a.scheduledAt).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })
+                        : <span className="text-subtle">—</span>}
                     </td>
                     <td className="px-4 py-3 text-body">
                       {a.averagePct != null ? `${a.averagePct}% (${a.scoredCount} scored)` : 'Not scored'}

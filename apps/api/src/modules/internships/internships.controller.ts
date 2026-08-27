@@ -7,12 +7,15 @@ import {
   Param,
   Patch,
   Post,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { InternshipsService } from './internships.service';
 import { CreateInternshipDto, OfficerCreateInternshipDto, UpdateInternshipDto } from './dto';
+import { toXlsx } from '../reports/report-serializers';
 
 /** Officer/Admin: view every student-reported internship at the college
  * (grouped by batch in the UI), and now fine-tune any record — add one on a
@@ -32,6 +35,19 @@ export class InternshipsController {
   @Get()
   async list(@CurrentUser() user: JwtPayload) {
     return { data: await this.internships.list(this.collegeId(user)) };
+  }
+
+  @Get('export')
+  async export(@CurrentUser() user: JwtPayload, @Res() res: Response) {
+    const dataset = await this.internships.exportDataset(this.collegeId(user));
+    const buffer = await toXlsx(dataset);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${dataset.filename}.xlsx"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.end(buffer);
   }
 
   @Post()

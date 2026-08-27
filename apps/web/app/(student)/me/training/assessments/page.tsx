@@ -47,6 +47,7 @@ export default function MyAssessmentsPage() {
                 </div>
                 <Badge tint={PHASE_TINT[a.phase]}>{a.phase}</Badge>
               </div>
+              {a.description && <p className="text-xs text-subtle">{a.description}</p>}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-subtle">
                   {a.myScore != null ? `Score: ${a.myScore} / ${a.maxMarks}` : 'Not attempted yet'}

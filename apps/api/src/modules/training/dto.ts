@@ -22,6 +22,8 @@ export class CreateAssessmentDto {
   @IsEnum(TrainingPillar) pillar!: TrainingPillar;
   @IsEnum(AssessmentPhase) phase!: AssessmentPhase;
   @NormalizeUrl() @IsString() @MinLength(1) externalUrl!: string;
+  // Venue, prerequisites, or any other details a student should know.
+  @IsOptional() @IsString() description?: string;
   @Type(() => Number) @IsInt() @Min(1) maxMarks!: number;
   // Optional — some tests are open-ended with no fixed date/time.
   @IsOptional() @IsDateString() scheduledAt?: string;
@@ -35,6 +37,7 @@ export class UpdateAssessmentDto {
   @IsOptional() @IsEnum(TrainingPillar) pillar?: TrainingPillar;
   @IsOptional() @IsEnum(AssessmentPhase) phase?: AssessmentPhase;
   @IsOptional() @NormalizeUrl() @IsString() @MinLength(1) externalUrl?: string;
+  @IsOptional() @IsString() description?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) maxMarks?: number;
   @IsOptional() @IsDateString() scheduledAt?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;

@@ -556,7 +556,7 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     phoneOk;
 
   return (
-    <Card className="animate-pop space-y-3 p-5 shadow-nav">
+    <Card className="animate-pop space-y-5 p-6 shadow-nav">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-lg font-semibold text-strong">Add alumnus</h2>
@@ -570,155 +570,179 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
           ✕
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Full name *">
-          <input className={inputCls} value={form.fullName} onChange={set('fullName')} />
-        </Field>
-        <Field label="Email *">
-          <input className={inputCls} value={form.email} onChange={set('email')} />
-          {!emailOk && <span className="text-xs text-danger">Enter a valid email address.</span>}
-        </Field>
-        <Field label="Year of Admission">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.joiningYear}
-            onChange={set('joiningYear')}
-            placeholder="2020"
-            min="0"
-          />
-        </Field>
-        <Field label="Year of Graduation *">
-          <input
-            type="number"
-            className={inputCls}
-            value={form.graduationYear}
-            onChange={set('graduationYear')}
-            min="0"
-          />
-        </Field>
-        <Field label="School/Department">
-          {schools.length > 0 ? (
-            <select className={inputCls} value={form.school} onChange={setSchool}>
-              <option value="">Select school/department</option>
-              {schools.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input className={inputCls} value={form.school} onChange={setSchool} />
-          )}
-        </Field>
-        <Field label="Programme *">
-          {programmesFor.length > 0 ? (
-            <select className={inputCls} value={form.programme} onChange={set('programme')}>
-              <option value="">Select programme</option>
-              {programmesFor.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-          ) : (
+
+      <div>
+        <h3 className="text-sm font-semibold text-strong">Basic details</h3>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Full name *">
+            <input className={inputCls} value={form.fullName} onChange={set('fullName')} />
+          </Field>
+          <Field label="Email *">
+            <input className={inputCls} value={form.email} onChange={set('email')} />
+            {!emailOk && <span className="text-xs text-danger">Enter a valid email address.</span>}
+          </Field>
+          <Field label="Phone *">
             <input
               className={inputCls}
-              value={form.programme}
-              onChange={set('programme')}
-              placeholder={form.school ? 'No sub-programmes for this school' : 'e.g. Computer Science'}
+              value={form.phone}
+              onChange={set('phone')}
+              placeholder="10-digit mobile"
             />
-          )}
-        </Field>
-        <Field label="Register number">
-          <input
-            className={inputCls}
-            value={form.registerNumber}
-            onChange={set('registerNumber')}
-          />
-        </Field>
-        <Field label="Phone *">
-          <input
-            className={inputCls}
-            value={form.phone}
-            onChange={set('phone')}
-            placeholder="10-digit mobile"
-          />
-          {!phoneOk && (
-            <span className="text-xs text-danger">Enter a valid 10-digit mobile number.</span>
-          )}
-        </Field>
-        <Field label="Current company">
-          <input
-            className={inputCls}
-            value={form.currentCompany}
-            onChange={set('currentCompany')}
-          />
-        </Field>
-        <Field label="Designation">
-          <input
-            className={inputCls}
-            value={form.currentDesignation}
-            onChange={set('currentDesignation')}
-          />
-        </Field>
-        <Field label="Location">
-          <input
-            className={inputCls}
-            value={form.currentLocation}
-            onChange={set('currentLocation')}
-          />
-        </Field>
-        <Field label="Industry">
-          <select className={inputCls} value={form.industry} onChange={set('industry')}>
-            <option value="">Select industry…</option>
-            {INDUSTRIES.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="LinkedIn URL">
-          <input
-            className={inputCls}
-            value={form.linkedinUrl}
-            onChange={set('linkedinUrl')}
-            placeholder="https://linkedin.com/in/…"
-          />
-        </Field>
-        <Field label="Tags (comma-separated)">
-          <input
-            className={inputCls}
-            value={form.tags}
-            onChange={set('tags')}
-            placeholder="ml, founder"
-          />
-        </Field>
+            {!phoneOk && (
+              <span className="text-xs text-danger">Enter a valid 10-digit mobile number.</span>
+            )}
+          </Field>
+          <Field label="LinkedIn URL">
+            <input
+              className={inputCls}
+              value={form.linkedinUrl}
+              onChange={set('linkedinUrl')}
+              placeholder="https://linkedin.com/in/…"
+            />
+          </Field>
+        </div>
       </div>
-      <Field label="Notes">
-        <textarea className={inputCls} rows={2} value={form.notes} onChange={set('notes')} />
-      </Field>
-      <div className="flex flex-wrap gap-4">
-        <label className="flex items-center gap-2 text-xs text-subtle">
-          <input
-            type="checkbox"
-            checked={form.isMentor}
-            onChange={(e) => setForm((f) => ({ ...f, isMentor: e.target.checked }))}
-          />
-          Available as mentor
-        </label>
-        <label className="flex items-center gap-2 text-xs text-subtle">
-          <input
-            type="checkbox"
-            checked={form.isHiring}
-            onChange={(e) => setForm((f) => ({ ...f, isHiring: e.target.checked }))}
-          />
-          Currently hiring
-        </label>
+
+      <div className="border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-strong">Academic details</h3>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="School/Department">
+            {schools.length > 0 ? (
+              <select className={inputCls} value={form.school} onChange={setSchool}>
+                <option value="">Select school/department</option>
+                {schools.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input className={inputCls} value={form.school} onChange={setSchool} />
+            )}
+          </Field>
+          <Field label="Programme *">
+            {programmesFor.length > 0 ? (
+              <select className={inputCls} value={form.programme} onChange={set('programme')}>
+                <option value="">Select programme</option>
+                {programmesFor.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className={inputCls}
+                value={form.programme}
+                onChange={set('programme')}
+                placeholder={form.school ? 'No sub-programmes for this school' : 'e.g. Computer Science'}
+              />
+            )}
+          </Field>
+          <Field label="Year of Admission">
+            <input
+              type="number"
+              className={inputCls}
+              value={form.joiningYear}
+              onChange={set('joiningYear')}
+              placeholder="2020"
+              min="0"
+            />
+          </Field>
+          <Field label="Year of Graduation *">
+            <input
+              type="number"
+              className={inputCls}
+              value={form.graduationYear}
+              onChange={set('graduationYear')}
+              min="0"
+            />
+          </Field>
+          <Field label="Register number">
+            <input
+              className={inputCls}
+              value={form.registerNumber}
+              onChange={set('registerNumber')}
+            />
+          </Field>
+        </div>
       </div>
+
+      <div className="border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-strong">Current role</h3>
+        <p className="text-xs text-subtle">Optional — fill in what you know, update it anytime later.</p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Current company">
+            <input
+              className={inputCls}
+              value={form.currentCompany}
+              onChange={set('currentCompany')}
+            />
+          </Field>
+          <Field label="Designation">
+            <input
+              className={inputCls}
+              value={form.currentDesignation}
+              onChange={set('currentDesignation')}
+            />
+          </Field>
+          <Field label="Location">
+            <input
+              className={inputCls}
+              value={form.currentLocation}
+              onChange={set('currentLocation')}
+            />
+          </Field>
+          <Field label="Industry">
+            <select className={inputCls} value={form.industry} onChange={set('industry')}>
+              <option value="">Select industry…</option>
+              {INDUSTRIES.map((i) => (
+                <option key={i} value={i}>
+                  {i}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-strong">Tags &amp; availability</h3>
+        <div className="mt-3 space-y-3">
+          <Field label="Tags (comma-separated)">
+            <input
+              className={inputCls}
+              value={form.tags}
+              onChange={set('tags')}
+              placeholder="ml, founder"
+            />
+          </Field>
+          <Field label="Notes">
+            <textarea className={inputCls} rows={2} value={form.notes} onChange={set('notes')} />
+          </Field>
+          <div className="flex flex-wrap gap-4 rounded-md bg-app px-3 py-2.5">
+            <label className="flex items-center gap-2 text-sm text-body">
+              <input
+                type="checkbox"
+                checked={form.isMentor}
+                onChange={(e) => setForm((f) => ({ ...f, isMentor: e.target.checked }))}
+              />
+              Available as mentor
+            </label>
+            <label className="flex items-center gap-2 text-sm text-body">
+              <input
+                type="checkbox"
+                checked={form.isHiring}
+                onChange={(e) => setForm((f) => ({ ...f, isHiring: e.target.checked }))}
+              />
+              Currently hiring
+            </label>
+          </div>
+        </div>
+      </div>
+
       {error && <p className="text-sm text-danger">{error}</p>}
-      <div className="flex gap-2">
+      <div className="flex gap-2 border-t border-border pt-4">
         <Button onClick={submit} loading={saving} disabled={!ready}>
           {saving ? 'Saving…' : 'Add alumnus'}
         </Button>

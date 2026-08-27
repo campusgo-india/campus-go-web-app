@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
-import { createStudent, type CreateStudentInput } from '../../../../lib/students';
+import { academicYearOptions, createStudent, type CreateStudentInput } from '../../../../lib/students';
 import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 import { CopyButton } from '../../../../components/copy-button';
 
@@ -18,7 +18,7 @@ const EMPTY = {
   school: '',
   programme: '',
   graduationYear: '',
-  currentYear: '',
+  academicYear: '',
   phone: '',
   cgpa: '',
   activeBacklogs: '',
@@ -63,7 +63,7 @@ export default function NewStudentPage() {
         school: form.school.trim(),
         programme: form.programme.trim(),
         graduationYear: Number(form.graduationYear),
-        currentYear: form.currentYear === '' ? undefined : Number(form.currentYear),
+        academicYear: form.academicYear || undefined,
         phone: form.phone.trim() || undefined,
         cgpa: form.cgpa === '' ? undefined : Number(form.cgpa),
         activeBacklogs: form.activeBacklogs === '' ? undefined : Number(form.activeBacklogs),
@@ -189,10 +189,10 @@ export default function NewStudentPage() {
             placeholder="2027"
           />
           <SelectField
-            label="Current year of study"
-            value={form.currentYear}
-            onChange={set('currentYear')}
-            options={['1', '2', '3', '4']}
+            label="Academic year"
+            value={form.academicYear}
+            onChange={set('academicYear')}
+            options={academicYearOptions()}
             placeholder="Not tracked"
           />
           <Field label="Phone" value={form.phone} onChange={set('phone')} />

@@ -4,11 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
-import { importStudents, type ImportDefaults, type ImportResult } from '../../../../lib/students';
+import {
+  academicYearOptions,
+  importStudents,
+  type ImportDefaults,
+  type ImportResult,
+} from '../../../../lib/students';
 import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 
 // The nominal roll only lists reg no / name / email per row — school, programme,
-// passout year and current year are set once on the form for the whole batch.
+// passout year and academic year are set once on the form for the whole batch.
 const TEMPLATE = 'regNo,name,email\nP03ZW24M015001,Nishank G,nishankg_001@sfscollege.in';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -19,7 +24,7 @@ export default function ImportStudentsPage() {
   const [school, setSchool] = useState('');
   const [programme, setProgramme] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
-  const [currentYear, setCurrentYear] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
   const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +56,15 @@ export default function ImportStudentsPage() {
       setError('Pick the school this batch belongs to.');
       return;
     }
+    // Only actually required when the school HAS sub-programmes to choose from
+    // (e.g. B.Tech → CSE/ECE/Mechanical) — leaving it blank there used to
+    // silently label every imported student with the school name instead of
+    // their real programme. A school with no sub-programmes (e.g. MBA) has no
+    // choice to make; the programme correctly defaults to the school name.
+    if (programmesFor.length > 0 && !programme.trim()) {
+      setError('Pick the programme this batch belongs to.');
+      return;
+    }
     if (!graduationYear.trim()) {
       setError('Enter the passout (graduation) year for this batch.');
       return;
@@ -61,7 +75,7 @@ export default function ImportStudentsPage() {
         school: school.trim(),
         programme: programme.trim() || undefined,
         graduationYear: Number(graduationYear),
-        currentYear: currentYear ? Number(currentYear) : undefined,
+        academicYear: academicYear || undefined,
       };
       const res = await importStudents(csv, defaults);
       // Clean import → go to the list and show a confirmation there. If any rows
@@ -128,14 +142,16 @@ export default function ImportStudentsPage() {
               )}
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-subtle">Programme (optional)</span>
+              <span className="text-xs font-medium text-subtle">
+                Programme {programmesFor.length > 0 ? '*' : '(optional)'}
+              </span>
               {programmesFor.length > 0 ? (
                 <select
                   className={inputCls}
                   value={programme}
                   onChange={(e) => setProgramme(e.target.value)}
                 >
-                  <option value="">All / none</option>
+                  <option value="">Select programme…</option>
                   {programmesFor.map((b) => (
                     <option key={b} value={b}>
                       {b}
@@ -150,6 +166,12 @@ export default function ImportStudentsPage() {
                   placeholder="e.g. Finance"
                 />
               )}
+              {programmesFor.length > 0 && (
+                <span className="block text-xs text-subtle">
+                  Left blank, every student in this batch would be mislabeled with just the
+                  school name instead of their actual programme.
+                </span>
+              )}
             </label>
             <label className="space-y-1">
               <span className="text-xs font-medium text-subtle">Passout year *</span>
@@ -163,19 +185,18 @@ export default function ImportStudentsPage() {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-medium text-subtle">
-                Current year of study (optional)
-              </span>
+              <span className="text-xs font-medium text-subtle">Academic year (optional)</span>
               <select
                 className={inputCls}
-                value={currentYear}
-                onChange={(e) => setCurrentYear(e.target.value)}
+                value={academicYear}
+                onChange={(e) => setAcademicYear(e.target.value)}
               >
                 <option value="">Not tracked</option>
-                <option value="1">1st year</option>
-                <option value="2">2nd year</option>
-                <option value="3">3rd year</option>
-                <option value="4">4th year</option>
+                {academicYearOptions().map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
             </label>
           </div>

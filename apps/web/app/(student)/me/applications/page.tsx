@@ -1,15 +1,17 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Badge, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { ApplicationTimeline } from '../../../../components/application-timeline';
 import { ListSkeleton } from '../../../../components/page-skeleton';
 import {
   listMyApplications,
+  setOwnOfferLetter,
   withdrawApplication,
   type Application,
 } from '../../../../lib/applications';
-import { formatLpa } from '../../../../lib/jobs';
+import { formatLpa, uploadOfferLetter } from '../../../../lib/jobs';
 import { mutate, useApi } from '../../../../lib/use-api';
 
 const STATUS: Record<string, { label: string; tint: 'mint' | 'rose' | 'cream' | 'lavender' }> = {
@@ -113,6 +115,18 @@ export default function MyApplicationsPage() {
                       View offer letter
                     </a>
                   )}
+                  <OfferLetterUpload
+                    applicationId={a.id}
+                    hasOne={!!a.offerLetterUrl}
+                    onUploaded={(url) => {
+                      mutateApps(
+                        (apps ?? []).map((x) =>
+                          x.id === a.id ? { ...x, offerLetterUrl: url } : x,
+                        ) as Application[],
+                        false,
+                      );
+                    }}
+                  />
                 </div>
               )}
 
@@ -130,6 +144,57 @@ export default function MyApplicationsPage() {
           );
         })
       )}
+    </div>
+  );
+}
+
+/** Lets a selected student attach their own offer letter PDF — most offer
+ * letters land in the student's inbox first, not the officer's. */
+function OfferLetterUpload({
+  applicationId,
+  hasOne,
+  onUploaded,
+}: {
+  applicationId: string;
+  hasOne: boolean;
+  onUploaded: (url: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setError('Only PDF files are allowed.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { url } = await uploadOfferLetter(file);
+      await setOwnOfferLetter(applicationId, url);
+      onUploaded(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not upload offer letter');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <input ref={fileRef} type="file" accept="application/pdf" onChange={onFile} className="hidden" />
+      <button
+        onClick={() => fileRef.current?.click()}
+        disabled={busy}
+        className="text-sm font-medium text-primary-600 hover:underline disabled:opacity-50"
+      >
+        {busy ? 'Uploading…' : hasOne ? 'Replace offer letter' : 'Upload offer letter'}
+      </button>
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }

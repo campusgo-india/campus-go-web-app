@@ -3,6 +3,19 @@
 import type { StepCompletion } from '@campusgo/shared';
 import { api, apiList, API_URL, getAccessToken, tryRefresh } from './api';
 
+/** Academic-year session options ("2026-27"), auto-suggested around the
+ * current year — 2 years back through 3 years ahead, covers a typical
+ * programme's full duration either side of "now". */
+export function academicYearOptions(): string[] {
+  const y = new Date().getFullYear();
+  const years: string[] = [];
+  for (let i = -2; i <= 3; i++) {
+    const start = y + i;
+    years.push(`${start}-${String((start + 1) % 100).padStart(2, '0')}`);
+  }
+  return years;
+}
+
 export interface StudentUser {
   id: string;
   email: string;
@@ -24,7 +37,7 @@ export interface Student {
   school: string;
   programme: string;
   graduationYear: number;
-  currentYear: number | null;
+  academicYear: string | null;
   cgpa: number | null;
   activeBacklogs: number;
   totalBacklogs: number;
@@ -149,7 +162,7 @@ export interface CreateStudentInput extends ExtendedProfileFields {
   school: string;
   programme: string;
   graduationYear: number;
-  currentYear?: number;
+  academicYear?: string;
   enrollmentNumber?: string;
   phone?: string;
   cgpa?: number;
@@ -162,7 +175,7 @@ export interface ImportDefaults {
   school?: string;
   programme?: string;
   graduationYear?: number;
-  currentYear?: number;
+  academicYear?: string;
 }
 
 export interface ImportResult {

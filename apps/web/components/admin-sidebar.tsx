@@ -22,14 +22,13 @@ const PLATFORM_NAV: NavItem[] = [
 
 // College Admin + Placement Officer share the operational shell.
 const COLLEGE_NAV: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/placement', label: 'Dashboard' },
   { href: '/students', label: 'Students' },
   { href: '/companies', label: 'Companies' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/alumni', label: 'Alumni' },
   { href: '/internships', label: 'Internships' },
   { href: '/training', label: 'Training' },
-  { href: '/placement', label: 'Placement' },
   { href: '/feedback', label: 'Feedback' },
   { href: '/reports', label: 'Reports' },
 ];

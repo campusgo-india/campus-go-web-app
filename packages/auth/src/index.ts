@@ -21,10 +21,18 @@ export function homePathForRole(role: UserRole): string {
       return '/platform/colleges';
     case UserRole.COLLEGE_ADMIN:
     case UserRole.PLACEMENT_OFFICER:
-      return '/dashboard';
+      return '/placement';
+    case UserRole.PLACEMENT_COORDINATOR:
+      return '/jobs';
     case UserRole.STUDENT:
       return '/me';
     default:
       return '/login';
   }
+}
+
+/** Where a forced/voluntary password change lives for this role's shell —
+ * /me/* is student-only, every other role's shell is under /settings. */
+export function changePasswordPathForRole(role: UserRole): string {
+  return role === UserRole.STUDENT ? '/me/change-password' : '/settings/change-password';
 }

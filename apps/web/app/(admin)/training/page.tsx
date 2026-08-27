@@ -109,8 +109,8 @@ export default function TrainingAssessmentsPage() {
         </div>
       </div>
 
-      <Card className="space-y-3 p-5">
-        <p className="text-sm font-semibold text-strong">Evaluation framework — 4 skill pillars</p>
+      <Card className="space-y-4 p-5">
+        <p className="text-sm font-semibold text-strong">Student Readiness Framework</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {TRAINING_PILLARS.map((p) => (
             <div key={p} className="space-y-1">
@@ -123,10 +123,20 @@ export default function TrainingAssessmentsPage() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-subtle">
-          Every assessment and session is scored under one of these pillars — pick the one that
-          best matches what it evaluates when creating a new one.
-        </p>
+        <div className="space-y-2 border-t border-border pt-3">
+          <div>
+            <p className="text-xs font-semibold text-strong">How it works:</p>
+            <p className="text-xs text-subtle">
+              Every training session and assessment is mapped to one of these pillars.
+              Assessments contribute to the student&apos;s readiness score based on the pillar
+              they evaluate.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-strong">Overall Readiness Score:</p>
+            <p className="text-xs text-subtle">Average of the four core skill pillar scores.</p>
+          </div>
+        </div>
       </Card>
 
       {error && <p className="text-sm text-danger">{error}</p>}

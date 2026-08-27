@@ -76,7 +76,7 @@ export class RoundsService {
   // Placement Officer scoped to their own jobs (see assertOwnJob) is scoped
   // out of a colleague's job's rounds/attendance/decisions too — not just the
   // job record itself.
-  private async resolveJob(collegeId: string, jobId: string, viewer?: Viewer) {
+  private async resolveJobForView(collegeId: string, jobId: string) {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, ...jobVisibleToCollege(collegeId) },
       select: {
@@ -91,6 +91,15 @@ export class RoundsService {
       },
     });
     if (!job) throw new NotFoundException('Job not found');
+    return job;
+  }
+
+  // Same lookup, but also enforces that the viewer manages this job (used by
+  // every round action: create/update/delete/attendance/decide/place/reject).
+  // Viewing the funnel/pipeline is open to every officer at the college —
+  // see resolveJobForView — only managing it is creator-restricted.
+  private async resolveJob(collegeId: string, jobId: string, viewer?: Viewer) {
+    const job = await this.resolveJobForView(collegeId, jobId);
     assertOwnJob(job, viewer);
     return job;
   }
@@ -122,12 +131,38 @@ export class RoundsService {
     return job.company?.name ?? job.companyName ?? 'the company';
   }
 
+  // A job is filled the moment one applicant is placed — everyone else still in
+  // the running (APPLIED/IN_PROGRESS, including those sitting in a still-open
+  // round) needs to be auto-rejected, otherwise they're left stuck forever and
+  // the job never leaves "active" on the placement dashboard. Returns who was
+  // rejected so the caller can notify them.
+  private async autoRejectRemaining(where: Prisma.ApplicationWhereInput, reason: string) {
+    const others = await this.prisma.application.findMany({
+      where,
+      select: { id: true, collegeId: true, student: { select: { userId: true } } },
+    });
+    if (others.length === 0) return others;
+    const now = new Date();
+    const otherIds = others.map((o) => o.id);
+    await this.prisma.$transaction([
+      this.prisma.application.updateMany({
+        where: { id: { in: otherIds } },
+        data: { status: 'REJECTED', stage: 'REJECTED', rejectedAt: now, rejectionReason: reason },
+      }),
+      this.prisma.applicationRound.updateMany({
+        where: { applicationId: { in: otherIds }, outcome: 'PENDING' },
+        data: { outcome: 'REJECTED', decidedAt: now },
+      }),
+    ]);
+    return others;
+  }
+
   // ─────────────── The whole funnel for the officer screen ───────────────
   // A Placement Coordinator sees the same funnel shape but only their own
   // programmes' applicants — everyone else outside their remit is filtered
   // out of every bucket (pool, rounds, finalists, placed).
   async funnel(collegeId: string, jobId: string, viewer?: Viewer) {
-    await this.resolveJob(collegeId, jobId, viewer);
+    await this.resolveJobForView(collegeId, jobId);
     const programmeRestriction = await this.programmeRestriction(viewer);
     const inScope = (programme: string) =>
       !programmeRestriction || programmeRestriction.includes(programme);
@@ -594,6 +629,25 @@ export class RoundsService {
       link: `/me/jobs/${job.id}`,
     });
 
+    // The job is filled — everyone else still in the running is auto-rejected
+    // so they don't get left stuck and the job stops showing as "active".
+    const others = await this.autoRejectRemaining(
+      { jobId, collegeId, status: { in: ['APPLIED', 'IN_PROGRESS'] }, id: { not: applicationId } },
+      `Position filled at ${this.companyName(job)}`,
+    );
+    await Promise.all(
+      others.map((o) =>
+        this.notifications.notify({
+          userId: o.student.userId,
+          collegeId: o.collegeId,
+          type: 'APPLICATION_STAGE_CHANGED',
+          title: `Update — ${job.title}`,
+          body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward — the position has been filled.`,
+          link: `/me/jobs/${job.id}`,
+        }),
+      ),
+    );
+
     return { success: true };
   }
 
@@ -919,6 +973,30 @@ export class RoundsService {
       body: `Congratulations! You've been selected for ${job.title}.`,
       link: `/me/jobs/${job.id}`,
     });
+
+    // The job is filled — everyone else still in the running (across every
+    // targeted college) is auto-rejected so they don't get left stuck.
+    const others = await this.autoRejectRemaining(
+      {
+        jobId,
+        collegeId: { in: job.targetCollegeIds },
+        status: { in: ['APPLIED', 'IN_PROGRESS'] },
+        id: { not: applicationId },
+      },
+      `Position filled at ${this.companyName(job)}`,
+    );
+    await Promise.all(
+      others.map((o) =>
+        this.notifications.notify({
+          userId: o.student.userId,
+          collegeId: o.collegeId,
+          type: 'APPLICATION_STAGE_CHANGED',
+          title: `Update — ${job.title}`,
+          body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward — the position has been filled.`,
+          link: `/me/jobs/${job.id}`,
+        }),
+      ),
+    );
 
     return { success: true };
   }

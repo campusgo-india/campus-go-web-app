@@ -55,7 +55,11 @@ export class CreateStudentDto {
   @Max(CURRENT_YEAR + 10)
   graduationYear!: number;
 
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10) currentYear?: number;
+  // Which academic session the student is currently in, e.g. "2026-27" — not
+  // an ordinal year-of-programme count (programmes vary in length).
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}$/, { message: 'Academic year must look like 2026-27' })
+  academicYear?: string;
 
   @IsOptional()
   @IsString()
@@ -116,7 +120,11 @@ export class UpdateStudentDto {
   @Max(CURRENT_YEAR + 10)
   graduationYear?: number;
 
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10) currentYear?: number;
+  // Which academic session the student is currently in, e.g. "2026-27" — not
+  // an ordinal year-of-programme count (programmes vary in length).
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}$/, { message: 'Academic year must look like 2026-27' })
+  academicYear?: string;
   @IsOptional() @IsString() @MinLength(1) rollNumber?: string;
 
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) cgpa?: number;
@@ -265,7 +273,11 @@ export class ImportStudentsDto {
   @Min(1990)
   @Max(CURRENT_YEAR + 10)
   graduationYear?: number;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10) currentYear?: number;
+  // Which academic session the student is currently in, e.g. "2026-27" — not
+  // an ordinal year-of-programme count (programmes vary in length).
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}$/, { message: 'Academic year must look like 2026-27' })
+  academicYear?: string;
 }
 
 export class SetStudentStatusDto {
