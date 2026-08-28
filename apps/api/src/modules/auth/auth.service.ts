@@ -90,7 +90,7 @@ export class AuthService {
         console.log(`[dev] password reset token for ${email}: ${raw}`);
       }
       const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
-      const resetUrl = `${webOrigin}/reset-password?token=${raw}`;
+      const resetUrl = `${webOrigin}/reset-password/${raw}`;
       // Best-effort — sendForCollege never throws, so a failed/unconfigured
       // mailer never blocks this endpoint's generic "check your email" reply.
       await this.email.sendForCollege(user.collegeId, {
