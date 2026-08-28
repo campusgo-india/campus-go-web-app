@@ -338,7 +338,7 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
               {s.offerCtc != null && (
                 <span className="text-sm font-medium text-strong">{formatLpa(s.offerCtc)}</span>
               )}
-              {s.offerLetterUrl ? (
+              {s.offerLetterUrl && (
                 <a
                   href={s.offerLetterUrl}
                   target="_blank"
@@ -347,11 +347,10 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
                 >
                   Offer letter
                 </a>
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setPlacing(s)}>
-                  Add offer letter
-                </Button>
               )}
+              <Button size="sm" variant="ghost" onClick={() => setPlacing(s)}>
+                {s.offerLetterUrl || s.offerCtc != null ? 'Edit' : 'Add offer letter'}
+              </Button>
               <Badge tint="mint">Selected</Badge>
             </div>
           )}
@@ -990,10 +989,13 @@ function PlaceModal({
     >
       <Card className="w-full max-w-sm space-y-4 p-6">
         <div>
-          <h2 className="text-lg font-semibold text-strong">Select {student.fullName}</h2>
+          <h2 className="text-lg font-semibold text-strong">
+            {student.status === 'SELECTED' ? `Edit ${student.fullName}'s offer` : `Select ${student.fullName}`}
+          </h2>
           <p className="text-sm text-subtle">
             {student.rollNumber}
-            {student.collegeName ? ` · ${student.collegeName}` : ''} · marks them placed
+            {student.collegeName ? ` · ${student.collegeName}` : ''}
+            {student.status === 'SELECTED' ? ' · update CTC or replace the offer letter' : ' · marks them placed'}
           </p>
         </div>
         <label className="block space-y-1">

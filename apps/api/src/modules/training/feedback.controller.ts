@@ -6,7 +6,7 @@ import { TrainingFeedbackService } from './feedback.service';
 import { SubmitFeedbackDto } from './dto';
 
 @Controller('training/feedback')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
 export class TrainingFeedbackController {
   constructor(private readonly feedback: TrainingFeedbackService) {}
 

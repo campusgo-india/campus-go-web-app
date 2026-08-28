@@ -7,6 +7,7 @@ import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { BatchCards } from '../../../components/batch-cards';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useConfirm } from '../../../components/confirm-provider';
+import { useSession } from '../../../lib/session';
 import {
   deleteInternship,
   downloadInternships,
@@ -42,6 +43,8 @@ type ViewState =
  * first; officers don't create them on a student's behalf. */
 export default function InternshipsPage() {
   const confirm = useConfirm();
+  const { user } = useSession();
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
   const [items, setItems] = useState<Internship[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -315,21 +318,23 @@ export default function InternshipsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 align-top">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditing(i)}
-                            className="text-xs font-medium text-primary-600 hover:underline"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => onDelete(i)}
-                            disabled={deletingId === i.id}
-                            className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
-                          >
-                            {deletingId === i.id ? 'Removing…' : 'Remove'}
-                          </button>
-                        </div>
+                        {!readOnly && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setEditing(i)}
+                              className="text-xs font-medium text-primary-600 hover:underline"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => onDelete(i)}
+                              disabled={deletingId === i.id}
+                              className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
+                            >
+                              {deletingId === i.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))

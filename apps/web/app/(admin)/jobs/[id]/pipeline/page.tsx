@@ -318,7 +318,7 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
               {s.offerCtc != null && (
                 <span className="text-sm font-medium text-strong">{formatLpa(s.offerCtc)}</span>
               )}
-              {s.offerLetterUrl ? (
+              {s.offerLetterUrl && (
                 <a
                   href={s.offerLetterUrl}
                   target="_blank"
@@ -327,9 +327,10 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
                 >
                   Offer letter
                 </a>
-              ) : (
+              )}
+              {!readOnly && (
                 <Button size="sm" variant="ghost" onClick={() => setPlacing(s)}>
-                  Add offer letter
+                  {s.offerLetterUrl || s.offerCtc != null ? 'Edit' : 'Add offer letter'}
                 </Button>
               )}
               <Badge tint="mint">Selected</Badge>
@@ -974,8 +975,13 @@ function PlaceModal({
     >
       <Card className="w-full max-w-sm space-y-4 p-6">
         <div>
-          <h2 className="text-lg font-semibold text-strong">Select {student.fullName}</h2>
-          <p className="text-sm text-subtle">{student.rollNumber} · marks them placed</p>
+          <h2 className="text-lg font-semibold text-strong">
+            {student.status === 'SELECTED' ? `Edit ${student.fullName}'s offer` : `Select ${student.fullName}`}
+          </h2>
+          <p className="text-sm text-subtle">
+            {student.rollNumber}
+            {student.status === 'SELECTED' ? ' · update CTC or replace the offer letter' : ' · marks them placed'}
+          </p>
         </div>
         <label className="block space-y-1">
           <span className="text-xs font-medium text-subtle">Offer CTC (₹/yr)</span>

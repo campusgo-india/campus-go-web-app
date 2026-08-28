@@ -87,7 +87,8 @@ export default function TrainingAssessmentsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-strong">Training &amp; Assessments</h1>
           <p className="text-sm text-subtle">
-            Pre/post tests across the 4 employability pillars, hosted on external platforms.
+            Plan and manage student training, with pre- and post-training assessments mapped to
+            the four core employability pillars to measure learning and improvement.
           </p>
         </div>
         <div className="flex items-center gap-2">

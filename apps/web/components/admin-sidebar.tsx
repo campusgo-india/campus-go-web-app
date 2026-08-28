@@ -37,12 +37,17 @@ const COLLEGE_NAV: NavItem[] = [
 const TEAM_NAV: NavItem = { href: '/settings/team', label: 'Team' };
 const SCHOOLS_NAV: NavItem = { href: '/settings/courses', label: 'Schools' };
 
-// Placement Coordinator: read-only, scoped to their assigned programmes — jobs
-// posted + which of their programmes' students applied, nothing else.
+// Placement Coordinator: read-only, complete visibility into everything
+// related to their department — students/jobs/internships are scoped to
+// their assigned programmes; the placement dashboard and feedback views are
+// currently college-wide (not yet programme-scoped).
 const COORDINATOR_NAV: NavItem[] = [
-  { href: '/jobs', label: 'Jobs' },
+  { href: '/placement', label: 'Dashboard' },
   { href: '/students', label: 'Students' },
+  { href: '/jobs', label: 'Jobs' },
+  { href: '/internships', label: 'Internships' },
   { href: '/training/dashboard', label: 'Training' },
+  { href: '/feedback', label: 'Feedback' },
 ];
 
 function navFor(role: UserRole | undefined): NavItem[] {

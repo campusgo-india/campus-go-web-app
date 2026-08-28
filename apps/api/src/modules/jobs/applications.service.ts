@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
-import { Prisma, ApplicationStage } from '@campusgo/database';
+import { Prisma, ApplicationOutcome, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
 import { jobVisibleToCollege, type Viewer } from './job-scope.util';
@@ -37,6 +37,26 @@ const TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
 };
 
 const PLACING_STAGES: ApplicationStage[] = ['OFFER_ACCEPTED', 'JOINED'];
+
+// The modern rounds-based Application.status (APPLIED/IN_PROGRESS/SELECTED/
+// REJECTED/WITHDRAWN) that each legacy ATS stage corresponds to — kept in
+// sync by changeStage() below, so a student's Placement Dashboard (which
+// reads only `status`) doesn't stay stuck on "Applied" forever for an
+// application progressed through the legacy stage flow instead of rounds.
+const STATUS_FOR_STAGE: Record<ApplicationStage, ApplicationOutcome> = {
+  APPLIED: 'APPLIED',
+  VERIFIED: 'IN_PROGRESS',
+  SHORTLISTED: 'IN_PROGRESS',
+  ROUND_1: 'IN_PROGRESS',
+  ROUND_2: 'IN_PROGRESS',
+  ROUND_3: 'IN_PROGRESS',
+  HR: 'IN_PROGRESS',
+  OFFER_RELEASED: 'IN_PROGRESS',
+  OFFER_ACCEPTED: 'SELECTED',
+  JOINED: 'SELECTED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'WITHDRAWN',
+};
 
 @Injectable()
 export class ApplicationsService {
@@ -75,9 +95,19 @@ export class ApplicationsService {
     return apps.map((a) => this.publicApplication(a));
   }
 
-  // A selected student can attach their own offer letter — in most cases the
-  // student receives it directly from the recruiter before the officer does.
-  async setOwnOfferLetter(userId: string, applicationId: string, offerLetterUrl: string) {
+  // A selected student can attach their own offer letter (and the CTC on it)
+  // — in most cases the student receives the offer directly from the
+  // recruiter before the officer does. offerCtc is optional here since the
+  // officer may have already entered it correctly.
+  async setOwnOfferLetter(
+    userId: string,
+    applicationId: string,
+    offerLetterUrl?: string,
+    offerCtc?: number,
+  ) {
+    if (offerLetterUrl == null && offerCtc == null) {
+      throw new BadRequestException('Provide an offer letter, a CTC, or both.');
+    }
     const student = await this.studentForUser(userId);
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, studentId: student.id },
@@ -88,7 +118,10 @@ export class ApplicationsService {
     }
     return this.prisma.application.update({
       where: { id: applicationId },
-      data: { offerLetterUrl },
+      data: {
+        ...(offerLetterUrl != null ? { offerLetterUrl } : {}),
+        ...(offerCtc != null ? { offerCtc: new Prisma.Decimal(offerCtc) } : {}),
+      },
     });
   }
 
@@ -401,6 +434,7 @@ export class ApplicationsService {
         where: { id: applicationId },
         data: {
           stage: target,
+          status: STATUS_FOR_STAGE[target],
           ...(target === 'REJECTED'
             ? { rejectedAt: new Date(), rejectionReason: dto.rejectionReason }
             : {}),

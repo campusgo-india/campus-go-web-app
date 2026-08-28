@@ -33,13 +33,20 @@ export class InternshipsController {
   }
 
   @Get()
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
   async list(@CurrentUser() user: JwtPayload) {
-    return { data: await this.internships.list(this.collegeId(user)) };
+    return {
+      data: await this.internships.list(this.collegeId(user), { role: user.role, userId: user.sub }),
+    };
   }
 
   @Get('export')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
   async export(@CurrentUser() user: JwtPayload, @Res() res: Response) {
-    const dataset = await this.internships.exportDataset(this.collegeId(user));
+    const dataset = await this.internships.exportDataset(this.collegeId(user), {
+      role: user.role,
+      userId: user.sub,
+    });
     const buffer = await toXlsx(dataset);
     res.setHeader(
       'Content-Type',

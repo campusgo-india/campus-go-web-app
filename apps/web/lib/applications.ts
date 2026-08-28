@@ -93,12 +93,16 @@ export function withdrawApplication(id: string): Promise<{ id: string }> {
   return api(`/me/applications/${id}/withdraw`, { method: 'POST' });
 }
 
-// Attach the student's own offer letter to a SELECTED application — most offer
-// letters land in the student's inbox first, not the officer's.
-export function setOwnOfferLetter(id: string, offerLetterUrl: string): Promise<Application> {
+// Attach the student's own offer letter (and CTC) to a SELECTED application —
+// most offer letters land in the student's inbox first, not the officer's.
+export function setOwnOfferLetter(
+  id: string,
+  offerLetterUrl?: string,
+  offerCtc?: number,
+): Promise<Application> {
   return api(`/me/applications/${id}/offer-letter`, {
     method: 'PATCH',
-    body: JSON.stringify({ offerLetterUrl }),
+    body: JSON.stringify({ offerLetterUrl, offerCtc }),
   });
 }
 

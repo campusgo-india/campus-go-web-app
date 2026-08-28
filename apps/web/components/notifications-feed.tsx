@@ -41,6 +41,7 @@ export function NotificationsFeed() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   async function load() {
     try {
@@ -57,6 +58,12 @@ export function NotificationsFeed() {
   }, []);
 
   const unread = items.filter((n) => !n.readAt).length;
+  const q = search.trim().toLowerCase();
+  const visible = q
+    ? items.filter(
+        (n) => n.title.toLowerCase().includes(q) || (n.body ?? '').toLowerCase().includes(q),
+      )
+    : items;
 
   async function open(n: AppNotification) {
     if (!n.readAt) {
@@ -94,13 +101,25 @@ export function NotificationsFeed() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
+      {!loading && items.length > 5 && (
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search notifications…"
+          className="h-10 w-full rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
+        />
+      )}
+
       {loading ? (
         <ListSkeleton />
       ) : items.length === 0 ? (
         <Card className="p-8 text-center text-sm text-subtle">No notifications yet.</Card>
+      ) : visible.length === 0 ? (
+        <Card className="p-8 text-center text-sm text-subtle">No notifications match your search.</Card>
       ) : (
         <div className="space-y-2.5">
-          {items.map((n, i) => {
+          {visible.map((n, i) => {
             const style = TYPE_STYLE[n.type] ?? DEFAULT_STYLE;
             return (
               <Card

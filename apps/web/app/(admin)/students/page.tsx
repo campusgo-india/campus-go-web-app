@@ -19,6 +19,7 @@ import {
   type Student,
   type StudentBatch,
 } from '../../../lib/students';
+import { listMySchools, type CollegeSchool } from '../../../lib/courses';
 
 export default function StudentsPage() {
   return (
@@ -70,6 +71,8 @@ function StudentsList() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [detailsFilter, setDetailsFilter] = useState<'' | 'complete' | 'incomplete'>('');
   const [resumeFilter, setResumeFilter] = useState<'' | 'uploaded' | 'missing'>('');
+  const [programmeFilter, setProgrammeFilter] = useState('');
+  const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +105,14 @@ function StudentsList() {
     loadBatches();
   }, [loadBatches]);
 
+  useEffect(() => {
+    listMySchools()
+      .then(setSchools)
+      .catch(() => {
+        /* non-fatal: programme filter just won't show options */
+      });
+  }, []);
+
   // Debounce the search box within a batch.
   useEffect(() => {
     const t = setTimeout(() => {
@@ -119,6 +130,7 @@ function StudentsList() {
       const res = await listStudents({
         search: debouncedSearch || undefined,
         school: view.school,
+        programme: programmeFilter || undefined,
         graduationYear: view.year,
         detailsComplete: detailsFilter === '' ? undefined : detailsFilter === 'complete',
         resumeComplete: resumeFilter === '' ? undefined : resumeFilter === 'uploaded',
@@ -132,7 +144,7 @@ function StudentsList() {
     } finally {
       setLoading(false);
     }
-  }, [view, debouncedSearch, detailsFilter, resumeFilter, page]);
+  }, [view, debouncedSearch, detailsFilter, resumeFilter, programmeFilter, page]);
 
   useEffect(() => {
     if (view.mode === 'table') load();
@@ -197,6 +209,7 @@ function StudentsList() {
     setDebouncedSearch('');
     setDetailsFilter('');
     setResumeFilter('');
+    setProgrammeFilter('');
     setPage(1);
     setItems([]);
     setMeta(undefined);
@@ -406,6 +419,26 @@ function StudentsList() {
               ← All schools in {view.year}
             </button>
             <div className="flex flex-wrap items-center gap-2">
+              {view.mode === 'table' &&
+                (schools.find((c) => c.name === view.school)?.programmes.length ?? 0) > 0 && (
+                  <select
+                    value={programmeFilter}
+                    onChange={(e) => {
+                      setPage(1);
+                      setProgrammeFilter(e.target.value);
+                    }}
+                    className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
+                  >
+                    <option value="">All programmes</option>
+                    {schools
+                      .find((c) => c.name === view.school)
+                      ?.programmes.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                  </select>
+                )}
               <select
                 value={detailsFilter}
                 onChange={(e) => {
@@ -449,6 +482,7 @@ function StudentsList() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Reg No.</th>
+                  <th className="px-4 py-3 font-medium">Programme</th>
                   <th className="px-4 py-3 font-medium">Resume</th>
                   <th className="px-4 py-3 font-medium">Details</th>
                   <th className="px-4 py-3 font-medium">Login</th>
@@ -458,13 +492,13 @@ function StudentsList() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8">
+                    <td colSpan={7} className="px-4 py-8">
                       <InlineSkeleton width="w-full" height="h-32" />
                     </td>
                   </tr>
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-subtle">
+                    <td colSpan={7} className="px-4 py-8 text-center text-subtle">
                       No students match your search.
                     </td>
                   </tr>
@@ -481,6 +515,7 @@ function StudentsList() {
                         <p className="text-xs text-subtle">{s.user.email}</p>
                       </td>
                       <td className="px-4 py-3 text-strong">{s.rollNumber}</td>
+                      <td className="px-4 py-3 text-body">{s.programme || '—'}</td>
                       <td className="px-4 py-3">
                         {s.resumeComplete ? (
                           <span className="text-xs text-success">Uploaded</span>

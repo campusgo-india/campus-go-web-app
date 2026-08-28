@@ -42,6 +42,9 @@ const ADMIN_PREFIXES = [
   '/reports',
   '/alumni',
   '/notifications',
+  '/internships',
+  '/training',
+  '/feedback',
 ];
 
 export function middleware(req: NextRequest) {

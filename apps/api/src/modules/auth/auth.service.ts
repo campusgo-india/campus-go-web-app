@@ -7,6 +7,7 @@ import type { JwtPayload } from '@campusgo/shared';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import { TokenService } from './token.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly tokens: TokenService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -83,11 +85,19 @@ export class AuthService {
           expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL * 1000),
         },
       });
-      // Phase 4: send `raw` via Resend. For now, log in dev only.
       if (this.config.get('NODE_ENV') === 'development') {
         // eslint-disable-next-line no-console
         console.log(`[dev] password reset token for ${email}: ${raw}`);
       }
+      const webOrigin = this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+      const resetUrl = `${webOrigin}/reset-password?token=${raw}`;
+      // Best-effort — sendForCollege never throws, so a failed/unconfigured
+      // mailer never blocks this endpoint's generic "check your email" reply.
+      await this.email.sendForCollege(user.collegeId, {
+        to: user.email,
+        subject: 'Reset your CampusGO password',
+        html: `<p>Hi ${user.fullName},</p><p>Click the link below to reset your CampusGO password. This link expires in ${PASSWORD_RESET_TTL / 60} minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+      });
     }
     return { success: true };
   }

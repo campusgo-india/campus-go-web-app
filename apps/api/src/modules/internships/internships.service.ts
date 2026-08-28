@@ -15,9 +15,25 @@ const MAX_INTERNSHIPS_PER_STUDENT = 3;
 const dec = (v: Prisma.Decimal | null) => (v != null ? Number(v) : null);
 const toDec = (v?: number) => (v != null ? new Prisma.Decimal(v) : null);
 
+interface Viewer {
+  role: string;
+  userId: string;
+}
+
 @Injectable()
 export class InternshipsService {
   constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+
+  // A Placement Coordinator only ever sees their assigned programmes' students
+  // — read-only, everywhere else the same restriction is applied.
+  private async programmeRestriction(viewer?: Viewer): Promise<string[] | null> {
+    if (!viewer || viewer.role !== 'PLACEMENT_COORDINATOR') return null;
+    const u = await this.prisma.user.findUnique({
+      where: { id: viewer.userId },
+      select: { assignedProgrammes: true },
+    });
+    return u?.assignedProgrammes ?? [];
+  }
 
   private toPublic(
     i: Internship & {
@@ -167,15 +183,20 @@ export class InternshipsService {
   // ─────────────── Officer / Admin ───────────────
   // Every self-reported internship at the college, with the student's batch info
   // (school + graduation year) so the officer UI can group them batch by batch.
-  async list(collegeId: string) {
+  async list(collegeId: string, viewer?: Viewer) {
+    const programmeRestriction = await this.programmeRestriction(viewer);
     const rows = await this.prisma.internship.findMany({
-      where: { collegeId },
+      where: {
+        collegeId,
+        ...(programmeRestriction ? { student: { programme: { in: programmeRestriction } } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         student: {
           select: {
             rollNumber: true,
             school: true,
+            programme: true,
             graduationYear: true,
             user: { select: { fullName: true } },
           },
@@ -185,8 +206,8 @@ export class InternshipsService {
     return rows.map((r) => this.toPublic(r));
   }
 
-  async exportDataset(collegeId: string): Promise<ReportDataset> {
-    const items = await this.list(collegeId);
+  async exportDataset(collegeId: string, viewer?: Viewer): Promise<ReportDataset> {
+    const items = await this.list(collegeId, viewer);
     return {
       filename: `internships-${new Date().toISOString().slice(0, 10)}`,
       title: 'Internships',

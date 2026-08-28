@@ -27,6 +27,7 @@ export class EmployerFeedbackController {
   }
 
   @Get(':id/feedback')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
   async getForJob(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return {
       data: await this.feedback.getForJob(this.collegeId(user), id, {
@@ -49,6 +50,7 @@ export class OfficerEmployerFeedbackListController {
   }
 
   @Get()
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
   async list(@CurrentUser() user: JwtPayload) {
     return { data: await this.feedback.listForCollege(this.collegeId(user)) };
   }

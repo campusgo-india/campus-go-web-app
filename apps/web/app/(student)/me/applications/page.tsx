@@ -118,11 +118,10 @@ export default function MyApplicationsPage() {
                   <OfferLetterUpload
                     applicationId={a.id}
                     hasOne={!!a.offerLetterUrl}
-                    onUploaded={(url) => {
+                    currentCtc={a.offerCtc}
+                    onUploaded={(patch) => {
                       mutateApps(
-                        (apps ?? []).map((x) =>
-                          x.id === a.id ? { ...x, offerLetterUrl: url } : x,
-                        ) as Application[],
+                        (apps ?? []).map((x) => (x.id === a.id ? { ...x, ...patch } : x)) as Application[],
                         false,
                       );
                     }}
@@ -148,18 +147,23 @@ export default function MyApplicationsPage() {
   );
 }
 
-/** Lets a selected student attach their own offer letter PDF — most offer
- * letters land in the student's inbox first, not the officer's. */
+/** Lets a selected student attach their own offer letter PDF and/or enter the
+ * CTC on it — most offers land in the student's inbox first, not the
+ * officer's, and this also gives the student a way to correct a CTC the
+ * officer mistyped. */
 function OfferLetterUpload({
   applicationId,
   hasOne,
+  currentCtc,
   onUploaded,
 }: {
   applicationId: string;
   hasOne: boolean;
-  onUploaded: (url: string) => void;
+  currentCtc: number | null;
+  onUploaded: (patch: { offerLetterUrl?: string; offerCtc?: number }) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [ctc, setCtc] = useState(currentCtc != null ? String(currentCtc) : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -175,8 +179,9 @@ function OfferLetterUpload({
     setError(null);
     try {
       const { url } = await uploadOfferLetter(file);
-      await setOwnOfferLetter(applicationId, url);
-      onUploaded(url);
+      const parsedCtc = ctc.trim() ? Number(ctc) : undefined;
+      await setOwnOfferLetter(applicationId, url, parsedCtc);
+      onUploaded({ offerLetterUrl: url, offerCtc: parsedCtc });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not upload offer letter');
     } finally {
@@ -184,8 +189,38 @@ function OfferLetterUpload({
     }
   }
 
+  async function saveCtc() {
+    const parsedCtc = ctc.trim() ? Number(ctc) : undefined;
+    if (parsedCtc == null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setOwnOfferLetter(applicationId, undefined, parsedCtc);
+      onUploaded({ offerCtc: parsedCtc });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save CTC');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <input
+        type="number"
+        min="0"
+        value={ctc}
+        onChange={(e) => setCtc(e.target.value)}
+        placeholder="CTC (₹/yr)"
+        className="h-8 w-32 rounded-md border border-border bg-white px-2 text-xs outline-none focus:border-primary-400"
+      />
+      <button
+        onClick={saveCtc}
+        disabled={busy || !ctc.trim() || Number(ctc) === currentCtc}
+        className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+      >
+        Save CTC
+      </button>
       <input ref={fileRef} type="file" accept="application/pdf" onChange={onFile} className="hidden" />
       <button
         onClick={() => fileRef.current?.click()}
