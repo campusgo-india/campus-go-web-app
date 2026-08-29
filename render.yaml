@@ -37,6 +37,16 @@ services:
       # in the database undecryptable.
       - key: EMAIL_CREDENTIALS_KEY
         sync: false
+      # Platform default sender — tried first. DEFAULT_FROM_EMAIL must be on a
+      # domain verified in the Resend dashboard.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: DEFAULT_FROM_NAME
+        sync: false
+      # Legacy fallback-of-last-resort (GoDaddy SMTP), only read if
+      # RESEND_API_KEY above is unset.
       - key: DEFAULT_SMTP_HOST
         sync: false
       - key: DEFAULT_SMTP_PORT
@@ -46,8 +56,4 @@ services:
       - key: DEFAULT_SMTP_USER
         sync: false
       - key: DEFAULT_SMTP_PASSWORD
-        sync: false
-      - key: DEFAULT_FROM_EMAIL
-        sync: false
-      - key: DEFAULT_FROM_NAME
         sync: false

@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer, { type Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import { decryptSecret, encryptSecret } from '../../common/crypto';
@@ -28,18 +29,43 @@ export interface SendEmailInput {
  * never fail (or slow down) the domain action that triggered a notification.
  * Per college: if CollegeEmailSettings is enabled and verified, mail sends under
  * that college's own identity via their SMTP; otherwise it falls back to the
- * platform's default (GoDaddy) account. A college's own SMTP failing does NOT
- * fall back to the default — that would send under the wrong sender identity.
+ * platform's default sender — Resend if RESEND_API_KEY is set (preferred: an
+ * HTTPS API call, not an SMTP connection, so it isn't affected by outbound
+ * SMTP ports being blocked/unreliable on serverless), else the legacy
+ * DEFAULT_SMTP_* account (GoDaddy) if that's configured instead. A college's
+ * own SMTP failing does NOT fall back to the default — that would send under
+ * the wrong sender identity.
  */
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private defaultTransport: Transporter | null = null;
+  private resendClient: Resend | null = null;
 
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly config: ConfigService,
   ) {}
+
+  private getResendClient(): Resend | null {
+    const apiKey = this.config.get<string>('RESEND_API_KEY');
+    if (!apiKey) return null;
+    if (!this.resendClient) this.resendClient = new Resend(apiKey);
+    return this.resendClient;
+  }
+
+  private async sendViaResend(resend: Resend, input: SendEmailInput): Promise<void> {
+    const fromEmail = this.config.get<string>('DEFAULT_FROM_EMAIL') ?? 'onboarding@resend.dev';
+    const fromName = this.config.get<string>('DEFAULT_FROM_NAME') ?? 'CampusGO';
+    const { error } = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: input.to,
+      subject: input.subject,
+      html: input.html ?? `<p>${(input.text ?? input.subject).replace(/\n/g, '<br/>')}</p>`,
+      text: input.text ?? input.html?.replace(/<[^>]+>/g, ' '),
+    });
+    if (error) throw new Error(error.message);
+  }
 
   private getDefaultConfig(): SmtpConfig | null {
     const host = this.config.get<string>('DEFAULT_SMTP_HOST');
@@ -109,9 +135,17 @@ export class EmailService {
         return;
       }
 
+      const resend = this.getResendClient();
+      if (resend) {
+        await this.sendViaResend(resend, input);
+        return;
+      }
+
       const fallback = this.getDefaultTransport();
       if (!fallback) {
-        this.logger.warn('No default SMTP configured — email not sent (in-app notification still created).');
+        this.logger.warn(
+          'No default sender configured (RESEND_API_KEY or DEFAULT_SMTP_*) — email not sent (in-app notification still created).',
+        );
         return;
       }
       await this.send(fallback.transport, fallback.cfg, input);
