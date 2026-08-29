@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import ExcelJS from 'exceljs';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient, TrainingSession } from '@campusgo/database';
 import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 
 function toPublic(s: TrainingSession) {
   return {
@@ -80,7 +82,12 @@ export class TrainingSessionsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
 
   // ─────────────── Officer / Admin ───────────────
 
@@ -198,6 +205,16 @@ export class TrainingSessionsService {
       title: `Attendance recorded: ${session.title}`,
       body: `Your attendance for "${session.title}" has been recorded. Check the Training section for details.`,
       link: '/me/training/calendar',
+      email: {
+        subject: `Attendance Recorded – ${session.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Your attendance for "${session.title}" has been recorded.`,
+          fields: [{ label: 'Session', value: session.title }],
+          ctaLabel: 'View training calendar',
+          ctaUrl: `${this.webOrigin()}/me/training/calendar`,
+        }),
+      },
     });
 
     return { success: true, marked: validById.size };
@@ -261,6 +278,16 @@ export class TrainingSessionsService {
       title: `Attendance recorded: ${session.title}`,
       body: `Your attendance for "${session.title}" has been recorded. Check the Training section for details.`,
       link: '/me/training/calendar',
+      email: {
+        subject: `Attendance Recorded – ${session.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Your attendance for "${session.title}" has been recorded.`,
+          fields: [{ label: 'Session', value: session.title }],
+          ctaLabel: 'View training calendar',
+          ctaUrl: `${this.webOrigin()}/me/training/calendar`,
+        }),
+      },
     });
 
     return { updatedCount: upserts.length, errorCount: errors.length, errors };

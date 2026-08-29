@@ -12,6 +12,8 @@ import type { Assessment, PrismaClient } from '@campusgo/database';
 import { BulkScoreEntryDto, CreateAssessmentDto, ImportScoresDto, UpdateAssessmentDto } from './dto';
 import { targetedStudentWhere, visibilityFilter } from './sessions.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
+import { ConfigService } from '@nestjs/config';
 
 const dec = (v: Prisma.Decimal) => Number(v);
 
@@ -37,7 +39,12 @@ export class AssessmentsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
 
   // ─────────────── Officer / Admin ───────────────
 
@@ -181,6 +188,17 @@ export class AssessmentsService {
       title: `Marks posted: ${assessment.name}`,
       body: `Your marks for "${assessment.name}" have been recorded. Check the Training section for your score.`,
       link: '/me/training/assessments',
+      email: {
+        subject: `Marks Posted – ${assessment.name}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Your marks for "${assessment.name}" have been recorded.`,
+          fields: [{ label: 'Assessment', value: assessment.name }],
+          note: 'Log in to the Training section to view your score.',
+          ctaLabel: 'View your score',
+          ctaUrl: `${this.webOrigin()}/me/training/assessments`,
+        }),
+      },
     });
 
     return { success: true, updated: notifyUserIds.length };
@@ -258,6 +276,17 @@ export class AssessmentsService {
       title: `Marks posted: ${assessment.name}`,
       body: `Your marks for "${assessment.name}" have been recorded. Check the Training section for your score.`,
       link: '/me/training/assessments',
+      email: {
+        subject: `Marks Posted – ${assessment.name}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Your marks for "${assessment.name}" have been recorded.`,
+          fields: [{ label: 'Assessment', value: assessment.name }],
+          note: 'Log in to the Training section to view your score.',
+          ctaLabel: 'View your score',
+          ctaUrl: `${this.webOrigin()}/me/training/assessments`,
+        }),
+      },
     });
 
     return { updatedCount: upserts.length, errorCount: errors.length, errors };

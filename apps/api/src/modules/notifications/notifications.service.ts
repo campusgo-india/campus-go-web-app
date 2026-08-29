@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { NotificationType, PrismaClient } from '@campusgo/database';
 import { EmailService } from '../email/email.service';
+import { COLLEGE_NAME_TOKEN } from './email-templates';
 
 export interface NotifyParams {
   userId: string;
@@ -10,6 +11,13 @@ export interface NotifyParams {
   title: string;
   body?: string;
   link?: string;
+  /**
+   * The formal placement-cell-style email (subject + html from
+   * renderFormalEmail) — every student-facing call site supplies this. When
+   * omitted, the email falls back to plain title/body text (used only by
+   * call sites that haven't been given a formal template yet).
+   */
+  email?: { subject: string; html: string };
 }
 
 /**
@@ -18,10 +26,20 @@ export interface NotifyParams {
  * notification must not roll back the action that triggered it). Read APIs are
  * always scoped to the authenticated user's own id (no cross-user access).
  */
+// Most providers cap total recipients (to+cc+bcc) per send well under this;
+// chunk a large student BCC list so a broadcast to hundreds still gets out.
+const BCC_CHUNK_SIZE = 40;
+
+interface Envelope {
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  collegeName: string;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  private readonly EMAIL_BATCH_SIZE = 5;
 
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
@@ -29,27 +47,95 @@ export class NotificationsService {
   ) {}
 
   /**
-   * Sends email to a batch of recipients with a small concurrency cap, so a
-   * broadcast (e.g. "new job posted" to hundreds of students) doesn't fire
-   * everything at once against an SMTP provider's rate limit. Each individual
-   * send is already best-effort/self-logging inside EmailService.
+   * Builds the To/Cc/Bcc envelope for a batch of students, per the college's
+   * mail-template convention: To = Placement Coordinators covering the
+   * affected students' programmes (falls back to officers if no coordinator
+   * covers any of them — the common case today, since coordinators are
+   * optional), Cc = every other College Admin/Placement Officer, Bcc = the
+   * students themselves. One email per event, not one per student — the
+   * whole point (fewer sends, one thread to search instead of hundreds).
    */
-  private async sendEmailBatch(
-    recipients: { email: string }[],
-    collegeId: string | null,
-    params: { title: string; body?: string },
+  private async resolveStudentEnvelope(
+    collegeId: string,
+    userIds: string[],
+  ): Promise<Envelope | null> {
+    const [students, coordinators, officers, college] = await Promise.all([
+      this.prisma.student.findMany({
+        where: { userId: { in: userIds }, collegeId },
+        select: { programme: true, user: { select: { email: true } } },
+      }),
+      this.prisma.user.findMany({
+        where: { collegeId, role: 'PLACEMENT_COORDINATOR', isActive: true },
+        select: { email: true, assignedProgrammes: true },
+      }),
+      this.prisma.user.findMany({
+        where: { collegeId, role: { in: ['COLLEGE_ADMIN', 'PLACEMENT_OFFICER'] }, isActive: true },
+        select: { email: true },
+      }),
+      this.prisma.college.findUnique({ where: { id: collegeId }, select: { name: true } }),
+    ]);
+    const bcc = [...new Set(students.map((s) => s.user.email))];
+    if (bcc.length === 0) return null;
+
+    const programmes = new Set(students.map((s) => s.programme));
+    const coordinatorEmails = [
+      ...new Set(
+        coordinators
+          .filter((c) => c.assignedProgrammes.some((p) => programmes.has(p)))
+          .map((c) => c.email),
+      ),
+    ];
+    const officerEmails = [...new Set(officers.map((o) => o.email))];
+
+    // No coordinator covers these programmes (or none exist yet) — officers
+    // become the primary recipient instead of a redundant/empty To.
+    const to = coordinatorEmails.length > 0 ? coordinatorEmails : officerEmails;
+    const cc = coordinatorEmails.length > 0 ? officerEmails.filter((e) => !to.includes(e)) : [];
+    if (to.length === 0) return null;
+
+    return { to, cc, bcc, collegeName: college?.name ?? 'your college' };
+  }
+
+  /** Sends the grouped envelope email, chunking a large Bcc list. Best-effort. */
+  private async sendEnvelopeEmail(
+    envelope: Envelope,
+    content: { subject: string; html: string },
   ): Promise<void> {
-    for (let i = 0; i < recipients.length; i += this.EMAIL_BATCH_SIZE) {
-      const chunk = recipients.slice(i, i + this.EMAIL_BATCH_SIZE);
-      await Promise.allSettled(
-        chunk.map((r) =>
-          this.email.sendForCollege(collegeId, {
-            to: r.email,
-            subject: params.title,
-            text: params.body ?? params.title,
-          }),
-        ),
-      );
+    const html = content.html.replaceAll(COLLEGE_NAME_TOKEN, envelope.collegeName);
+    for (let i = 0; i < envelope.bcc.length; i += BCC_CHUNK_SIZE) {
+      const chunk = envelope.bcc.slice(i, i + BCC_CHUNK_SIZE);
+      await this.email.sendForCollege(null, {
+        to: envelope.to,
+        cc: envelope.cc,
+        bcc: chunk,
+        subject: content.subject,
+        html,
+      });
+    }
+  }
+
+  /**
+   * Resolves the envelope and sends one grouped email for a batch of
+   * students — the shared path behind notify() and notifyMany(). Falls back
+   * to plain title/body text if the call site hasn't supplied a formal
+   * `email` template yet. Best-effort: never throws into the caller.
+   */
+  private async sendStudentEmail(
+    collegeId: string | null | undefined,
+    userIds: string[],
+    params: Omit<NotifyParams, 'userId' | 'collegeId'>,
+  ): Promise<void> {
+    if (!collegeId) return;
+    try {
+      const envelope = await this.resolveStudentEnvelope(collegeId, userIds);
+      if (!envelope) return;
+      const content = params.email ?? {
+        subject: params.title,
+        html: `<p>${params.body ?? params.title}</p>`,
+      };
+      await this.sendEnvelopeEmail(envelope, content);
+    } catch (err) {
+      this.logger.error(`Failed to email ${userIds.length} student(s)`, err as Error);
     }
   }
 
@@ -70,20 +156,8 @@ export class NotificationsService {
       this.logger.error(`Failed to create notification for ${params.userId}`, err as Error);
     }
 
-    // Email is independent of the in-app row and never awaited by the caller —
-    // a slow/failing SMTP send must not add latency to the action that
-    // triggered this notification.
-    void this.prisma.user
-      .findUnique({ where: { id: params.userId }, select: { email: true } })
-      .then((user) => {
-        if (!user) return;
-        return this.email.sendForCollege(params.collegeId ?? null, {
-          to: user.email,
-          subject: params.title,
-          text: params.body ?? params.title,
-        });
-      })
-      .catch((err) => this.logger.error(`Failed to email ${params.userId}`, err as Error));
+    // Email is independent of the in-app row and never awaited by the caller.
+    void this.sendStudentEmail(params.collegeId, [params.userId], params);
   }
 
   /** Fan a notification out to every College Admin + Placement Officer of a college. */
@@ -117,9 +191,13 @@ export class NotificationsService {
     }
 
     if (officers.length > 0) {
-      void this.sendEmailBatch(officers, collegeId, params).catch((err) =>
-        this.logger.error(`Failed to email officers of ${collegeId}`, err as Error),
-      );
+      const content = params.email ?? {
+        subject: params.title,
+        html: `<p>${params.body ?? params.title}</p>`,
+      };
+      void this.email
+        .sendForCollege(collegeId, { to: officers.map((o) => o.email), subject: content.subject, html: content.html })
+        .catch((err) => this.logger.error(`Failed to email officers of ${collegeId}`, err as Error));
     }
   }
 
@@ -145,10 +223,7 @@ export class NotificationsService {
       this.logger.error(`Failed to notify ${userIds.length} users`, err as Error);
     }
 
-    void this.prisma.user
-      .findMany({ where: { id: { in: userIds } }, select: { email: true } })
-      .then((users) => this.sendEmailBatch(users, collegeId, params))
-      .catch((err) => this.logger.error(`Failed to email ${userIds.length} users`, err as Error));
+    void this.sendStudentEmail(collegeId, userIds, params);
   }
 
   // ─────────────── Recipient-facing reads (own only) ───────────────

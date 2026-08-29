@@ -18,7 +18,11 @@ export interface SmtpConfig {
 }
 
 export interface SendEmailInput {
-  to: string;
+  // A grouped send (To: coordinators, Cc: officers, Bcc: students) passes
+  // arrays; a single-recipient send (e.g. forgot-password) passes a string.
+  to: string | string[];
+  cc?: string[];
+  bcc?: string[];
   subject: string;
   html?: string;
   text?: string;
@@ -60,6 +64,8 @@ export class EmailService {
     const { error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: input.to,
+      ...(input.cc?.length ? { cc: input.cc } : {}),
+      ...(input.bcc?.length ? { bcc: input.bcc } : {}),
       subject: input.subject,
       html: input.html ?? `<p>${(input.text ?? input.subject).replace(/\n/g, '<br/>')}</p>`,
       text: input.text ?? input.html?.replace(/<[^>]+>/g, ' '),
@@ -105,6 +111,8 @@ export class EmailService {
       from: cfg.fromName ? `"${cfg.fromName}" <${cfg.fromEmail}>` : cfg.fromEmail,
       replyTo: cfg.replyTo ?? undefined,
       to: input.to,
+      cc: input.cc?.length ? input.cc : undefined,
+      bcc: input.bcc?.length ? input.bcc : undefined,
       subject: input.subject,
       text: input.text ?? input.html?.replace(/<[^>]+>/g, ' '),
       html: input.html,

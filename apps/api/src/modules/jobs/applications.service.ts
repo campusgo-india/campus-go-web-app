@@ -10,6 +10,7 @@ import { PRISMA } from '../../common/prisma.module';
 import { Prisma, ApplicationOutcome, ApplicationStage } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
 import type { ReportDataset } from '../reports/report-serializers';
@@ -65,6 +66,10 @@ export class ApplicationsService {
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
   ) {}
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
 
   // A Placement Coordinator only ever sees their assigned programmes —
   // resolved fresh from the DB so a reassignment takes effect without
@@ -404,7 +409,7 @@ export class ApplicationsService {
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, collegeId },
       include: {
-        student: { select: { userId: true } },
+        student: { select: { userId: true, user: { select: { fullName: true } } } },
         job: {
           select: { id: true, title: true, companyName: true, company: { select: { name: true } } },
         },
@@ -455,6 +460,7 @@ export class ApplicationsService {
     });
 
     // Notify the applicant of their new stage (best-effort, post-commit).
+    const greeting = `Dear ${app.student.user.fullName},`;
     await this.notifications.notify({
       userId: app.student.userId,
       collegeId,
@@ -468,6 +474,44 @@ export class ApplicationsService {
           ? `Your application for ${app.job.title} at ${companyName} was not taken forward.`
           : `${app.job.title} at ${companyName} moved to ${target.replace(/_/g, ' ')}.`,
       link: `/me/jobs/${app.job.id}`,
+      email:
+        target === 'OFFER_RELEASED'
+          ? {
+              subject: `Offer Released – ${companyName} | ${app.job.title}`,
+              html: renderFormalEmail({
+                collegeName: COLLEGE_NAME_TOKEN,
+                greeting,
+                intro: `Congratulations! Your offer for the position of ${app.job.title} at ${companyName} has been released.`,
+                fields: [
+                  { label: 'Company', value: companyName },
+                  { label: 'Position', value: app.job.title },
+                  ...(updated.offerCtc != null ? [{ label: 'CTC', value: `₹${Number(updated.offerCtc).toLocaleString('en-IN')}` }] : []),
+                ],
+                ctaLabel: 'View offer details',
+                ctaUrl: `${this.webOrigin()}/me/jobs/${app.job.id}`,
+              }),
+            }
+          : target === 'REJECTED'
+            ? {
+                subject: `Application Update – ${companyName} | ${app.job.title}`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  greeting,
+                  intro: `We regret to inform you that your application for ${app.job.title} at ${companyName} was not taken forward.`,
+                  ctaLabel: 'View application',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${app.job.id}`,
+                }),
+              }
+            : {
+                subject: `Application Update – ${companyName} | ${app.job.title}`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  greeting,
+                  intro: `Your application for ${app.job.title} at ${companyName} has moved to the ${target.replace(/_/g, ' ')} stage.`,
+                  ctaLabel: 'View application',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${app.job.id}`,
+                }),
+              },
     });
 
     return updated;
@@ -479,7 +523,7 @@ export class ApplicationsService {
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, collegeId },
       include: {
-        student: { select: { userId: true } },
+        student: { select: { userId: true, user: { select: { fullName: true } } } },
         job: {
           select: { id: true, title: true, companyName: true, company: { select: { name: true } } },
         },
@@ -502,15 +546,33 @@ export class ApplicationsService {
     });
 
     const whenText = round.scheduledAt
-      ? ` on ${round.scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
-      : '';
+      ? round.scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+      : 'To be confirmed';
     await this.notifications.notify({
       userId: app.student.userId,
       collegeId,
       type: 'INTERVIEW_SCHEDULED',
       title: `Interview scheduled — ${companyName}`,
-      body: `${dto.roundName} for ${app.job.title}${whenText}.`,
+      body: `${dto.roundName} for ${app.job.title}${round.scheduledAt ? ` on ${whenText}` : ''}.`,
       link: `/me/jobs/${app.job.id}`,
+      email: {
+        subject: `Interview Scheduled – ${companyName} | ${app.job.title} | ${dto.roundName}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          greeting: `Dear ${app.student.user.fullName},`,
+          intro: `Your interview for the position of ${app.job.title} at ${companyName} has been scheduled.`,
+          fields: [
+            { label: 'Company', value: companyName },
+            { label: 'Position', value: app.job.title },
+            { label: 'Round', value: dto.roundName },
+            { label: 'Date & Time', value: whenText },
+            ...(dto.mode ? [{ label: 'Mode', value: dto.mode }] : []),
+            ...(dto.location ? [{ label: 'Location', value: dto.location }] : []),
+          ],
+          ctaLabel: 'View details',
+          ctaUrl: `${this.webOrigin()}/me/jobs/${app.job.id}`,
+        }),
+      },
     });
 
     return round;

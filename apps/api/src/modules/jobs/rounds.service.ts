@@ -1,8 +1,10 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, type NotifyParams } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { CreateRoundDto, PlaceApplicantDto, UpdateRoundDto } from './rounds-dto';
 
@@ -56,7 +58,34 @@ export class RoundsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
+
+  // A platform-broadcast job's affected applicants span multiple colleges —
+  // group by college first (a grouped envelope is inherently college-scoped:
+  // coordinators/officers differ per college) and send one batched email per
+  // college instead of either one email per student or one shared email that
+  // can't resolve a single "To").
+  private async notifyManyAcrossColleges(
+    recipients: { collegeId: string; student: { userId: string } }[],
+    params: Omit<NotifyParams, 'userId' | 'collegeId'>,
+  ): Promise<void> {
+    const byCollege = new Map<string, string[]>();
+    for (const r of recipients) {
+      const list = byCollege.get(r.collegeId) ?? [];
+      list.push(r.student.userId);
+      byCollege.set(r.collegeId, list);
+    }
+    await Promise.all(
+      [...byCollege.entries()].map(([collegeId, userIds]) =>
+        this.notifications.notifyMany(userIds, collegeId, params),
+      ),
+    );
+  }
 
   // A Placement Coordinator only ever sees their assigned programmes —
   // resolved fresh from the DB so a reassignment takes effect without
@@ -368,6 +397,13 @@ export class RoundsService {
             title: `Applications closed — ${job.title}`,
             body: `${job.title} at ${this.companyName(job)} has moved to interviews; applications are now closed.`,
             link: `/me/jobs/${jobId}`,
+            email: {
+              subject: `Applications Closed – ${this.companyName(job)} | ${job.title}`,
+              html: renderFormalEmail({
+                collegeName: COLLEGE_NAME_TOKEN,
+                intro: `Applications for ${job.title} at ${this.companyName(job)} are now closed, as the interview process has begun.`,
+              }),
+            },
           },
         );
       }
@@ -407,23 +443,40 @@ export class RoundsService {
       ]);
     }
 
-    // Notify every enrolled applicant that a new round has been created.
+    // Notify every enrolled applicant that a new round has been created — one
+    // batched email (Bcc'd) rather than one per applicant.
     const company = this.companyName(job);
     const enrolledApps = await this.prisma.application.findMany({
       where: { id: { in: cohort } },
       include: { student: { select: { userId: true } } },
     });
-    await Promise.all(
-      enrolledApps.map((a) =>
-        this.notifications.notify({
-          userId: a.student.userId,
-          collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `New round — ${job.title}`,
-          body: `${title} has been scheduled${round.scheduledAt ? ` on ${round.scheduledAt.toLocaleDateString()}` : ''} for ${job.title} at ${company}.`,
-          link: `/me/jobs/${jobId}`,
-        }),
-      ),
+    const whenText = round.scheduledAt
+      ? round.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+    await this.notifications.notifyMany(
+      enrolledApps.map((a) => a.student.userId),
+      collegeId,
+      {
+        type: 'APPLICATION_STAGE_CHANGED',
+        title: `New round — ${job.title}`,
+        body: `${title} has been scheduled${whenText ? ` on ${whenText}` : ''} for ${job.title} at ${company}.`,
+        link: `/me/jobs/${jobId}`,
+        email: {
+          subject: `Interview Update – ${company} | ${job.title} | ${title}`,
+          html: renderFormalEmail({
+            collegeName: COLLEGE_NAME_TOKEN,
+            intro: `${title} has been scheduled for ${job.title} at ${company}.`,
+            fields: [
+              { label: 'Company', value: company },
+              { label: 'Position', value: job.title },
+              { label: 'Round', value: title },
+              ...(whenText ? [{ label: 'Date', value: whenText }] : []),
+            ],
+            ctaLabel: 'View details',
+            ctaUrl: `${this.webOrigin()}/me/jobs/${jobId}`,
+          }),
+        },
+      },
     );
 
     return { ...round, enrolled: cohort.length };
@@ -563,29 +616,53 @@ export class RoundsService {
       this.prisma.jobRound.update({ where: { id: roundId }, data: { status: 'DECIDED' } }),
     ]);
 
-    // Best-effort notifications.
+    // Best-effort notifications — one batched email per outcome group, not
+    // one per student.
     const company = this.companyName(job);
     await Promise.all([
-      ...advanced.map((p) =>
-        this.notifications.notify({
-          userId: p.application.student.userId,
-          collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `Cleared ${round.title} — ${company}`,
-          body: `You've advanced past ${round.title} for ${job.title}.`,
-          link: `/me/jobs/${job.id}`,
-        }),
-      ),
-      ...rejected.map((p) =>
-        this.notifications.notify({
-          userId: p.application.student.userId,
-          collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `Update — ${job.title}`,
-          body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
-          link: `/me/jobs/${job.id}`,
-        }),
-      ),
+      advanced.length === 0
+        ? Promise.resolve()
+        : this.notifications.notifyMany(
+            advanced.map((p) => p.application.student.userId),
+            collegeId,
+            {
+              type: 'APPLICATION_STAGE_CHANGED',
+              title: `Cleared ${round.title} — ${company}`,
+              body: `You've advanced past ${round.title} for ${job.title}.`,
+              link: `/me/jobs/${job.id}`,
+              email: {
+                subject: `Interview Result – ${company} | ${job.title} | Advanced`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  intro: `Congratulations! You have advanced past ${round.title} for ${job.title} at ${company}.`,
+                  ctaLabel: 'View details',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+                }),
+              },
+            },
+          ),
+      rejected.length === 0
+        ? Promise.resolve()
+        : this.notifications.notifyMany(
+            rejected.map((p) => p.application.student.userId),
+            collegeId,
+            {
+              type: 'APPLICATION_STAGE_CHANGED',
+              title: `Update — ${job.title}`,
+              body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
+              link: `/me/jobs/${job.id}`,
+              email: {
+                subject: `Interview Result – ${company} | ${job.title} | Update`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  intro: `We regret to inform you that you were not selected in ${round.title} for ${job.title} at ${company}.`,
+                  note: 'We wish you the very best for your future placement drives.',
+                  ctaLabel: 'View details',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+                }),
+              },
+            },
+          ),
     ]);
 
     return { advanced: advanced.length, rejected: rejected.length };
@@ -627,26 +704,49 @@ export class RoundsService {
       title: `Selected — ${this.companyName(job)} 🎉`,
       body: `Congratulations! You've been selected for ${job.title}.`,
       link: `/me/jobs/${job.id}`,
+      email: {
+        subject: `Congratulations – Selected | ${this.companyName(job)} | ${job.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Congratulations! You have been selected for the position of ${job.title} at ${this.companyName(job)}.`,
+          fields: [
+            { label: 'Company', value: this.companyName(job) },
+            { label: 'Position', value: job.title },
+            ...(dto.offerCtc != null ? [{ label: 'CTC', value: `₹${dto.offerCtc.toLocaleString('en-IN')}` }] : []),
+          ],
+          ctaLabel: 'View offer',
+          ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+        }),
+      },
     });
 
     // The job is filled — everyone else still in the running is auto-rejected
     // so they don't get left stuck and the job stops showing as "active".
+    // One batched email (Bcc'd) rather than one per applicant.
     const others = await this.autoRejectRemaining(
       { jobId, collegeId, status: { in: ['APPLIED', 'IN_PROGRESS'] }, id: { not: applicationId } },
       `Position filled at ${this.companyName(job)}`,
     );
-    await Promise.all(
-      others.map((o) =>
-        this.notifications.notify({
-          userId: o.student.userId,
-          collegeId: o.collegeId,
+    if (others.length > 0) {
+      await this.notifications.notifyMany(
+        others.map((o) => o.student.userId),
+        collegeId,
+        {
           type: 'APPLICATION_STAGE_CHANGED',
           title: `Update — ${job.title}`,
           body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward — the position has been filled.`,
           link: `/me/jobs/${job.id}`,
-        }),
-      ),
-    );
+          email: {
+            subject: `Placement Update – ${this.companyName(job)} | ${job.title}`,
+            html: renderFormalEmail({
+              collegeName: COLLEGE_NAME_TOKEN,
+              intro: `We regret to inform you that the position of ${job.title} at ${this.companyName(job)} has been filled. Thank you for your participation in this drive.`,
+              note: 'We wish you the very best for your future placement drives.',
+            }),
+          },
+        },
+      );
+    }
 
     return { success: true };
   }
@@ -682,6 +782,14 @@ export class RoundsService {
       title: `Update — ${job.title}`,
       body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward.`,
       link: `/me/jobs/${job.id}`,
+      email: {
+        subject: `Application Update – ${this.companyName(job)} | ${job.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `We regret to inform you that your application for ${job.title} at ${this.companyName(job)} was not taken forward.`,
+          ...(reason ? { fields: [{ label: 'Note', value: reason }] } : {}),
+        }),
+      },
     });
     return { success: true };
   }
@@ -783,18 +891,30 @@ export class RoundsService {
       where: { id: { in: cohort } },
       select: { collegeId: true, student: { select: { userId: true } } },
     });
-    await Promise.all(
-      enrolledApps.map((a) =>
-        this.notifications.notify({
-          userId: a.student.userId,
-          collegeId: a.collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `New round — ${job.title}`,
-          body: `${title} has been scheduled${round.scheduledAt ? ` on ${round.scheduledAt.toLocaleDateString()}` : ''} for ${job.title} at ${company}.`,
-          link: `/me/jobs/${jobId}`,
+    const whenText = round.scheduledAt
+      ? round.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+    await this.notifyManyAcrossColleges(enrolledApps, {
+      type: 'APPLICATION_STAGE_CHANGED',
+      title: `New round — ${job.title}`,
+      body: `${title} has been scheduled${whenText ? ` on ${whenText}` : ''} for ${job.title} at ${company}.`,
+      link: `/me/jobs/${jobId}`,
+      email: {
+        subject: `Interview Update – ${company} | ${job.title} | ${title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `${title} has been scheduled for ${job.title} at ${company}.`,
+          fields: [
+            { label: 'Company', value: company },
+            { label: 'Position', value: job.title },
+            { label: 'Round', value: title },
+            ...(whenText ? [{ label: 'Date', value: whenText }] : []),
+          ],
+          ctaLabel: 'View details',
+          ctaUrl: `${this.webOrigin()}/me/jobs/${jobId}`,
         }),
-      ),
-    );
+      },
+    });
 
     return { ...round, enrolled: cohort.length };
   }
@@ -919,26 +1039,47 @@ export class RoundsService {
 
     const company = this.companyName(job);
     await Promise.all([
-      ...advanced.map((p) =>
-        this.notifications.notify({
-          userId: p.application.student.userId,
-          collegeId: p.application.collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `Cleared ${round.title} — ${company}`,
-          body: `You've advanced past ${round.title} for ${job.title}.`,
-          link: `/me/jobs/${job.id}`,
-        }),
-      ),
-      ...rejected.map((p) =>
-        this.notifications.notify({
-          userId: p.application.student.userId,
-          collegeId: p.application.collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `Update — ${job.title}`,
-          body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
-          link: `/me/jobs/${job.id}`,
-        }),
-      ),
+      advanced.length === 0
+        ? Promise.resolve()
+        : this.notifyManyAcrossColleges(
+            advanced.map((p) => p.application),
+            {
+              type: 'APPLICATION_STAGE_CHANGED',
+              title: `Cleared ${round.title} — ${company}`,
+              body: `You've advanced past ${round.title} for ${job.title}.`,
+              link: `/me/jobs/${job.id}`,
+              email: {
+                subject: `Interview Result – ${company} | ${job.title} | Advanced`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  intro: `Congratulations! You have advanced past ${round.title} for ${job.title} at ${company}.`,
+                  ctaLabel: 'View details',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+                }),
+              },
+            },
+          ),
+      rejected.length === 0
+        ? Promise.resolve()
+        : this.notifyManyAcrossColleges(
+            rejected.map((p) => p.application),
+            {
+              type: 'APPLICATION_STAGE_CHANGED',
+              title: `Update — ${job.title}`,
+              body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
+              link: `/me/jobs/${job.id}`,
+              email: {
+                subject: `Interview Result – ${company} | ${job.title} | Update`,
+                html: renderFormalEmail({
+                  collegeName: COLLEGE_NAME_TOKEN,
+                  intro: `We regret to inform you that you were not selected in ${round.title} for ${job.title} at ${company}.`,
+                  note: 'We wish you the very best for your future placement drives.',
+                  ctaLabel: 'View details',
+                  ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+                }),
+              },
+            },
+          ),
     ]);
 
     return { advanced: advanced.length, rejected: rejected.length };
@@ -972,10 +1113,25 @@ export class RoundsService {
       title: `Selected — ${this.companyName(job)} 🎉`,
       body: `Congratulations! You've been selected for ${job.title}.`,
       link: `/me/jobs/${job.id}`,
+      email: {
+        subject: `Congratulations – Selected | ${this.companyName(job)} | ${job.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `Congratulations! You have been selected for the position of ${job.title} at ${this.companyName(job)}.`,
+          fields: [
+            { label: 'Company', value: this.companyName(job) },
+            { label: 'Position', value: job.title },
+            ...(dto.offerCtc != null ? [{ label: 'CTC', value: `₹${dto.offerCtc.toLocaleString('en-IN')}` }] : []),
+          ],
+          ctaLabel: 'View offer',
+          ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
+        }),
+      },
     });
 
     // The job is filled — everyone else still in the running (across every
-    // targeted college) is auto-rejected so they don't get left stuck.
+    // targeted college) is auto-rejected so they don't get left stuck. One
+    // batched email per affected college rather than one per applicant.
     const others = await this.autoRejectRemaining(
       {
         jobId,
@@ -985,18 +1141,22 @@ export class RoundsService {
       },
       `Position filled at ${this.companyName(job)}`,
     );
-    await Promise.all(
-      others.map((o) =>
-        this.notifications.notify({
-          userId: o.student.userId,
-          collegeId: o.collegeId,
-          type: 'APPLICATION_STAGE_CHANGED',
-          title: `Update — ${job.title}`,
-          body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward — the position has been filled.`,
-          link: `/me/jobs/${job.id}`,
-        }),
-      ),
-    );
+    if (others.length > 0) {
+      await this.notifyManyAcrossColleges(others, {
+        type: 'APPLICATION_STAGE_CHANGED',
+        title: `Update — ${job.title}`,
+        body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward — the position has been filled.`,
+        link: `/me/jobs/${job.id}`,
+        email: {
+          subject: `Placement Update – ${this.companyName(job)} | ${job.title}`,
+          html: renderFormalEmail({
+            collegeName: COLLEGE_NAME_TOKEN,
+            intro: `We regret to inform you that the position of ${job.title} at ${this.companyName(job)} has been filled. Thank you for your participation in this drive.`,
+            note: 'We wish you the very best for your future placement drives.',
+          }),
+        },
+      });
+    }
 
     return { success: true };
   }
@@ -1025,6 +1185,14 @@ export class RoundsService {
       title: `Update — ${job.title}`,
       body: `Your application for ${job.title} at ${this.companyName(job)} was not taken forward.`,
       link: `/me/jobs/${job.id}`,
+      email: {
+        subject: `Application Update – ${this.companyName(job)} | ${job.title}`,
+        html: renderFormalEmail({
+          collegeName: COLLEGE_NAME_TOKEN,
+          intro: `We regret to inform you that your application for ${job.title} at ${this.companyName(job)} was not taken forward.`,
+          ...(reason ? { fields: [{ label: 'Note', value: reason }] } : {}),
+        }),
+      },
     });
     return { success: true };
   }

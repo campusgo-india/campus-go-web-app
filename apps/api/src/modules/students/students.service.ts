@@ -34,6 +34,7 @@ function detailsStatus(s: {
   return { complete: missing.length === 0, missing };
 }
 import { NotificationsService } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import {
   CreateStudentDto,
   ImportStudentsDto,
@@ -69,6 +70,10 @@ export class StudentsService {
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
   ) {}
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
 
   // A Placement Coordinator only ever sees their assigned programmes (one or
   // more) — resolved fresh from the DB (not trusted from the JWT) so a
@@ -703,6 +708,17 @@ export class StudentsService {
         title: 'Profile verified',
         body: 'Your profile has been verified. You can now apply to eligible jobs.',
         link: '/me/profile',
+        email: {
+          subject: 'Profile Verified — Placement Cell',
+          html: renderFormalEmail({
+            collegeName: COLLEGE_NAME_TOKEN,
+            greeting: `Dear ${updated.user.fullName},`,
+            intro:
+              'Your student profile has been reviewed and verified by the Placement Cell. You are now eligible to apply for placement drives posted on the portal.',
+            ctaLabel: 'View your profile',
+            ctaUrl: `${this.webOrigin()}/me/profile`,
+          }),
+        },
       });
     } else {
       await this.notifications.notify({
@@ -714,6 +730,19 @@ export class StudentsService {
           ? `Your profile was sent back: ${dto.reason}`
           : 'Your profile needs changes before it can be verified.',
         link: '/me/profile',
+        email: {
+          subject: 'Profile Update Required — Placement Cell',
+          html: renderFormalEmail({
+            collegeName: COLLEGE_NAME_TOKEN,
+            greeting: `Dear ${updated.user.fullName},`,
+            intro:
+              'Your student profile requires changes before it can be verified by the Placement Cell.',
+            fields: dto.reason ? [{ label: 'Reason', value: dto.reason }] : undefined,
+            note: 'Please review and resubmit your profile at your earliest convenience.',
+            ctaLabel: 'Update your profile',
+            ctaUrl: `${this.webOrigin()}/me/profile`,
+          }),
+        },
       });
     }
 

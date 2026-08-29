@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
 import type { PrismaClient, Student, ApplicationStage } from '@campusgo/database';
@@ -16,6 +17,7 @@ import {
   UpdatePlatformJobDto,
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import {
   checkEligibility,
@@ -40,10 +42,64 @@ export class JobsService {
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
 
   private decimalOrNull(v: number | undefined | null): Prisma.Decimal | null {
     return v != null ? new Prisma.Decimal(v) : null;
+  }
+
+  private webOrigin(): string {
+    return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
+
+  private ctcRange(min: Prisma.Decimal | null, max: Prisma.Decimal | null): string {
+    const fmt = (v: Prisma.Decimal) => `₹${(Number(v) / 100000).toFixed(1)} LPA`;
+    if (min != null && max != null) return min.equals(max) ? fmt(min) : `${fmt(min)} – ${fmt(max)}`;
+    if (min != null) return fmt(min);
+    if (max != null) return fmt(max);
+    return 'As per Job Description';
+  }
+
+  /** The formal "Placement Opportunity" email sent to eligible students when
+   * a job is published — Company / Position / Eligibility / Location / CTC /
+   * Last Date to Apply, matching the placement-cell mail template. */
+  private newJobEmail(
+    job: {
+      id: string;
+      title: string;
+      location: string | null;
+      ctcMin: Prisma.Decimal | null;
+      ctcMax: Prisma.Decimal | null;
+      eligibleProgrammes: string[];
+      applicationDeadline: Date | null;
+    },
+    companyName: string | null,
+    jobId: string,
+  ): { subject: string; html: string } {
+    const company = companyName ?? 'A recruiter';
+    const deadline = job.applicationDeadline
+      ? job.applicationDeadline.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+    const programmes = job.eligibleProgrammes.length ? job.eligibleProgrammes.join(', ') : 'All programmes';
+    return {
+      subject: `Placement Opportunity – ${company} | ${job.title} | ${programmes} | ${this.ctcRange(job.ctcMin, job.ctcMax)}${deadline ? ` | ${deadline}` : ''}`,
+      html: renderFormalEmail({
+        collegeName: COLLEGE_NAME_TOKEN,
+        intro: `We are pleased to inform you that ${company} is conducting a placement drive for the position of ${job.title}.`,
+        fields: [
+          { label: 'Company', value: company },
+          { label: 'Position', value: job.title },
+          { label: 'Eligibility', value: `${programmes} — see the attached Job Description` },
+          { label: 'Location', value: job.location ?? 'As per Job Description' },
+          { label: 'CTC', value: this.ctcRange(job.ctcMin, job.ctcMax) },
+          ...(deadline ? [{ label: 'Last Date to Apply', value: deadline }] : []),
+        ],
+        note: 'Please go through the Job Description carefully before applying.',
+        ctaLabel: 'Apply Now',
+        ctaUrl: `${this.webOrigin()}/me/jobs/${jobId}`,
+      }),
+    };
   }
 
   // ─────────────── Placement Officer: job lifecycle ───────────────
@@ -226,13 +282,16 @@ export class JobsService {
       include: { company: true, _count: { select: { applications: true } } },
     });
 
-    // Alert EVERY active student at the college that a new job is live (eligibility
-    // is enforced at apply time, so non-eligible students see it but can't apply).
-    const recs = await this.prisma.student.findMany({
-      where: { collegeId, isActive: true },
-      select: { userId: true },
-    });
-    if (recs.length > 0) {
+    // Alert eligible students at the college that a new job is live — the
+    // mail-template convention ("Placement Coordinators of the job eligible
+    // departments") only makes sense against the students who can actually
+    // apply, not every active student regardless of programme/CGPA/backlogs.
+    const eligible = await this.eligibleStudents(collegeId, id);
+    if (eligible.length > 0) {
+      const recs = await this.prisma.student.findMany({
+        where: { id: { in: eligible.map((e) => e.id) } },
+        select: { userId: true },
+      });
       const companyName = updated.company?.name ?? updated.companyName ?? null;
       await this.notifications.notifyMany(
         recs.map((r) => r.userId),
@@ -242,11 +301,10 @@ export class JobsService {
           title: 'New job posted',
           body: companyName ? `${updated.title} · ${companyName}` : updated.title,
           link: `/me/jobs/${id}`,
+          email: this.newJobEmail(updated, companyName, id),
         },
       );
     }
-    // The officer still sees how many can actually apply.
-    const eligible = await this.eligibleStudents(collegeId, id);
     return { job: this.publicJob(updated), eligibleCount: eligible.length };
   }
 
@@ -279,22 +337,28 @@ export class JobsService {
       }),
     ]);
 
-    // Send a single batched notification per newly published job to all active students.
-    const students = await this.prisma.student.findMany({
-      where: { collegeId, isActive: true },
-      select: { userId: true },
-    });
-    if (students.length > 0) {
-      const userIds = students.map((s) => s.userId);
-      for (const j of updated) {
-        const companyName = j.company?.name ?? j.companyName ?? null;
-        await this.notifications.notifyMany(userIds, collegeId, {
+    // One batched notification per newly published job, to students actually
+    // eligible for that specific job (see publish() for why — not every
+    // active student, so the mail-template's "eligible departments" holds).
+    for (const j of updated) {
+      const eligible = await this.eligibleStudents(collegeId, j.id);
+      if (eligible.length === 0) continue;
+      const recs = await this.prisma.student.findMany({
+        where: { id: { in: eligible.map((e) => e.id) } },
+        select: { userId: true },
+      });
+      const companyName = j.company?.name ?? j.companyName ?? null;
+      await this.notifications.notifyMany(
+        recs.map((r) => r.userId),
+        collegeId,
+        {
           type: 'GENERAL',
           title: 'New job posted',
           body: companyName ? `${j.title} · ${companyName}` : j.title,
           link: `/me/jobs/${j.id}`,
-        });
-      }
+          email: this.newJobEmail(j, companyName, j.id),
+        },
+      );
     }
 
     return {
