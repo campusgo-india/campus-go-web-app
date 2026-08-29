@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
-import type { PrismaClient, Student, ApplicationStage } from '@campusgo/database';
+import type { PrismaClient, Student } from '@campusgo/database';
 import {
   CreateJobDto,
   CreatePlatformJobDto,
@@ -18,6 +18,7 @@ import {
 } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
+import { PlacementPolicyService } from '../placement-policy/placement-policy.service';
 import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
 import {
   checkEligibility,
@@ -25,8 +26,6 @@ import {
   type EligibilityJob,
   type EligibilityStudent,
 } from './eligibility';
-
-const PLACING_STAGES: ApplicationStage[] = ['OFFER_ACCEPTED', 'JOINED'];
 
 // A custom application question stored on Job.applicationFormFields (as JSON).
 interface ApplicationField {
@@ -43,6 +42,7 @@ export class JobsService {
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
+    private readonly placementPolicy: PlacementPolicyService,
   ) {}
 
   private decimalOrNull(v: number | undefined | null): Prisma.Decimal | null {
@@ -414,20 +414,15 @@ export class JobsService {
     return this.publicJob(updated);
   }
 
+  // "Placed" here means blocked from applying to further jobs by the
+  // college's configured offer-limit policy (Settings → Placement Policy) —
+  // not the legacy ATS stage. No policy configured = nobody is blocked.
   private async placedStudentIds(collegeId: string) {
-    const apps = await this.prisma.application.findMany({
-      where: { collegeId, stage: { in: [...PLACING_STAGES] } },
-      select: { studentId: true },
-      distinct: ['studentId'],
-    });
-    return new Set(apps.map((a) => a.studentId));
+    return this.placementPolicy.restrictedStudentIds(collegeId);
   }
 
-  private async isStudentPlaced(studentId: string) {
-    const count = await this.prisma.application.count({
-      where: { studentId, stage: { in: [...PLACING_STAGES] } },
-    });
-    return count > 0;
+  private async isStudentPlaced(collegeId: string, studentId: string) {
+    return this.placementPolicy.isRestricted(collegeId, studentId);
   }
 
   // Officer preview: every active, verified, non-placed student who matches.
@@ -713,7 +708,7 @@ export class JobsService {
       jobs.push(j);
     }
 
-    const isPlaced = await this.isStudentPlaced(student.id);
+    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
     const me = toEligibilityStudent(student, isPlaced);
 
     const myApps = await this.prisma.application.findMany({
@@ -759,7 +754,7 @@ export class JobsService {
       throw new NotFoundException('Job not found');
     }
 
-    const isPlaced = await this.isStudentPlaced(student.id);
+    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
     const { eligible, reasons } = checkApplyEligibility(
       toEligibilityStudent(student, isPlaced),
       toEligibilityJob(job),
@@ -786,7 +781,7 @@ export class JobsService {
     }
 
     // Re-validate eligibility server-side — the feed is not the authority.
-    const isPlaced = await this.isStudentPlaced(student.id);
+    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
     const { eligible, reasons } = checkApplyEligibility(
       toEligibilityStudent(student, isPlaced),
       toEligibilityJob(job),

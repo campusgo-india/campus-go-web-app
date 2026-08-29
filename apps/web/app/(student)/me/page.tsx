@@ -131,6 +131,15 @@ export default function StudentHome() {
             <span className="text-primary-600">→</span>
           </Card>
         </Link>
+        <Link href="/me/placement-policy" className="block sm:col-span-2">
+          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
+            <div>
+              <p className="font-semibold text-strong">Placement Policy</p>
+              <p className="text-xs text-subtle">Rules &amp; process your placement cell follows this season</p>
+            </div>
+            <span className="text-primary-600">→</span>
+          </Card>
+        </Link>
       </div>
 
       {/* Profile / verification nudge */}

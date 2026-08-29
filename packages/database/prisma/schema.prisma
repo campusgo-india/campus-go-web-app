@@ -85,6 +85,7 @@ model College {
   students Student[]
   schools  CollegeSchool[]
   emailSettings CollegeEmailSettings?
+  placementPolicy PlacementPolicy?
 
   @@map("colleges")
 }
@@ -378,6 +379,35 @@ model Resume {
 
   @@index([collegeId])
   @@map("resumes")
+}
+
+// One row per college: the placement cell's policy document (a PDF every
+// student can view) plus the configurable "max offers before a student is
+// barred from applying to further jobs" rule. Bundled together since both
+// are the same underlying concept — the college's placement policy — and
+// both are managed from the same admin screen.
+model PlacementPolicy {
+  id               String   @id @default(uuid())
+  collegeId        String   @unique @map("college_id")
+  fileUrl          String   @default("") @map("file_url")
+  fileName         String   @default("") @map("file_name")
+  fileSize         Int      @default(0) @map("file_size")
+  uploadedById     String?  @map("uploaded_by_id")
+  // Max number of SELECTED applications a student may hold before they're
+  // blocked from applying to further jobs. Null = no restriction.
+  maxOffersAllowed Int?     @map("max_offers_allowed")
+  // End-of-season student feedback survey (me/feedback) is closed by default
+  // — a Placement Officer opens it once the season wraps up, rather than it
+  // being submittable year-round.
+  studentFeedbackOpen Boolean   @default(false) @map("student_feedback_open")
+  feedbackOpenedById  String?   @map("feedback_opened_by_id")
+  feedbackOpenedAt    DateTime? @map("feedback_opened_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@map("placement_policies")
 }
 
 // ─────────────────────────── Phase 3: Companies, Jobs, ATS ───────────────────────────

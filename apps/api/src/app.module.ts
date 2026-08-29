@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CollegesModule } from './modules/colleges/colleges.module';
 import { StudentsModule } from './modules/students/students.module';
 import { ResumesModule } from './modules/resumes/resumes.module';
+import { PlacementPolicyModule } from './modules/placement-policy/placement-policy.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SchoolsModule } from './modules/courses/courses.module';
 import { JobsModule } from './modules/jobs/jobs.module';
@@ -48,6 +49,7 @@ import { HealthController } from './modules/health/health.controller';
     CollegesModule,
     StudentsModule,
     ResumesModule,
+    PlacementPolicyModule,
     CompaniesModule,
     SchoolsModule,
     JobsModule,
