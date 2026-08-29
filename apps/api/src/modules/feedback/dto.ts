@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { PlacementStatus, RecruiterVerdict } from '@campusgo/database';
 
 export class SubmitEmployerFeedbackDto {
@@ -32,4 +32,8 @@ export class SubmitStudentFeedbackDto {
   @IsInt() @Min(1) @Max(5) overallSupport!: number;
 
   @IsOptional() @IsString() @MaxLength(4000) suggestions?: string;
+}
+
+export class SetFeedbackWindowDto {
+  @IsBoolean() open!: boolean;
 }

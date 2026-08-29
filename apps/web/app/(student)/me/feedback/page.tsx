@@ -78,6 +78,13 @@ export default function MyFeedbackPage() {
             Submitted {new Date(data.feedback.createdAt).toLocaleDateString()} for {data.feedback.academicYear}.
           </p>
         </Card>
+      ) : !data.open ? (
+        <Card className="space-y-2 p-6 text-center">
+          <h2 className="text-lg font-semibold text-strong">Not open yet</h2>
+          <p className="text-sm text-subtle">
+            Your placement cell opens this survey at the end of the placement season. Check back later.
+          </p>
+        </Card>
       ) : (
         <FeedbackForm programme={data.programme} batch={data.batch} onDone={() => getMyFeedback().then(setData)} />
       )}

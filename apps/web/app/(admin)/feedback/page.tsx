@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge, Card, StatTile } from '@campusgo/ui';
+import { Badge, Button, Card, StatTile } from '@campusgo/ui';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import {
+  getFeedbackWindow,
   getStudentFeedbackSummary,
   listEmployerFeedback,
+  setFeedbackWindow,
   PLACEMENT_STATUS_LABEL,
   type EmployerFeedbackListRow,
+  type FeedbackWindow,
   type StudentFeedbackSummary,
 } from '../../../lib/feedback';
 
@@ -130,19 +133,58 @@ function EmployerTab() {
 
 function StudentTab() {
   const [data, setData] = useState<StudentFeedbackSummary | null>(null);
+  const [feedbackWindow, setFeedbackWindowState] = useState<FeedbackWindow | null>(null);
+  const [toggling, setToggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getStudentFeedbackSummary()
-      .then(setData)
+    Promise.all([getStudentFeedbackSummary(), getFeedbackWindow()])
+      .then(([summary, w]) => {
+        setData(summary);
+        setFeedbackWindowState(w);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load'));
   }, []);
 
+  async function toggleWindow() {
+    if (!feedbackWindow) return;
+    setToggling(true);
+    setError(null);
+    try {
+      setFeedbackWindowState(await setFeedbackWindow(!feedbackWindow.open));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update');
+    } finally {
+      setToggling(false);
+    }
+  }
+
   if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!data) return <ListSkeleton />;
+  if (!data || !feedbackWindow) return <ListSkeleton />;
 
   return (
     <div className="space-y-4">
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <p className="text-sm font-semibold text-strong">
+            Survey is currently {feedbackWindow.open ? 'open' : 'closed'}
+          </p>
+          <p className="text-xs text-subtle">
+            {feedbackWindow.open
+              ? 'Students can submit the end-of-season feedback survey now.'
+              : 'Students cannot submit feedback until you open it — trigger this once the placement season wraps up.'}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant={feedbackWindow.open ? 'outline' : 'primary'}
+          onClick={toggleWindow}
+          loading={toggling}
+        >
+          {feedbackWindow.open ? 'Close survey' : 'Open survey'}
+        </Button>
+      </Card>
+
       <StatTile label="Responses" value={data.responseCount} gradient="primary" />
 
       {data.responseCount > 0 && (

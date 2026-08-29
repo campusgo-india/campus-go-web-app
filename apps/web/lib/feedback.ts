@@ -124,9 +124,16 @@ export interface StudentFeedbackRecord {
 
 export interface MyStudentFeedback {
   submitted: boolean;
+  // Whether the placement officer has opened the end-of-season survey yet.
+  open: boolean;
   programme: string;
   batch: number;
   feedback: StudentFeedbackRecord | null;
+}
+
+export interface FeedbackWindow {
+  open: boolean;
+  openedAt: string | null;
 }
 
 export interface SubmitStudentFeedbackInput {
@@ -169,3 +176,8 @@ export interface StudentFeedbackSummary {
 }
 
 export const getStudentFeedbackSummary = () => api<StudentFeedbackSummary>('/feedback/students');
+
+export const getFeedbackWindow = () => api<FeedbackWindow>('/feedback/students/window');
+
+export const setFeedbackWindow = (open: boolean) =>
+  api<FeedbackWindow>('/feedback/students/window', { method: 'PATCH', body: JSON.stringify({ open }) });

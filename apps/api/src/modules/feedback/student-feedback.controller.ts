@@ -1,9 +1,10 @@
-import { BadRequestException, Controller, Get, Post, Body } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Patch, Post, Body } from '@nestjs/common';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { StudentFeedbackService } from './student-feedback.service';
-import { SubmitStudentFeedbackDto } from './dto';
+import { PlacementPolicyService } from '../placement-policy/placement-policy.service';
+import { SetFeedbackWindowDto, SubmitStudentFeedbackDto } from './dto';
 
 /** Student: end-of-placement-season survey, submitted once. */
 @Controller('me/feedback')
@@ -26,7 +27,10 @@ export class MeFeedbackController {
 @Controller('feedback/students')
 @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
 export class OfficerStudentFeedbackController {
-  constructor(private readonly feedback: StudentFeedbackService) {}
+  constructor(
+    private readonly feedback: StudentFeedbackService,
+    private readonly placementPolicy: PlacementPolicyService,
+  ) {}
 
   private collegeId(user: JwtPayload): string {
     if (!user.collegeId) throw new BadRequestException('No college context');
@@ -36,5 +40,16 @@ export class OfficerStudentFeedbackController {
   @Get()
   async summary(@CurrentUser() user: JwtPayload) {
     return { data: await this.feedback.summary(this.collegeId(user)) };
+  }
+
+  @Get('window')
+  async getWindow(@CurrentUser() user: JwtPayload) {
+    return { data: await this.placementPolicy.getFeedbackWindow(this.collegeId(user)) };
+  }
+
+  @Patch('window')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+  async setWindow(@CurrentUser() user: JwtPayload, @Body() dto: SetFeedbackWindowDto) {
+    return { data: await this.placementPolicy.setFeedbackWindow(this.collegeId(user), dto.open, user.sub) };
   }
 }

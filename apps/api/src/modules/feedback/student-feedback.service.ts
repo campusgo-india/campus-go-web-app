@@ -1,11 +1,15 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
+import { PlacementPolicyService } from '../placement-policy/placement-policy.service';
 import { SubmitStudentFeedbackDto } from './dto';
 
 @Injectable()
 export class StudentFeedbackService {
-  constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    private readonly placementPolicy: PlacementPolicyService,
+  ) {}
 
   private async studentForUser(userId: string) {
     const student = await this.prisma.student.findUnique({
@@ -20,11 +24,13 @@ export class StudentFeedbackService {
 
   async getMine(userId: string) {
     const student = await this.studentForUser(userId);
-    const feedback = await this.prisma.studentFeedback.findUnique({
-      where: { studentId: student.id },
-    });
+    const [feedback, window] = await Promise.all([
+      this.prisma.studentFeedback.findUnique({ where: { studentId: student.id } }),
+      this.placementPolicy.getFeedbackWindow(student.collegeId),
+    ]);
     return {
       submitted: !!feedback,
+      open: window.open,
       programme: student.programme,
       batch: student.graduationYear,
       feedback: feedback ?? null,
@@ -33,6 +39,13 @@ export class StudentFeedbackService {
 
   async submitMine(userId: string, dto: SubmitStudentFeedbackDto) {
     const student = await this.studentForUser(userId);
+    const window = await this.placementPolicy.getFeedbackWindow(student.collegeId);
+    if (!window.open) {
+      throw new BadRequestException(
+        'Placement feedback is not open yet — your placement cell will announce when it opens.',
+      );
+    }
+
     const existing = await this.prisma.studentFeedback.findUnique({
       where: { studentId: student.id },
     });
