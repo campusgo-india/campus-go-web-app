@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, Card, SectionCard } from '@campusgo/ui';
+import { TrainingTabs } from '../../../../components/training-tabs';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { createBatch, deleteBatch, listBatches, type TrainingBatch } from '../../../../lib/training';
 
@@ -54,15 +55,12 @@ export default function TrainingBatchesPage() {
             independent of school/programme/graduation year.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/training">
-            <Button variant="outline">Assessments</Button>
-          </Link>
-          <Button onClick={() => setShowForm((s) => !s)} variant={showForm ? 'outline' : 'primary'}>
-            {showForm ? 'Cancel' : 'New batch'}
-          </Button>
-        </div>
+        <Button onClick={() => setShowForm((s) => !s)} variant={showForm ? 'outline' : 'primary'}>
+          {showForm ? 'Cancel' : 'New batch'}
+        </Button>
       </header>
+
+      <TrainingTabs />
 
       {showForm && (
         <NewBatchForm

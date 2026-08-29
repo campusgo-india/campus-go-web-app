@@ -91,12 +91,22 @@ export class TrainingSessionsService {
 
   // ─────────────── Officer / Admin ───────────────
 
+  // Each row also carries how many students have an attendance record yet —
+  // the list UI uses this to keep "Mark complete" disabled until attendance
+  // has actually been taken (see update() below, which enforces the same
+  // rule server-side).
   async list(collegeId: string) {
     const rows = await this.prisma.trainingSession.findMany({
       where: { collegeId },
       orderBy: { startsAt: 'desc' },
     });
-    return rows.map(toPublic);
+    const counts = await this.prisma.trainingAttendance.groupBy({
+      by: ['sessionId'],
+      where: { sessionId: { in: rows.map((r) => r.id) } },
+      _count: { _all: true },
+    });
+    const countBySession = new Map(counts.map((c) => [c.sessionId, c._count._all]));
+    return rows.map((r) => ({ ...toPublic(r), attendanceMarkedCount: countBySession.get(r.id) ?? 0 }));
   }
 
   async findOnePublic(collegeId: string, id: string) {
@@ -128,7 +138,19 @@ export class TrainingSessionsService {
   }
 
   async update(collegeId: string, id: string, dto: UpdateSessionDto) {
-    await this.findOneOrThrow(collegeId, id);
+    const existing = await this.findOneOrThrow(collegeId, id);
+    // A session can only be marked COMPLETED once someone has actually taken
+    // attendance for it — otherwise it silently drops out of "needs
+    // attendance" without anyone having recorded who showed up, and it would
+    // wrongly become eligible for post-session feedback.
+    if (dto.status === 'COMPLETED' && existing.status !== 'COMPLETED') {
+      const marked = await this.prisma.trainingAttendance.count({ where: { sessionId: id } });
+      if (marked === 0) {
+        throw new BadRequestException(
+          'Mark attendance for at least one student before completing this session',
+        );
+      }
+    }
     const updated = await this.prisma.trainingSession.update({
       where: { id },
       data: {

@@ -136,6 +136,7 @@ export interface TrainingSession {
   targetBatchIds: string[];
   createdAt: string;
   myAttendance?: boolean | null; // present only on the student feed
+  attendanceMarkedCount?: number; // present only on the officer list
 }
 
 export interface SessionInput {

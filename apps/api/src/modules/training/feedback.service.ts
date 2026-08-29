@@ -58,6 +58,16 @@ export class TrainingFeedbackService {
       throw new BadRequestException('Feedback can only be submitted once the session is complete');
     }
 
+    // Only students marked present may rate a session — someone who didn't
+    // attend has nothing to rate, and an unmarked student (attendance not
+    // taken for them at all) is treated the same as absent.
+    const attendance = await this.prisma.trainingAttendance.findUnique({
+      where: { sessionId_studentId: { sessionId: dto.sessionId, studentId } },
+    });
+    if (!attendance?.present) {
+      throw new ForbiddenException('Feedback can only be submitted by students marked present for this session');
+    }
+
     const existing = await this.prisma.trainingFeedback.findUnique({
       where: { sessionId_studentId: { sessionId: dto.sessionId, studentId } },
     });

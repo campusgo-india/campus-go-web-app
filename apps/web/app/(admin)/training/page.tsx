@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../components/page-skeleton';
+import { TrainingTabs } from '../../../components/training-tabs';
 import { useConfirm } from '../../../components/confirm-provider';
 import {
   deleteAssessment,
@@ -88,24 +89,12 @@ export default function TrainingAssessmentsPage() {
           <h1 className="text-2xl font-semibold text-strong">Training &amp; Assessments</h1>
           <p className="text-sm text-subtle">Pre/post assessments mapped to the 4 core skill pillars.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/training/dashboard">
-            <Button variant="outline">Dashboard</Button>
-          </Link>
-          <Link href="/training/sessions">
-            <Button variant="outline">Sessions</Button>
-          </Link>
-          <Link href="/training/batches">
-            <Button variant="outline">Batches</Button>
-          </Link>
-          <Link href="/training/feedback">
-            <Button variant="outline">Feedback</Button>
-          </Link>
-          <Link href="/training/new">
-            <Button>New assessment</Button>
-          </Link>
-        </div>
+        <Link href="/training/new">
+          <Button>New assessment</Button>
+        </Link>
       </div>
+
+      <TrainingTabs />
 
       <Card className="space-y-4 p-5">
         <p className="text-sm font-semibold text-strong">Student Readiness Framework</p>

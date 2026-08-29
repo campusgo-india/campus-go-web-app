@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Card, StatTile } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../components/page-skeleton';
+import { TrainingTabs } from '../../../../components/training-tabs';
 import { getFeedbackAnalytics, type FeedbackAnalytics } from '../../../../lib/training';
 
 export default function TrainingFeedbackPage() {
@@ -28,12 +28,9 @@ export default function TrainingFeedbackPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-strong">Feedback &amp; trainer ratings</h1>
-        <Link href="/training" className="text-sm text-primary-600 hover:underline">
-          Back to assessments
-        </Link>
-      </div>
+      <h1 className="text-2xl font-semibold text-strong">Feedback &amp; trainer ratings</h1>
+
+      <TrainingTabs />
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

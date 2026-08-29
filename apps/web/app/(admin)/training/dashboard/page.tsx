@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { Badge, ProgressBar, SectionCard, StatTile } from '@campusgo/ui';
 import { PageSkeleton } from '../../../../components/page-skeleton';
+import { TrainingTabs } from '../../../../components/training-tabs';
 import { useSession } from '../../../../lib/session';
 import { useApi } from '../../../../lib/use-api';
 import {
@@ -42,19 +42,14 @@ export default function TrainingDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-strong">Training Dashboard</h1>
-          <p className="text-sm text-subtle">
-            {studentCount.toLocaleString('en-IN')} active students in scope
-          </p>
-        </div>
-        {canManage && (
-          <Link href="/training" className="text-sm font-medium text-primary-600 hover:underline">
-            Manage assessments &amp; sessions →
-          </Link>
-        )}
+      <header>
+        <h1 className="text-2xl font-semibold text-strong">Training Dashboard</h1>
+        <p className="text-sm text-subtle">
+          {studentCount.toLocaleString('en-IN')} active students in scope
+        </p>
       </header>
+
+      {canManage && <TrainingTabs />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile
