@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Badge, Button, Card, SectionCard } from '@campusgo/ui';
 import { isValidEmail, isValidPhone } from '@campusgo/shared';
 import { useSession } from '../../../../lib/session';
@@ -121,15 +122,20 @@ export default function TeamSettingsPage() {
             Administrators
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setShowForm((s) => !s);
-            setCreated(null);
-          }}
-          variant={showForm ? 'outline' : 'primary'}
-        >
-          {showForm ? 'Cancel' : 'Add member'}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Link href="/settings/courses" className="text-sm font-medium text-primary-600 hover:underline">
+            Manage schools & programmes →
+          </Link>
+          <Button
+            onClick={() => {
+              setShowForm((s) => !s);
+              setCreated(null);
+            }}
+            variant={showForm ? 'outline' : 'primary'}
+          >
+            {showForm ? 'Cancel' : 'Add member'}
+          </Button>
+        </div>
       </header>
 
       {/* One-time credentials shown right after creation */}

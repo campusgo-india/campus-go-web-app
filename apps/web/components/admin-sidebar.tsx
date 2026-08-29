@@ -35,7 +35,6 @@ const COLLEGE_NAV: NavItem[] = [
 
 // Team (user management) and the school catalog are College Admin only.
 const TEAM_NAV: NavItem = { href: '/settings/team', label: 'Team' };
-const SCHOOLS_NAV: NavItem = { href: '/settings/courses', label: 'Schools' };
 
 // Placement Coordinator: read-only, complete visibility into everything
 // related to their department — students/jobs/internships are scoped to
@@ -52,7 +51,7 @@ const COORDINATOR_NAV: NavItem[] = [
 
 function navFor(role: UserRole | undefined): NavItem[] {
   if (role === UserRole.PLATFORM_ADMIN) return PLATFORM_NAV;
-  if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, SCHOOLS_NAV, TEAM_NAV];
+  if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, TEAM_NAV];
   if (role === UserRole.PLACEMENT_OFFICER) return COLLEGE_NAV;
   if (role === UserRole.PLACEMENT_COORDINATOR) return COORDINATOR_NAV;
   return []; // unknown / still bootstrapping — render no role-specific links

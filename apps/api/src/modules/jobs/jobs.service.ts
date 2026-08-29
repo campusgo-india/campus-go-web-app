@@ -108,11 +108,23 @@ export class JobsService {
     // Company is optional now: link an existing one if an id is given, else the
     // free-text companyName (or nothing). Job posting is independent of the POC/
     // company directory.
+    let resolvedCompanyId = dto.companyId;
     if (dto.companyId) {
       const company = await this.prisma.company.findFirst({
         where: { id: dto.companyId, collegeId },
       });
       if (!company) throw new BadRequestException('Company not found');
+    } else if (dto.companyName?.trim()) {
+      // The quick-post form's autocomplete only ever sends a name, even when
+      // the officer picks an EXISTING company from its own suggestions — link
+      // it anyway so hiring history, the companies list's job count, etc.
+      // don't silently miss this job. A name that matches nothing yet is left
+      // as free text, same as before.
+      const existing = await this.prisma.company.findFirst({
+        where: { collegeId, name: { equals: dto.companyName.trim(), mode: 'insensitive' } },
+        select: { id: true },
+      });
+      resolvedCompanyId = existing?.id;
     }
 
     const {
@@ -130,7 +142,7 @@ export class JobsService {
     return this.prisma.job.create({
       data: {
         collegeId,
-        companyId: companyId ?? null,
+        companyId: resolvedCompanyId ?? null,
         createdById,
         ...rest,
         ctcMin: this.decimalOrNull(ctcMin),

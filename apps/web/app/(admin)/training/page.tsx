@@ -86,10 +86,7 @@ export default function TrainingAssessmentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-strong">Training &amp; Assessments</h1>
-          <p className="text-sm text-subtle">
-            Plan and manage student training, with pre- and post-training assessments mapped to
-            the four core employability pillars to measure learning and improvement.
-          </p>
+          <p className="text-sm text-subtle">Pre/post assessments mapped to the 4 core skill pillars.</p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/training/dashboard">
@@ -160,7 +157,6 @@ export default function TrainingAssessmentsPage() {
                 <th className="px-4 py-3 font-medium">Max marks</th>
                 <th className="px-4 py-3 font-medium">Scheduled</th>
                 <th className="px-4 py-3 font-medium">Visible to</th>
-                <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -190,16 +186,17 @@ export default function TrainingAssessmentsPage() {
                   >
                     {audienceSummary(a)}
                   </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleActive(a)}
-                      className="text-xs font-medium text-primary-600 hover:underline"
-                    >
-                      {a.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
+                      {!a.isActive && (
+                        <span className="text-xs font-medium text-subtle">Hidden</span>
+                      )}
+                      <button
+                        onClick={() => toggleActive(a)}
+                        className="text-xs font-medium text-primary-600 hover:underline"
+                      >
+                        {a.isActive ? 'Hide' : 'Show'}
+                      </button>
                       <Link
                         href={`/training/${a.id}/scores`}
                         className="text-sm font-medium text-primary-600 hover:underline"

@@ -143,8 +143,26 @@ export class CompaniesService {
       }),
     ]);
 
+    // A job posted before a company was properly linked (or via the quick-post
+    // autocomplete not resolving an id) only carries a free-text companyName —
+    // _count.jobs above misses those entirely. Same fallback as Hiring History:
+    // also count jobs matching the company's name case-insensitively.
+    const unlinkedCounts = await Promise.all(
+      items.map((c) =>
+        this.prisma.job.count({
+          where: { collegeId, companyId: null, companyName: { equals: c.name, mode: 'insensitive' } },
+        }),
+      ),
+    );
+
     return {
-      items: items.map((c) => this.redact(c, viewer)),
+      items: items.map((c, i) => {
+        const redacted = this.redact(c, viewer);
+        return {
+          ...redacted,
+          _count: { jobs: redacted._count.jobs + unlinkedCounts[i] },
+        };
+      }),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   }
