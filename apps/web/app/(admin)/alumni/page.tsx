@@ -259,33 +259,21 @@ export default function AlumniPage() {
         </div>
       )}
 
-      {/* Search + filters */}
+      {/* Search + filters — back navigation lives in the header breadcrumb only. */}
       {showDirectory && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {view.mode === 'table' ? (
-              <button
-                onClick={backToSchools}
-                className="text-sm font-medium text-primary-600 hover:underline"
-              >
-                ← All schools in {view.year}
-              </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex gap-2">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && apply({ search: search || undefined })}
-                placeholder="Search by name, email or company…"
-                className="h-10 w-full max-w-md rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
-              />
-              <Button variant="ghost" onClick={() => apply({ search: search || undefined })}>
-                Search
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && apply({ search: search || undefined })}
+              placeholder="Search by name, email or company…"
+              className="h-10 w-full max-w-md rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
+            />
+            <Button variant="ghost" onClick={() => apply({ search: search || undefined })}>
+              Search
+            </Button>
           </div>
 
           {/* Segmentation filters */}

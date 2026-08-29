@@ -217,13 +217,8 @@ export default function InternshipsPage() {
           }}
         />
       ) : view.mode === 'schools' ? (
+        // Back navigation lives in the header breadcrumb only — no duplicate link here.
         <>
-          <button
-            onClick={() => setView({ mode: 'years' })}
-            className="text-sm font-medium text-primary-600 hover:underline"
-          >
-            ← All years
-          </button>
           <BatchCards
             items={schoolsForYear.map((c) => ({
               key: c.key,
@@ -247,13 +242,8 @@ export default function InternshipsPage() {
           />
         </>
       ) : (
+        // Back navigation lives in the header breadcrumb only — no duplicate link here.
         <>
-          <button
-            onClick={() => setView({ mode: 'schools', year: view.year })}
-            className="text-sm font-medium text-primary-600 hover:underline"
-          >
-            ← All schools in {view.year}
-          </button>
           <Card className="overflow-x-auto p-0">
             <table className="w-full min-w-[980px] text-left text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
               <thead className="border-b border-border bg-app text-xs uppercase text-subtle">

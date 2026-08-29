@@ -537,14 +537,9 @@ function StudentsList() {
       )}
 
       {/* ── Programme picker (only shown for a school with 2+ sub-programmes) ── */}
+      {/* Back navigation lives in the header breadcrumb only — no duplicate link here. */}
       {view.mode === 'programmes' && (
         <>
-          <button
-            onClick={() => setView({ mode: 'schools', year: view.year })}
-            className="text-sm font-medium text-primary-600 hover:underline"
-          >
-            ← All schools in {view.year}
-          </button>
           {programmeCountsLoading ? (
             <InlineSkeleton width="w-full" height="h-32" />
           ) : (
@@ -565,72 +560,64 @@ function StudentsList() {
       )}
 
       {/* ── Student table ── */}
+      {/* Back navigation lives in the header breadcrumb only — no duplicate link here. */}
       {view.mode === 'table' && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <button
-              onClick={backToProgrammes}
-              className="text-sm font-medium text-primary-600 hover:underline"
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search this batch by name, email, or roll…"
+              className="h-10 w-full max-w-sm rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
+            />
+            {(schools.find((c) => c.name === view.school)?.programmes.length ?? 0) > 0 && (
+              <select
+                value={programmeFilter}
+                onChange={(e) => {
+                  setPage(1);
+                  setProgrammeFilter(e.target.value);
+                }}
+                className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
+              >
+                <option value="">All programmes</option>
+                {schools
+                  .find((c) => c.name === view.school)
+                  ?.programmes.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+              </select>
+            )}
+            <select
+              value={detailsFilter}
+              onChange={(e) => {
+                setPage(1);
+                setDetailsFilter(e.target.value as typeof detailsFilter);
+              }}
+              className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
             >
-              {subProgrammesOf(view.school).length > 1
-                ? `← All programmes in ${view.school}`
-                : `← All schools in ${view.year}`}
-            </button>
-            <div className="flex flex-wrap items-center gap-2">
+              <option value="">All details</option>
+              <option value="complete">Details complete</option>
+              <option value="incomplete">Details incomplete</option>
+            </select>
+            <select
+              value={resumeFilter}
+              onChange={(e) => {
+                setPage(1);
+                setResumeFilter(e.target.value as typeof resumeFilter);
+              }}
+              className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
+            >
+              <option value="">All Students</option>
+              <option value="uploaded">Resume uploaded</option>
+              <option value="missing">Resume missing</option>
+            </select>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
               <Button variant="ghost" onClick={onExportCurrentView} loading={exporting}>
                 Export
               </Button>
-              {view.mode === 'table' &&
-                (schools.find((c) => c.name === view.school)?.programmes.length ?? 0) > 0 && (
-                  <select
-                    value={programmeFilter}
-                    onChange={(e) => {
-                      setPage(1);
-                      setProgrammeFilter(e.target.value);
-                    }}
-                    className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
-                  >
-                    <option value="">All programmes</option>
-                    {schools
-                      .find((c) => c.name === view.school)
-                      ?.programmes.map((p) => (
-                        <option key={p} value={p}>
-                          {p}
-                        </option>
-                      ))}
-                  </select>
-                )}
-              <select
-                value={detailsFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setDetailsFilter(e.target.value as typeof detailsFilter);
-                }}
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
-              >
-                <option value="">All details</option>
-                <option value="complete">Details complete</option>
-                <option value="incomplete">Details incomplete</option>
-              </select>
-              <select
-                value={resumeFilter}
-                onChange={(e) => {
-                  setPage(1);
-                  setResumeFilter(e.target.value as typeof resumeFilter);
-                }}
-                className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
-              >
-                <option value="">All Students</option>
-                <option value="uploaded">Resume uploaded</option>
-                <option value="missing">Resume missing</option>
-              </select>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search this batch by name, email, or roll…"
-                className="h-10 w-full max-w-sm rounded-md border border-border bg-white px-4 text-sm outline-none focus:border-primary-400"
-              />
               <Button variant="ghost" onClick={() => setShowGraduate(true)}>
                 Graduate batch
               </Button>
