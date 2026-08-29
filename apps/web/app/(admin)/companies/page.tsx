@@ -134,20 +134,21 @@ export default function CompaniesPage() {
               <th className="px-4 py-3 font-medium">Industry</th>
               <th className="px-4 py-3 font-medium">City</th>
               <th className="px-4 py-3 font-medium">POCs</th>
-              <th className="px-4 py-3 font-medium">Jobs</th>
+              <th className="px-4 py-3 font-medium">Active Jobs</th>
+              <th className="px-4 py-3 font-medium">Closed Jobs</th>
               <th className="px-4 py-3 font-medium">Created by</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8">
+                <td colSpan={7} className="px-4 py-8">
                   <InlineSkeleton width="w-full" height="h-32" />
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-subtle">
+                <td colSpan={7} className="px-4 py-8 text-center text-subtle">
                   No companies yet.
                 </td>
               </tr>
@@ -166,7 +167,8 @@ export default function CompaniesPage() {
                   <td className="px-4 py-3">{c.industry ?? '—'}</td>
                   <td className="px-4 py-3">{c.city ?? '—'}</td>
                   <td className="px-4 py-3">{c.contacts?.length ?? 0}</td>
-                  <td className="px-4 py-3">{c._count?.jobs ?? 0}</td>
+                  <td className="px-4 py-3">{c.activeJobs ?? 0}</td>
+                  <td className="px-4 py-3">{c.closedJobs ?? 0}</td>
                   <td className="px-4 py-3 text-subtle">{c.createdBy?.fullName ?? '—'}</td>
                 </tr>
               ))

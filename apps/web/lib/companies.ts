@@ -24,7 +24,10 @@ export interface Company {
   contacts: CompanyContact[];
   createdById?: string | null;
   createdBy?: { id: string; fullName: string } | null;
-  _count?: { jobs: number };
+  // Draft jobs aren't counted anywhere; activeJobs + closedJobs = totalJobs.
+  activeJobs?: number;
+  closedJobs?: number;
+  totalJobs?: number;
 }
 
 export interface HiringHistoryItem {

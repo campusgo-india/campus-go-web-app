@@ -135,7 +135,6 @@ export class CompaniesService {
         include: {
           contacts: true,
           createdBy: { select: { id: true, fullName: true } },
-          _count: { select: { jobs: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -143,24 +142,32 @@ export class CompaniesService {
       }),
     ]);
 
-    // A job posted before a company was properly linked (or via the quick-post
-    // autocomplete not resolving an id) only carries a free-text companyName —
-    // _count.jobs above misses those entirely. Same fallback as Hiring History:
-    // also count jobs matching the company's name case-insensitively.
-    const unlinkedCounts = await Promise.all(
-      items.map((c) =>
-        this.prisma.job.count({
-          where: { collegeId, companyId: null, companyName: { equals: c.name, mode: 'insensitive' } },
-        }),
-      ),
-    );
+    // Split by status instead of one lumped count — a DRAFT job isn't a real
+    // posting yet, so it's excluded entirely (not counted anywhere); Active
+    // (PUBLISHED) and Closed are shown separately and sum to the total shown.
+    // Matches a job posted before it was linked to this Company row (or via
+    // the quick-post autocomplete not resolving an id) by name too — same
+    // fallback as Hiring History, since _count.jobs alone would miss those.
+    const jobWhere = (c: (typeof items)[number], status: 'PUBLISHED' | 'CLOSED') => ({
+      collegeId,
+      status,
+      OR: [{ companyId: c.id }, { companyId: null, companyName: { equals: c.name, mode: 'insensitive' as const } }],
+    });
+    const [activeCounts, closedCounts] = await Promise.all([
+      Promise.all(items.map((c) => this.prisma.job.count({ where: jobWhere(c, 'PUBLISHED') }))),
+      Promise.all(items.map((c) => this.prisma.job.count({ where: jobWhere(c, 'CLOSED') }))),
+    ]);
 
     return {
       items: items.map((c, i) => {
         const redacted = this.redact(c, viewer);
+        const activeJobs = activeCounts[i];
+        const closedJobs = closedCounts[i];
         return {
           ...redacted,
-          _count: { jobs: redacted._count.jobs + unlinkedCounts[i] },
+          activeJobs,
+          closedJobs,
+          totalJobs: activeJobs + closedJobs,
         };
       }),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },

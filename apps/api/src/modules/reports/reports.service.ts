@@ -159,7 +159,6 @@ export class ReportsService {
         city: true,
         website: true,
         isActive: true,
-        _count: { select: { jobs: true } },
         contacts: {
           where: { isPrimary: true },
           take: 1,
@@ -168,16 +167,19 @@ export class ReportsService {
       },
     });
 
-    // Same fallback as the Companies list/hiring history: a job posted before
+    // Split by status, same as the Companies list — DRAFT jobs aren't real
+    // postings yet so they're excluded entirely. Matches a job posted before
     // it was linked to a Company row (companyId null, free-text companyName
-    // only) is otherwise invisible to _count.jobs, understating "Jobs Posted".
-    const unlinkedCounts = await Promise.all(
-      companies.map((c) =>
-        this.prisma.job.count({
-          where: { collegeId, companyId: null, companyName: { equals: c.name, mode: 'insensitive' } },
-        }),
-      ),
-    );
+    // only) by name too, same fallback as Hiring History.
+    const jobWhere = (c: (typeof companies)[number], status: 'PUBLISHED' | 'CLOSED') => ({
+      collegeId,
+      status,
+      OR: [{ companyId: c.id }, { companyId: null, companyName: { equals: c.name, mode: 'insensitive' as const } }],
+    });
+    const [activeCounts, closedCounts] = await Promise.all([
+      Promise.all(companies.map((c) => this.prisma.job.count({ where: jobWhere(c, 'PUBLISHED') }))),
+      Promise.all(companies.map((c) => this.prisma.job.count({ where: jobWhere(c, 'CLOSED') }))),
+    ]);
 
     return {
       filename: 'companies',
@@ -187,7 +189,9 @@ export class ReportsService {
         { key: 'industry', label: 'Industry' },
         { key: 'city', label: 'City' },
         { key: 'website', label: 'Website' },
-        { key: 'jobsPosted', label: 'Jobs Posted' },
+        { key: 'activeJobs', label: 'Active Jobs' },
+        { key: 'closedJobs', label: 'Closed Jobs' },
+        { key: 'totalJobs', label: 'Total Jobs' },
         { key: 'contactName', label: 'Primary Contact' },
         { key: 'contactEmail', label: 'Contact Email' },
         { key: 'contactPhone', label: 'Contact Phone' },
@@ -198,7 +202,9 @@ export class ReportsService {
         industry: c.industry,
         city: c.city,
         website: c.website,
-        jobsPosted: c._count.jobs + unlinkedCounts[i],
+        activeJobs: activeCounts[i],
+        closedJobs: closedCounts[i],
+        totalJobs: activeCounts[i] + closedCounts[i],
         contactName: c.contacts[0]?.name ?? null,
         contactEmail: c.contacts[0]?.email ?? null,
         contactPhone: c.contacts[0]?.phone ?? null,
