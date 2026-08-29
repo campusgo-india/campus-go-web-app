@@ -30,13 +30,13 @@ export default function MyPlacementDashboardPage() {
 
   if (isLoading || !apps) return <ListSkeleton />;
 
-  // A single funnel, driven by the application's own status — "Applied" and
-  // "In progress" used to be shown as separate, easy-to-misread buckets
-  // (an application moves out of APPLIED the moment a round opens, so
-  // "Applied: 0" while several are mid-interview looked like a bug). They're
-  // combined here into one "Applied" stage that covers the whole open
-  // window, from submission through active rounds.
-  const appliedActive = apps.filter((a) => a.status === 'APPLIED' || a.status === 'IN_PROGRESS');
+  // "Applied" is every application submitted — the funnel's 100% top bucket
+  // (matches "Applications" above it) — not just the ones still awaiting a
+  // decision. Showing only the still-pending count here previously read as
+  // "Applied: 0" for a student with 5 applications all already resolved to
+  // Selected/Rejected, which looked broken even though it was accurate; as
+  // the funnel's starting bucket, Applied should always be >= every stage
+  // below it.
   const selected = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
   const rejected = apps.filter((a) => a.status === 'REJECTED');
   const withdrawn = apps.filter((a) => a.status === 'WITHDRAWN');
@@ -55,8 +55,8 @@ export default function MyPlacementDashboardPage() {
     {
       key: 'applied',
       label: 'Applied',
-      description: 'Application submitted; interview rounds are open or in progress.',
-      count: appliedActive.length,
+      description: 'Every application you’ve submitted this season.',
+      count: apps.length,
       Icon: IconClockProgress,
       fill: 'bg-primary-500',
     },
@@ -89,9 +89,16 @@ export default function MyPlacementDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-strong">Placement Tracker</h1>
-        <p className="text-sm text-subtle">How your applications are progressing, at a glance.</p>
+      <header className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-strong">Placement Tracker</h1>
+          <p className="text-sm text-subtle">How your applications are progressing, at a glance.</p>
+        </div>
+        {/* This page isn't one of the bottom nav's main tabs, so it hides —
+            without its own way back, Home/Jobs/etc. become unreachable. */}
+        <Link href="/me" className="shrink-0 text-sm font-medium text-primary-600 hover:underline">
+          ← Home
+        </Link>
       </header>
 
       <div className="grid grid-cols-2 gap-3">
@@ -104,8 +111,7 @@ export default function MyPlacementDashboardPage() {
         <StatTile
           icon={<IconClockProgress className="h-4 w-4" />}
           label="Applied"
-          value={appliedActive.length}
-          hint="rounds open or in progress"
+          value={apps.length}
         />
         <StatTile
           icon={<IconCalendarCheck className="h-4 w-4" />}

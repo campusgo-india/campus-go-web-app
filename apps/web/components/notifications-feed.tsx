@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@campusgo/ui';
 import { ListSkeleton } from './page-skeleton';
@@ -36,7 +37,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
-export function NotificationsFeed() {
+export function NotificationsFeed({ homeHref }: { homeHref?: string } = {}) {
   const router = useRouter();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,14 +90,21 @@ export function NotificationsFeed() {
             {unread > 0 ? `${unread} unread` : 'You’re all caught up'}
           </p>
         </div>
-        {unread > 0 && (
-          <button
-            onClick={markAll}
-            className="text-sm font-medium text-primary-600 hover:underline"
-          >
-            Mark all read
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-4">
+          {unread > 0 && (
+            <button
+              onClick={markAll}
+              className="text-sm font-medium text-primary-600 hover:underline"
+            >
+              Mark all read
+            </button>
+          )}
+          {homeHref && (
+            <Link href={homeHref} className="text-sm font-medium text-primary-600 hover:underline">
+              ← Home
+            </Link>
+          )}
+        </div>
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}

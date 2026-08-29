@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
@@ -126,11 +127,16 @@ function MyResume() {
 
   return (
     <div className="space-y-5 pb-4">
-      <header>
-        <h1 className="text-2xl font-semibold text-strong">My resume</h1>
-        <p className="text-sm text-subtle">
-          Upload your résumé as a PDF and share the public link.
-        </p>
+      <header className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-strong">My resume</h1>
+          <p className="text-sm text-subtle">
+            Upload your résumé as a PDF and share the public link.
+          </p>
+        </div>
+        <Link href="/me/profile" className="shrink-0 text-sm font-medium text-primary-600 hover:underline">
+          Back
+        </Link>
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}

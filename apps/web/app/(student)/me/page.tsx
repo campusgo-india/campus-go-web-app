@@ -79,8 +79,21 @@ export default function StudentHome() {
   // stage's TERMINAL list, so it double-counted here while Placement
   // Tracker's status-based funnel correctly called it Selected. Matching the
   // same field both places is what fixes "0 in progress but 3 selected".
+  // Still-pending applications (rounds open, no outcome yet) — used only to
+  // prioritize the "Your applications" preview list below, most-actionable
+  // first. The "Applied" stat tile means something different: every
+  // application submitted (== apps.length), same as Placement Tracker's
+  // funnel — keeping the two screens on one definition is what avoids
+  // this exact "Applied: 0 but Selected: 3" mismatch recurring.
   const active = apps.filter((a) => a.status === 'APPLIED' || a.status === 'IN_PROGRESS');
   const offers = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
+  // Same formula as Placement Tracker's "Interviews scheduled" tile — used
+  // here instead of a second "Applied" tile, which would just duplicate the
+  // "Applications" count above it now that Applied means the funnel total.
+  const interviewsScheduled = apps.reduce(
+    (n, a) => n + a.interviews.filter((r) => r.result === 'PENDING' && r.scheduledAt).length,
+    0,
+  );
   const nextInterview = findNextInterview(apps);
   const completion = student?.profileCompletion ?? 0;
   const incompleteSteps = student?.profileSteps?.filter((s) => s.percentage < 100) ?? [];
@@ -108,7 +121,7 @@ export default function StudentHome() {
       {/* Stat strip */}
       <div className="grid grid-cols-3 gap-3">
         <Stat value={apps.length} label="Applications" />
-        <Stat value={active.length} label="Applied" />
+        <Stat value={interviewsScheduled} label="Interviews" />
         <Stat value={offers.length} label="Selected" />
       </div>
 

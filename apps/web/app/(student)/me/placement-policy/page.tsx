@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card } from '@campusgo/ui';
 import { PageSkeleton } from '../../../../components/page-skeleton';
 import { PdfModal } from '../../../../components/pdf-modal';
@@ -23,11 +24,16 @@ export default function MyPlacementPolicyPage() {
 
   return (
     <div className="space-y-5 pb-4">
-      <header>
-        <h1 className="text-2xl font-semibold text-strong">Placement Policy</h1>
-        <p className="text-sm text-subtle">
-          The rules and process your placement cell follows this season.
-        </p>
+      <header className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-semibold text-strong">Placement Policy</h1>
+          <p className="text-sm text-subtle">
+            The rules and process your placement cell follows this season.
+          </p>
+        </div>
+        <Link href="/me" className="shrink-0 text-sm font-medium text-primary-600 hover:underline">
+          ← Home
+        </Link>
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}

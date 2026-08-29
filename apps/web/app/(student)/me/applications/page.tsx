@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { Badge, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { ApplicationTimeline } from '../../../../components/application-timeline';
@@ -66,9 +67,14 @@ export default function MyApplicationsPage() {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-semibold text-strong">My applications</h1>
-        <p className="text-sm text-subtle">{apps.length} application(s)</p>
+      <header className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold text-strong">My applications</h1>
+          <p className="text-sm text-subtle">{apps.length} application(s)</p>
+        </div>
+        <Link href="/me" className="shrink-0 text-sm font-medium text-primary-600 hover:underline">
+          ← Home
+        </Link>
       </header>
 
       {error && <p className="text-sm text-danger">{error.message}</p>}
