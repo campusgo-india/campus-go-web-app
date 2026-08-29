@@ -45,6 +45,7 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportFull, setExportFull] = useState(false);
   const [showAddRound, setShowAddRound] = useState(false);
   const [placing, setPlacing] = useState<FunnelStudent | null>(null);
 
@@ -213,7 +214,7 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
     setExporting(true);
     setError(null);
     try {
-      await downloadPlatformJobApplicants(id, 'xlsx');
+      await downloadPlatformJobApplicants(id, 'xlsx', exportFull);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
     } finally {
@@ -239,9 +240,23 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
             <span>{funnel.rejectedCount} rejected</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={exportApplicants} loading={exporting}>
-          Export applicants
-        </Button>
+        <div className="flex items-center gap-2">
+          <label
+            className="flex items-center gap-1.5 text-xs font-medium text-subtle"
+            title="Also includes 10th/12th %, current %, gender and backlogs — for when HR asks for a fuller profile."
+          >
+            <input
+              type="checkbox"
+              checked={exportFull}
+              onChange={(e) => setExportFull(e.target.checked)}
+              className="h-3.5 w-3.5 accent-primary-600"
+            />
+            Full details
+          </label>
+          <Button variant="outline" size="sm" onClick={exportApplicants} loading={exporting}>
+            Export applicants
+          </Button>
+        </div>
       </div>
 
       <p className="rounded-xl bg-app p-3 text-xs text-body">

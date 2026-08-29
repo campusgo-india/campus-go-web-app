@@ -13,11 +13,57 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { jobVisibleToCollege, type Viewer } from './job-scope.util';
 import { ChangeStageDto, CreateInterviewDto, UpdateInterviewDto } from './application-dto';
-import type { ReportDataset } from '../reports/report-serializers';
+import type { ReportColumn, ReportDataset } from '../reports/report-serializers';
 
 /** Strip characters that are unsafe in a downloaded filename. */
 function sanitizeFilenamePart(s: string): string {
   return s.replace(/[^\w.-]+/g, '_');
+}
+
+// Extra columns for the "full details" applicant export variant — the kind
+// of thing an HR recruiter actually asks for beyond basic contact info (10th
+// /12th %, current %, backlogs). Deliberately excludes more sensitive profile
+// fields (address, PAN, father's contact, disability details) that a
+// recruiter has no business receiving.
+const FULL_EXPORT_STUDENT_SELECT = {
+  gender: true,
+  tenthPercentage: true,
+  twelfthPercentage: true,
+  ugPercentage: true,
+  cgpa: true,
+  activeBacklogs: true,
+  totalBacklogs: true,
+} as const;
+
+const FULL_EXPORT_COLUMNS: ReportColumn[] = [
+  { key: 'gender', label: 'Gender' },
+  { key: 'tenthPercentage', label: '10th %' },
+  { key: 'twelfthPercentage', label: '12th %' },
+  { key: 'ugPercentage', label: 'UG %' },
+  { key: 'cgpa', label: 'Current %' },
+  { key: 'activeBacklogs', label: 'Active Backlogs' },
+  { key: 'totalBacklogs', label: 'Total Backlogs' },
+];
+
+function fullExportFields(s: {
+  gender: string | null;
+  tenthPercentage: Prisma.Decimal | null;
+  twelfthPercentage: Prisma.Decimal | null;
+  ugPercentage: Prisma.Decimal | null;
+  cgpa: Prisma.Decimal | null;
+  activeBacklogs: number;
+  totalBacklogs: number;
+}) {
+  const pct = (v: Prisma.Decimal | null) => (v != null ? Number(v) : '');
+  return {
+    gender: s.gender ?? '',
+    tenthPercentage: pct(s.tenthPercentage),
+    twelfthPercentage: pct(s.twelfthPercentage),
+    ugPercentage: pct(s.ugPercentage),
+    cgpa: pct(s.cgpa),
+    activeBacklogs: s.activeBacklogs,
+    totalBacklogs: s.totalBacklogs,
+  };
 }
 
 // Allowed officer-driven stage transitions. WITHDRAWN is reachable only via the
@@ -226,7 +272,13 @@ export class ApplicationsService {
 
   // Applicant contact + resume export for an officer to share with an HR outside
   // the app. Resume link only if published (so the link actually resolves).
-  async exportApplicantsDataset(collegeId: string, jobId: string): Promise<ReportDataset> {
+  // `full` adds academic/eligibility columns (10th/12th %, backlogs, etc.) —
+  // an HR recruiter sometimes asks for these beyond basic contact info.
+  async exportApplicantsDataset(
+    collegeId: string,
+    jobId: string,
+    full = false,
+  ): Promise<ReportDataset> {
     const [job, college, officer] = await Promise.all([
       this.prisma.job.findFirst({
         where: { id: jobId, ...jobVisibleToCollege(collegeId) },
@@ -248,6 +300,7 @@ export class ApplicationsService {
             personalEmail: true,
             user: { select: { fullName: true, email: true, phone: true } },
             resume: { select: { publicSlug: true, isPublished: true } },
+            ...(full ? FULL_EXPORT_STUDENT_SELECT : {}),
           },
         },
       },
@@ -262,6 +315,7 @@ export class ApplicationsService {
       // Programme, so a job open to multiple programmes doesn't leave the
       // recruiter guessing which candidates came from which one.
       programme: a.student.programme,
+      ...(full ? fullExportFields(a.student as Parameters<typeof fullExportFields>[0]) : {}),
       // Personal email, not the institutional login — recruiters need a way
       // to reach the candidate after they graduate and lose institute access.
       email: a.student.personalEmail || a.student.user.email,
@@ -280,7 +334,7 @@ export class ApplicationsService {
 
     const companyName = job.company?.name ?? job.companyName ?? 'Company';
     const stamp = new Date().toISOString().slice(0, 10);
-    const filename = `${sanitizeFilenamePart(companyName)}-${sanitizeFilenamePart(collegeName)}-applicants-${stamp}`;
+    const filename = `${sanitizeFilenamePart(companyName)}-${sanitizeFilenamePart(collegeName)}-applicants${full ? '-full' : ''}-${stamp}`;
 
     return {
       filename,
@@ -289,6 +343,7 @@ export class ApplicationsService {
         { key: 'rollNumber', label: 'Reg No' },
         { key: 'fullName', label: 'Name' },
         { key: 'programme', label: 'Programme' },
+        ...(full ? FULL_EXPORT_COLUMNS : []),
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Mobile' },
         { key: 'dateOfBirth', label: 'DOB' },
@@ -308,7 +363,7 @@ export class ApplicationsService {
   // applicants span every targeted college, so College + that college's own
   // Placement Officer contact vary per row (this is the whole point — whoever
   // downloads this needs to know who to call about a given applicant).
-  async exportPlatformApplicantsDataset(jobId: string): Promise<ReportDataset> {
+  async exportPlatformApplicantsDataset(jobId: string, full = false): Promise<ReportDataset> {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, scope: 'PLATFORM' },
       include: { company: { select: { name: true } } },
@@ -328,6 +383,7 @@ export class ApplicationsService {
               collegeId: true,
               user: { select: { fullName: true, email: true, phone: true } },
               resume: { select: { publicSlug: true, isPublished: true } },
+              ...(full ? FULL_EXPORT_STUDENT_SELECT : {}),
             },
           },
         },
@@ -348,6 +404,7 @@ export class ApplicationsService {
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
         programme: a.student.programme,
+        ...(full ? fullExportFields(a.student as Parameters<typeof fullExportFields>[0]) : {}),
         email: a.student.personalEmail || a.student.user.email,
         phone: a.student.user.phone ?? '',
         dateOfBirth: a.student.dateOfBirth ? a.student.dateOfBirth.toISOString().slice(0, 10) : '',
@@ -365,7 +422,7 @@ export class ApplicationsService {
 
     const companyName = job.company?.name ?? job.companyName ?? 'Company';
     const stamp = new Date().toISOString().slice(0, 10);
-    const filename = `${sanitizeFilenamePart(companyName)}-platform-applicants-${stamp}`;
+    const filename = `${sanitizeFilenamePart(companyName)}-platform-applicants${full ? '-full' : ''}-${stamp}`;
 
     return {
       filename,
@@ -374,6 +431,7 @@ export class ApplicationsService {
         { key: 'rollNumber', label: 'Reg No' },
         { key: 'fullName', label: 'Name' },
         { key: 'programme', label: 'Programme' },
+        ...(full ? FULL_EXPORT_COLUMNS : []),
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Mobile' },
         { key: 'dateOfBirth', label: 'DOB' },

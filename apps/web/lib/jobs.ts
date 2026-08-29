@@ -233,16 +233,24 @@ export type ApplicantExportFormat = 'csv' | 'xlsx';
 export async function downloadJobApplicants(
   id: string,
   format: ApplicantExportFormat,
+  full = false,
 ): Promise<void> {
-  return downloadApplicantsFrom(`/jobs/${id}/applicants-export?format=${format}`, format);
+  return downloadApplicantsFrom(
+    `/jobs/${id}/applicants-export?format=${format}${full ? '&full=true' : ''}`,
+    format,
+  );
 }
 
 /** Same export, for a Platform Admin's own broadcast job (rows span every targeted college). */
 export async function downloadPlatformJobApplicants(
   id: string,
   format: ApplicantExportFormat,
+  full = false,
 ): Promise<void> {
-  return downloadApplicantsFrom(`/platform/jobs/${id}/applicants-export?format=${format}`, format);
+  return downloadApplicantsFrom(
+    `/platform/jobs/${id}/applicants-export?format=${format}${full ? '&full=true' : ''}`,
+    format,
+  );
 }
 
 async function downloadApplicantsFrom(path: string, format: ApplicantExportFormat): Promise<void> {

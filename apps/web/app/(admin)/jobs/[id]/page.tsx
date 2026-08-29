@@ -42,6 +42,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<ApplicantExportFormat>('csv');
+  const [exportFull, setExportFull] = useState(false);
 
   async function load() {
     try {
@@ -108,7 +109,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setBusy(true);
     setError(null);
     try {
-      await downloadJobApplicants(id, exportFormat);
+      await downloadJobApplicants(id, exportFormat, exportFull);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
     } finally {
@@ -187,6 +188,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   </button>
                 ))}
               </div>
+              <label
+                className="flex items-center gap-1.5 text-xs font-medium text-subtle"
+                title="Also includes 10th/12th %, current %, gender and backlogs — for when HR asks for a fuller profile."
+              >
+                <input
+                  type="checkbox"
+                  checked={exportFull}
+                  onChange={(e) => setExportFull(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-primary-600"
+                />
+                Full details
+              </label>
               <Button variant="outline" size="sm" onClick={exportApplicants} disabled={busy}>
                 Export
               </Button>

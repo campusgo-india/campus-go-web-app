@@ -124,18 +124,20 @@ export class PlatformJobsController {
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Query('format') format: string | undefined,
+    @Query('full') full: string | undefined,
     @Ip() ip: string,
     @Res() res: Response,
   ): Promise<void> {
     const fmt = format === 'xlsx' ? 'xlsx' : 'csv';
-    const dataset = await this.applications.exportPlatformApplicantsDataset(id);
+    const isFull = full === 'true';
+    const dataset = await this.applications.exportPlatformApplicantsDataset(id, isFull);
     const buffer = fmt === 'xlsx' ? await toXlsx(dataset) : toCsv(dataset);
 
     await this.audit.record(user, {
       action: 'APPLICANTS_EXPORT',
       targetType: 'job',
       targetId: id,
-      metadata: { format: fmt, rows: dataset.rows.length, scope: 'PLATFORM' },
+      metadata: { format: fmt, full: isFull, rows: dataset.rows.length, scope: 'PLATFORM' },
       ip,
     });
 
