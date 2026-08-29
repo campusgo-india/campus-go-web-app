@@ -7,7 +7,7 @@ import { TrainingFeedbackModal } from '../../components/training-feedback-modal'
 /** Mobile-first shell for the Student experience (PWA-installable). */
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider loginPath="/student-login">
       <ConfirmProvider>
         <div className="mx-auto flex min-h-screen max-w-md flex-col bg-app">
           <StudentBrandHeader />

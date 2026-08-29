@@ -16,6 +16,9 @@ import { UserRole, isAdminRole } from '@campusgo/shared';
 const PUBLIC_PATHS = [
   '/',
   '/login',
+  '/student-login',
+  '/privacy',
+  '/terms',
   '/forgot-password',
   '/reset-password',
   '/alumni-register',
@@ -68,7 +71,10 @@ export function middleware(req: NextRequest) {
   }
 
   if (!role) {
-    const url = new URL('/login', req.url);
+    // /me/* (incl. the wrapped native app, which only ever opens /me) goes
+    // to the student-only login, not the shared staff+student one.
+    const wantsStudent = STUDENT_PREFIXES.some((p) => pathname.startsWith(p));
+    const url = new URL(wantsStudent ? '/student-login' : '/login', req.url);
     url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }

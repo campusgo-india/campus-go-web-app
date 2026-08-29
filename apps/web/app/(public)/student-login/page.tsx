@@ -3,20 +3,29 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { UserRole } from '@campusgo/shared';
 import { Button, Card } from '@campusgo/ui';
-import { changePasswordPathForRole, homePathForRole } from '@campusgo/auth';
-import { login } from '../../../lib/auth-actions';
+import { changePasswordPathForRole } from '@campusgo/auth';
+import { login, logout } from '../../../lib/auth-actions';
 import { PasswordInput } from '../../../components/password-input';
 
-export default function LoginPage() {
+/**
+ * Student-only entry point — used by the wrapped native app (which only
+ * ever opens /me, so this is the page an unauthenticated visit there lands
+ * on; see SessionProvider's loginPath) and reachable directly on the
+ * website too. A staff account (Placement Officer/Coordinator/College
+ * Admin) that signs in here is immediately signed back out — this form
+ * never hands them off to the admin shell.
+ */
+export default function StudentLoginPage() {
   return (
     <Suspense fallback={null}>
-      <LoginForm />
+      <StudentLoginForm />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function StudentLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [email, setEmail] = useState('');
@@ -30,12 +39,17 @@ function LoginForm() {
     setLoading(true);
     try {
       const user = await login(email, password);
+      if (user.role !== UserRole.STUDENT) {
+        await logout();
+        setError('This login is for students only. Placement staff should use the staff login instead.');
+        return;
+      }
       if (user.mustChangePassword) {
         router.push(changePasswordPathForRole(user.role));
         return;
       }
       const next = params.get('next');
-      router.push(next || homePathForRole(user.role));
+      router.push(next || '/me');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -50,7 +64,7 @@ function LoginForm() {
           <span className="text-primary-700">Campus</span>
           <span className="text-primary-400">GO</span>
         </h1>
-        <p className="text-sm text-subtle">Sign in to your account</p>
+        <p className="text-sm text-subtle">Student sign in</p>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4">
@@ -87,6 +101,10 @@ function LoginForm() {
           {loading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
+
+      <p className="text-center text-xs text-subtle">
+        Placement staff? <Link href="/login" className="text-primary-600 hover:underline">Sign in here</Link>
+      </p>
     </Card>
   );
 }

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import type { UserRole } from '@campusgo/shared';
 import { api, getAccessToken, setAccessToken, tryRefresh } from './api';
 import { mutate } from './use-api';
-import { isAppShell } from './app-shell';
 
 export interface SessionUser {
   id: string;
@@ -38,9 +37,22 @@ const clearRoleCookie = () => {
  * Bootstraps and holds the client session. On mount (e.g. after a page reload
  * that clears the in-memory access token) it restores the token from the
  * httpOnly refresh cookie, then loads the current user. If there's no valid
- * session it clears the routing cookie and redirects to /login.
+ * session it clears the routing cookie and redirects to `loginPath`.
+ *
+ * `loginPath` defaults to /login (the shared staff+student form); the
+ * student route group passes /student-login instead, so an unauthenticated
+ * visit anywhere under /me lands on the student-only entry point rather than
+ * the general one — this is also what makes the wrapped native app (which
+ * only ever opens /me) effectively student-only, with no separate "app
+ * mode" detection needed.
  */
-export function SessionProvider({ children }: { children: React.ReactNode }) {
+export function SessionProvider({
+  children,
+  loginPath = '/login',
+}: {
+  children: React.ReactNode;
+  loginPath?: string;
+}) {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,28 +67,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           await tryRefresh();
         }
         const me = await api<SessionUser>('/auth/me');
-        // The wrapped native app (Trusted Web Activity) is locked to student
-        // accounts only — any other role, whether they just signed in
-        // through this device or already had a session cookie from browsing
-        // the site in Chrome, gets signed out here before their data is ever
-        // set into state (never even flashes an admin/officer screen).
-        if (isAppShell() && me.role !== 'STUDENT') {
-          await api('/auth/logout', { method: 'POST' }).catch(() => {});
-          if (active) {
-            setAccessToken(null);
-            clearRoleCookie();
-            setUser(null);
-            router.replace('/login?blocked=staff');
-          }
-          return;
-        }
         if (active) setUser(me);
       } catch {
         if (active) {
           setAccessToken(null);
           clearRoleCookie();
           setUser(null);
-          router.replace('/login');
+          router.replace(loginPath);
         }
       } finally {
         if (active) setLoading(false);
@@ -85,7 +82,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, loginPath]);
 
   const signOut = useCallback(async () => {
     try {
@@ -97,9 +94,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       clearRoleCookie();
       setUser(null);
       await mutate(() => true, undefined, { revalidate: false });
-      router.replace('/login');
+      router.replace(loginPath);
     }
-  }, [router]);
+  }, [router, loginPath]);
 
   return (
     <SessionContext.Provider value={{ user, loading, signOut }}>{children}</SessionContext.Provider>
