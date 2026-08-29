@@ -35,6 +35,7 @@ const TRACK_ROWS: { key: keyof PlacementTrack; label: string; fmt: MetricFormat 
   { key: 'internships', label: 'Internships logged', fmt: 'int' },
   { key: 'ppos', label: 'PPOs converted', fmt: 'int' },
   { key: 'averageCtc', label: 'Average CTC', fmt: 'ctc' },
+  { key: 'medianCtc', label: 'Median CTC', fmt: 'ctc' },
   { key: 'highestCtc', label: 'Highest CTC', fmt: 'ctc' },
 ];
 
@@ -89,14 +90,6 @@ export default function PlacementDashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="rounded-2xl bg-gradient-primary p-6 text-white shadow-nav">
-        <h1 className="text-2xl font-semibold">Placement Dashboard</h1>
-        <p className="text-sm text-white/80">
-          Season outcomes for {user?.college?.name ?? 'your college'} — undergraduate &amp;
-          postgraduate combined
-        </p>
-      </header>
-
       {/* Rounds whose interview date has passed but results aren't entered yet */}
       {pending.length > 0 && (
         <Card className="space-y-2 border border-warning/40 bg-warning/5 p-4">
@@ -150,10 +143,11 @@ export default function PlacementDashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
         <StatTile label="Placement %" value={`${overall.placementRate.toFixed(1)}%`} />
         <StatTile label="Highest CTC" value={formatLpa(overall.highestCtc)} />
         <StatTile label="Average CTC" value={formatLpa(overall.averageCtc)} />
+        <StatTile label="Median CTC" value={formatLpa(overall.medianCtc)} />
         <StatTile label="Internships" value={overall.internships.toLocaleString('en-IN')} />
         <StatTile label="PPOs" value={overall.ppos.toLocaleString('en-IN')} />
       </div>

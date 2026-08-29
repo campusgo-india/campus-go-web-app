@@ -64,6 +64,7 @@ export interface PlacementTrack {
   offers: number;
   highestCtc: number | null;
   averageCtc: number | null;
+  medianCtc: number | null;
   internships: number;
   ppos: number;
 }

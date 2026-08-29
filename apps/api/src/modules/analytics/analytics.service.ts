@@ -362,6 +362,7 @@ export class AnalyticsService {
         offers: b.packages.length,
         highestCtc: b.packages.length ? Math.max(...b.packages) : null,
         averageCtc: b.packages.length ? Math.round(mean(b.packages) * 100) / 100 : null,
+        medianCtc: b.packages.length ? Math.round(median(b.packages) * 100) / 100 : null,
         internships: b.internships,
         ppos: b.ppos,
       };
@@ -385,6 +386,7 @@ export class AnalyticsService {
         offers: ug.offers + pg.offers,
         highestCtc: allPackages.length ? Math.max(...allPackages) : null,
         averageCtc: allPackages.length ? Math.round(mean(allPackages) * 100) / 100 : null,
+        medianCtc: allPackages.length ? Math.round(median(allPackages) * 100) / 100 : null,
         internships: ug.internships + pg.internships,
         ppos: ug.ppos + pg.ppos,
       },
