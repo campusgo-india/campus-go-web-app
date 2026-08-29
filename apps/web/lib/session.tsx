@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { UserRole } from '@campusgo/shared';
 import { api, getAccessToken, setAccessToken, tryRefresh } from './api';
 import { mutate } from './use-api';
+import { isAppShell } from './app-shell';
 
 export interface SessionUser {
   id: string;
@@ -54,6 +55,21 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           await tryRefresh();
         }
         const me = await api<SessionUser>('/auth/me');
+        // The wrapped native app (Trusted Web Activity) is locked to student
+        // accounts only — any other role, whether they just signed in
+        // through this device or already had a session cookie from browsing
+        // the site in Chrome, gets signed out here before their data is ever
+        // set into state (never even flashes an admin/officer screen).
+        if (isAppShell() && me.role !== 'STUDENT') {
+          await api('/auth/logout', { method: 'POST' }).catch(() => {});
+          if (active) {
+            setAccessToken(null);
+            clearRoleCookie();
+            setUser(null);
+            router.replace('/login?blocked=staff');
+          }
+          return;
+        }
         if (active) setUser(me);
       } catch {
         if (active) {

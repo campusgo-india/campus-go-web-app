@@ -21,7 +21,13 @@ function LoginForm() {
   const params = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  // Seeded from ?blocked=staff — set by the app-shell gate in lib/session.tsx
+  // when a non-student account tries to sign in from the wrapped native app.
+  const [error, setError] = useState<string | null>(
+    params.get('blocked') === 'staff'
+      ? 'This app is for students only. Placement staff should sign in from the web portal instead.'
+      : null,
+  );
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
