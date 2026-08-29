@@ -41,7 +41,11 @@ export class PlacementPolicyController {
     return { data: await this.policy.get(this.collegeId(user)) };
   }
 
+  // College Admin only: the offer-limit rule (who it's blocking, and the
+  // ability to change it) is a policy-level control, not something a
+  // Placement Officer/Coordinator should see or touch.
   @Get('restricted-students')
+  @Roles(UserRole.COLLEGE_ADMIN)
   async restrictedStudents(@CurrentUser() user: JwtPayload) {
     return { data: await this.policy.restrictedStudents(this.collegeId(user)) };
   }
@@ -61,7 +65,7 @@ export class PlacementPolicyController {
   }
 
   @Patch('offer-limit')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+  @Roles(UserRole.COLLEGE_ADMIN)
   async setOfferLimit(@CurrentUser() user: JwtPayload, @Body() dto: SetOfferLimitDto) {
     return { data: await this.policy.setOfferLimit(this.collegeId(user), dto) };
   }

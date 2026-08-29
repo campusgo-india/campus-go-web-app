@@ -27,7 +27,6 @@ const COLLEGE_NAV: NavItem[] = [
   { href: '/companies', label: 'Companies' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/placement-policy', label: 'Placement Policy' },
-  { href: '/offer-limit', label: 'Offer Limit' },
   { href: '/alumni', label: 'Alumni' },
   { href: '/internships', label: 'Internships' },
   { href: '/training', label: 'Training' },
@@ -37,6 +36,12 @@ const COLLEGE_NAV: NavItem[] = [
 
 // Team (user management) and the school catalog are College Admin only.
 const TEAM_NAV: NavItem = { href: '/settings/team', label: 'Team' };
+
+// Offer-limit is a policy-level control (who gets blocked from applying, and
+// the ability to change the threshold) — College Admin only, not Placement
+// Officer/Coordinator (also enforced backend-side, see placement-policy
+// controller).
+const OFFER_LIMIT_NAV: NavItem = { href: '/offer-limit', label: 'Offer Limit' };
 
 // Placement Coordinator: read-only, complete visibility into everything
 // related to their department — students/jobs/internships are scoped to
@@ -52,7 +57,7 @@ const COORDINATOR_NAV: NavItem[] = [
 
 function navFor(role: UserRole | undefined): NavItem[] {
   if (role === UserRole.PLATFORM_ADMIN) return PLATFORM_NAV;
-  if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, TEAM_NAV];
+  if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, OFFER_LIMIT_NAV, TEAM_NAV];
   if (role === UserRole.PLACEMENT_OFFICER) return COLLEGE_NAV;
   if (role === UserRole.PLACEMENT_COORDINATOR) return COORDINATOR_NAV;
   return []; // unknown / still bootstrapping — render no role-specific links
