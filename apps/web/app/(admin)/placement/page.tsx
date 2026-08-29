@@ -160,12 +160,8 @@ export default function PlacementDashboardPage() {
           <TrackPanel tint="cream" name="Postgraduate" track={pg} other={ug} />
         </div>
         <p className="mt-4 text-xs text-subtle">
-          Track comes from each school&apos;s Level, set in{' '}
-          <Link href="/settings/courses" className="font-medium text-primary-600 hover:underline">
-            Settings → Schools
-          </Link>
-          . A school with no level set counts as Undergraduate. CTC figures in lakhs per annum
-          (LPA).
+          Track comes from each school&apos;s configured Level. A school with no level set counts
+          as Undergraduate. CTC figures in lakhs per annum (LPA).
         </p>
       </SectionCard>
 

@@ -3,14 +3,14 @@ import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient, TrainingPillar } from '@campusgo/database';
 import { visibilityFilter } from './sessions.service';
 
-const PILLARS: TrainingPillar[] = [
+export const PILLARS: TrainingPillar[] = [
   'APTITUDE_REASONING',
   'TECHNICAL_TOOLS',
   'SOFT_SKILLS_COMMUNICATION',
   'CAREER_READINESS',
 ];
 
-const PILLAR_LABEL: Record<TrainingPillar, string> = {
+export const PILLAR_LABEL: Record<TrainingPillar, string> = {
   APTITUDE_REASONING: 'Aptitude & Reasoning',
   TECHNICAL_TOOLS: 'Technical & Tools',
   SOFT_SKILLS_COMMUNICATION: 'Soft Skills & Communication',
@@ -32,7 +32,7 @@ function tierFor(readinessIndex: number): EmployabilityTier {
   return 'TIER_3';
 }
 
-interface PillarScoreRow {
+export interface PillarScoreRow {
   marksObtained: number;
   pillar: TrainingPillar;
   maxMarks: number;
@@ -50,7 +50,7 @@ interface ScoredPillar {
  * cohort ranking below so both use exactly the same formula. A pillar with
  * no scores yet is excluded from the average rather than counted as 0.
  */
-function computeReadiness(rows: PillarScoreRow[]) {
+export function computeReadiness(rows: PillarScoreRow[]) {
   const byPillar = new Map<TrainingPillar, number[]>();
   for (const r of rows) {
     if (r.maxMarks <= 0) continue;

@@ -14,13 +14,14 @@ import { getPlacementMetrics, type PlacementMetrics } from '../../../lib/analyti
 const DESCRIPTIONS: Record<string, string> = {
   students: 'Full student directory with academics, verification & profile status.',
   companies: 'Recruiting companies, jobs posted & primary contacts.',
-  placement: 'One row per placed student — company, role & CTC.',
-  offers: 'Every released, accepted & joined offer.',
+  placement:
+    'One row per Selected/offer — company, role, CTC, offer letter link (if uploaded) & a flag for students holding multiple offers.',
   programme: 'Programme-wise placement rate, offers & average package.',
   batch: 'Batch-wise (graduation year) placement rate, offers & average package.',
-  funnel: 'Application counts by outcome status.',
+  funnel: 'Application counts by outcome (Applied/Selected/Rejected/Withdrawn), split by Undergraduate/Postgraduate.',
   summary:
-    'Headline placement & readiness numbers — placement rate, CTC stats, higher studies & entrepreneurship interest. Useful for pitches and accreditation submissions (not a NAAC/NIRF/IQAC-formatted template).',
+    'Headline placement & readiness numbers — placement rate, CTC stats, higher studies & entrepreneurship interest, broken out Overall/UG/PG. Useful for pitches and accreditation submissions (not a NAAC/NIRF/IQAC-formatted template).',
+  training: 'Pre vs post-test % per skill pillar, readiness index & training attendance — one row per student.',
 };
 
 function fmtMonth(m: string): string {

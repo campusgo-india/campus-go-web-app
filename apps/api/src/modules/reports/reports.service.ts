@@ -2,34 +2,24 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import type { ReportDataset } from './report-serializers';
+import { computeReadiness, PILLARS, PILLAR_LABEL, type PillarScoreRow } from '../training/dashboard.service';
 
-// Stages that count as a secured placement.
-const PLACING_STAGES = ['OFFER_ACCEPTED', 'JOINED'] as const;
-const OFFER_STAGES = ['OFFER_RELEASED', 'OFFER_ACCEPTED', 'JOINED'] as const;
-const ALL_STAGES = [
-  'APPLIED',
-  'VERIFIED',
-  'SHORTLISTED',
-  'ROUND_1',
-  'ROUND_2',
-  'ROUND_3',
-  'HR',
-  'OFFER_RELEASED',
-  'OFFER_ACCEPTED',
-  'JOINED',
-  'REJECTED',
-  'WITHDRAWN',
-] as const;
+// "Placed"/"has an offer" is read from the modern funnel `status` field
+// (APPLIED/IN_PROGRESS/SELECTED/REJECTED/WITHDRAWN) — the same field the
+// student Placement Tracker and the offer-limit policy read — not the
+// legacy ATS `stage`. Keeping every report on one field avoids the two
+// screens quietly disagreeing (see the /me/page.tsx stage-vs-status fix).
+const ALL_STATUSES = ['APPLIED', 'IN_PROGRESS', 'SELECTED', 'REJECTED', 'WITHDRAWN'] as const;
 
 export const REPORT_TYPES = [
   'students',
   'companies',
   'placement',
-  'offers',
   'programme',
   'batch',
   'funnel',
   'summary',
+  'training',
 ] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
 
@@ -71,8 +61,6 @@ export class ReportsService {
         return this.companies(collegeId);
       case 'placement':
         return this.placement(collegeId);
-      case 'offers':
-        return this.offers(collegeId);
       case 'programme':
         return this.programme(collegeId);
       case 'batch':
@@ -81,9 +69,26 @@ export class ReportsService {
         return this.funnel(collegeId);
       case 'summary':
         return this.summary(collegeId);
+      case 'training':
+        return this.training(collegeId);
       default:
         throw new BadRequestException(`Unknown report type: ${type as string}`);
     }
+  }
+
+  // Track (UG/PG) comes from CollegeSchool.degreeLevel, matched by school
+  // name — identical rule to the placement dashboard (analytics.service.ts).
+  // A student whose school isn't in the catalog defaults to UG.
+  private async levelByStudent(collegeId: string, studentIds?: string[]) {
+    const [schools, students] = await Promise.all([
+      this.prisma.collegeSchool.findMany({ where: { collegeId }, select: { name: true, degreeLevel: true } }),
+      this.prisma.student.findMany({
+        where: { collegeId, ...(studentIds ? { id: { in: studentIds } } : {}) },
+        select: { id: true, school: true },
+      }),
+    ]);
+    const levelByName = new Map(schools.map((s) => [s.name, s.degreeLevel]));
+    return new Map(students.map((s) => [s.id, levelByName.get(s.school) ?? 'UG']));
   }
 
   // ─────────────── Students ───────────────
@@ -148,6 +153,7 @@ export class ReportsService {
       where: { collegeId },
       orderBy: { name: 'asc' },
       select: {
+        id: true,
         name: true,
         industry: true,
         city: true,
@@ -161,6 +167,17 @@ export class ReportsService {
         },
       },
     });
+
+    // Same fallback as the Companies list/hiring history: a job posted before
+    // it was linked to a Company row (companyId null, free-text companyName
+    // only) is otherwise invisible to _count.jobs, understating "Jobs Posted".
+    const unlinkedCounts = await Promise.all(
+      companies.map((c) =>
+        this.prisma.job.count({
+          where: { collegeId, companyId: null, companyName: { equals: c.name, mode: 'insensitive' } },
+        }),
+      ),
+    );
 
     return {
       filename: 'companies',
@@ -176,12 +193,12 @@ export class ReportsService {
         { key: 'contactPhone', label: 'Contact Phone' },
         { key: 'isActive', label: 'Active' },
       ],
-      rows: companies.map((c) => ({
+      rows: companies.map((c, i) => ({
         name: c.name,
         industry: c.industry,
         city: c.city,
         website: c.website,
-        jobsPosted: c._count.jobs,
+        jobsPosted: c._count.jobs + unlinkedCounts[i],
         contactName: c.contacts[0]?.name ?? null,
         contactEmail: c.contacts[0]?.email ?? null,
         contactPhone: c.contacts[0]?.phone ?? null,
@@ -190,76 +207,25 @@ export class ReportsService {
     };
   }
 
-  // ─────────────── Placement (one row per placed student) ───────────────
+  // ─────────────── Placement (one row per Selected/offer) ───────────────
+  // Covers what used to be two near-identical reports (Placement + Offers) —
+  // an offer IS what "Selected" means for a job application, so one export
+  // is enough. Includes the offer letter link (when uploaded) and flags
+  // students holding more than one offer.
   private async placement(collegeId: string): Promise<ReportDataset> {
     const apps = await this.prisma.application.findMany({
-      where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+      where: { collegeId, status: 'SELECTED' },
       orderBy: { offerCtc: 'desc' },
       select: {
-        stage: true,
+        studentId: true,
         offerCtc: true,
+        offerLetterUrl: true,
         updatedAt: true,
         student: {
           select: {
             rollNumber: true,
             programme: true,
             graduationYear: true,
-            user: { select: { fullName: true } },
-          },
-        },
-        job: {
-          select: {
-            title: true,
-            companyName: true,
-            ctcMin: true,
-            ctcMax: true,
-            company: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    return {
-      filename: 'placement',
-      title: 'Placement',
-      columns: [
-        { key: 'rollNumber', label: 'Roll Number' },
-        { key: 'fullName', label: 'Name' },
-        { key: 'programme', label: 'Programme' },
-        { key: 'graduationYear', label: 'Graduation Year' },
-        { key: 'company', label: 'Company' },
-        { key: 'role', label: 'Role' },
-        { key: 'ctcLpa', label: 'CTC (LPA)' },
-        { key: 'stage', label: 'Stage' },
-        { key: 'placedOn', label: 'Updated On' },
-      ],
-      rows: apps.map((a) => ({
-        rollNumber: a.student.rollNumber,
-        fullName: a.student.user.fullName,
-        programme: a.student.programme,
-        graduationYear: a.student.graduationYear,
-        company: a.job.company?.name ?? a.job.companyName ?? '',
-        role: a.job.title,
-        ctcLpa: lpa(effectiveCtc(a.offerCtc, a.job)),
-        stage: a.stage,
-        placedOn: a.updatedAt,
-      })),
-    };
-  }
-
-  // ─────────────── Offers (every released/accepted/joined offer) ───────────────
-  private async offers(collegeId: string): Promise<ReportDataset> {
-    const apps = await this.prisma.application.findMany({
-      where: { collegeId, stage: { in: [...OFFER_STAGES] } },
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        stage: true,
-        offerCtc: true,
-        updatedAt: true,
-        student: {
-          select: {
-            rollNumber: true,
-            programme: true,
             personalEmail: true,
             user: { select: { fullName: true, email: true } },
           },
@@ -277,19 +243,26 @@ export class ReportsService {
       },
     });
 
+    const offerCountByStudent = new Map<string, number>();
+    for (const a of apps) {
+      offerCountByStudent.set(a.studentId, (offerCountByStudent.get(a.studentId) ?? 0) + 1);
+    }
+
     return {
-      filename: 'offers',
-      title: 'Offers',
+      filename: 'placement',
+      title: 'Placement',
       columns: [
         { key: 'rollNumber', label: 'Roll Number' },
         { key: 'fullName', label: 'Name' },
         { key: 'email', label: 'Email' },
         { key: 'programme', label: 'Programme' },
+        { key: 'graduationYear', label: 'Graduation Year' },
         { key: 'company', label: 'Company' },
         { key: 'role', label: 'Role' },
         { key: 'jobType', label: 'Type' },
         { key: 'ctcLpa', label: 'CTC (LPA)' },
-        { key: 'stage', label: 'Stage' },
+        { key: 'offerLetterUrl', label: 'Offer Letter' },
+        { key: 'multipleOffers', label: 'Multiple Offers' },
         { key: 'updatedOn', label: 'Updated On' },
       ],
       rows: apps.map((a) => ({
@@ -297,11 +270,13 @@ export class ReportsService {
         fullName: a.student.user.fullName,
         email: a.student.personalEmail || a.student.user.email,
         programme: a.student.programme,
+        graduationYear: a.student.graduationYear,
         company: a.job.company?.name ?? a.job.companyName ?? '',
         role: a.job.title,
         jobType: a.job.jobType,
         ctcLpa: lpa(effectiveCtc(a.offerCtc, a.job)),
-        stage: a.stage,
+        offerLetterUrl: a.offerLetterUrl ?? '',
+        multipleOffers: (offerCountByStudent.get(a.studentId) ?? 1) > 1 ? 'Yes' : 'No',
         updatedOn: a.updatedAt,
       })),
     };
@@ -313,9 +288,8 @@ export class ReportsService {
       where: { collegeId, isActive: true },
       select: { programme: true, graduationYear: true },
     });
-    // Placing-stage applications give us hire counts + packages per programme.
     const placed = await this.prisma.application.findMany({
-      where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+      where: { collegeId, status: 'SELECTED' },
       select: {
         offerCtc: true,
         studentId: true,
@@ -385,32 +359,59 @@ export class ReportsService {
     };
   }
 
-  // ─────────────── Application funnel ───────────────
+  // ─────────────── Application funnel (Overall + UG/PG) ───────────────
   private async funnel(collegeId: string): Promise<ReportDataset> {
-    const grouped = await this.prisma.application.groupBy({
-      by: ['stage'],
+    const apps = await this.prisma.application.findMany({
       where: { collegeId },
-      _count: { _all: true },
+      select: { status: true, studentId: true },
     });
-    const counts = new Map(grouped.map((g) => [g.stage, g._count._all]));
-    const total = grouped.reduce((sum, g) => sum + g._count._all, 0);
+    const levelByStudent = await this.levelByStudent(collegeId);
+
+    const makeCounts = () =>
+      Object.fromEntries(ALL_STATUSES.map((s) => [s, 0])) as Record<(typeof ALL_STATUSES)[number], number>;
+    const buckets = { Overall: makeCounts(), UG: makeCounts(), PG: makeCounts() };
+    for (const a of apps) {
+      buckets.Overall[a.status as (typeof ALL_STATUSES)[number]]++;
+      const level = levelByStudent.get(a.studentId) ?? 'UG';
+      buckets[level as 'UG' | 'PG'][a.status as (typeof ALL_STATUSES)[number]]++;
+    }
+
+    // Applied/In-progress read the same "rounds open or in progress" label —
+    // collapse them into one clear row instead of two easy-to-misread ones
+    // (the same fix applied to the student Placement Tracker funnel).
+    const rows = ['Applied', 'Selected', 'Rejected', 'Withdrawn'].map((label) => {
+      const sumOf = (b: Record<(typeof ALL_STATUSES)[number], number>) =>
+        label === 'Applied'
+          ? b.APPLIED + b.IN_PROGRESS
+          : label === 'Selected'
+            ? b.SELECTED
+            : label === 'Rejected'
+              ? b.REJECTED
+              : b.WITHDRAWN;
+      const overall = sumOf(buckets.Overall);
+      const ug = sumOf(buckets.UG);
+      const pg = sumOf(buckets.PG);
+      const total = apps.length;
+      return {
+        stage: label,
+        overall,
+        shareOfTotal: total > 0 ? Math.round((overall / total) * 1000) / 10 : 0,
+        undergraduate: ug,
+        postgraduate: pg,
+      };
+    });
 
     return {
       filename: 'application-funnel',
       title: 'Application Funnel',
       columns: [
         { key: 'stage', label: 'Stage' },
-        { key: 'count', label: 'Applications' },
+        { key: 'overall', label: 'Applications (Overall)' },
         { key: 'shareOfTotal', label: '% of Total' },
+        { key: 'undergraduate', label: 'Undergraduate' },
+        { key: 'postgraduate', label: 'Postgraduate' },
       ],
-      rows: ALL_STAGES.map((stage) => {
-        const count = counts.get(stage) ?? 0;
-        return {
-          stage,
-          count,
-          shareOfTotal: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
-        };
-      }),
+      rows,
     };
   }
 
@@ -421,7 +422,7 @@ export class ReportsService {
       select: { graduationYear: true },
     });
     const placed = await this.prisma.application.findMany({
-      where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+      where: { collegeId, status: 'SELECTED' },
       select: {
         offerCtc: true,
         studentId: true,
@@ -488,54 +489,75 @@ export class ReportsService {
     };
   }
 
-  // ─────────────── Placement & readiness summary (one metric per row) ───────────────
+  // ─────────────── Placement & readiness summary (Overall + UG/PG) ───────────────
   // A general-purpose overview report — the kind of headline numbers a
   // placement cell would cite when pitching the college or feeding into an
   // accreditation submission (NAAC/NIRF/IQAC). Not a compliance-formatted
   // template for any specific body — those have precise, regulator-defined
   // column layouts this doesn't attempt to replicate.
   private async summary(collegeId: string): Promise<ReportDataset> {
-    const [total, active, verified, placedGroups, offerRows, internships, higherStudies, entrepreneurship] =
+    const [totalActive, placedApps, internships, higherStudiesRows, entrepreneurshipRows, verifiedCount, totalCount] =
       await Promise.all([
-        this.prisma.student.count({ where: { collegeId } }),
-        this.prisma.student.count({ where: { collegeId, isActive: true } }),
-        this.prisma.student.count({ where: { collegeId, verificationStatus: 'VERIFIED' } }),
-        this.prisma.application.groupBy({
-          by: ['studentId'],
-          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
-        }),
+        this.prisma.student.findMany({ where: { collegeId, isActive: true }, select: { id: true } }),
         this.prisma.application.findMany({
-          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
-          select: { offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
+          where: { collegeId, status: 'SELECTED' },
+          select: { studentId: true, offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
+          distinct: ['studentId'],
         }),
         this.prisma.internship.count({ where: { collegeId } }),
-        this.prisma.student.count({ where: { collegeId, isActive: true, higherStudiesPlanned: true } }),
-        this.prisma.student.count({ where: { collegeId, isActive: true, entrepreneurshipInterest: true } }),
+        this.prisma.student.findMany({
+          where: { collegeId, isActive: true, higherStudiesPlanned: true },
+          select: { id: true },
+        }),
+        this.prisma.student.findMany({
+          where: { collegeId, isActive: true, entrepreneurshipInterest: true },
+          select: { id: true },
+        }),
+        this.prisma.student.count({ where: { collegeId, verificationStatus: 'VERIFIED' } }),
+        this.prisma.student.count({ where: { collegeId } }),
       ]);
 
-    const placed = placedGroups.length;
-    const packages = offerRows
-      .map((o) => effectiveCtc(o.offerCtc, o.job))
-      .filter((n): n is number => n != null);
+    const activeIds = totalActive.map((s) => s.id);
+    const levelByStudent = await this.levelByStudent(collegeId, activeIds);
+    const levelOf = (id: string) => levelByStudent.get(id) ?? 'UG';
+    const countByLevel = (ids: string[], level: 'UG' | 'PG') =>
+      ids.filter((id) => levelOf(id) === level).length;
+
     const pct = (n: number, of: number) => (of > 0 ? Math.round((n / of) * 1000) / 10 : 0);
 
+    const block = (label: string, activeIdsForLevel: string[]) => {
+      const activeSet = new Set(activeIdsForLevel);
+      const placedInLevel = placedApps.filter((a) => activeSet.has(a.studentId));
+      const packages = placedInLevel
+        .map((o) => effectiveCtc(o.offerCtc, o.job))
+        .filter((n): n is number => n != null);
+      const active = activeIdsForLevel.length;
+      const placed = placedInLevel.length;
+      const higher = higherStudiesRows.filter((s) => activeSet.has(s.id)).length;
+      const entre = entrepreneurshipRows.filter((s) => activeSet.has(s.id)).length;
+      return [
+        { metric: `Active Students${label}`, value: active },
+        { metric: `Placed Students${label}`, value: placed },
+        { metric: `Unplaced Students${label}`, value: active - placed },
+        { metric: `Placement Rate (%)${label}`, value: pct(placed, active) },
+        { metric: `Average CTC (LPA)${label}`, value: lpa(mean(packages)) },
+        { metric: `Median CTC (LPA)${label}`, value: lpa(median(packages)) },
+        { metric: `Highest CTC (LPA)${label}`, value: packages.length ? lpa(Math.max(...packages)) : null },
+        { metric: `Students Planning Higher Studies${label}`, value: higher },
+        { metric: `Students Interested in Entrepreneurship${label}`, value: entre },
+      ];
+    };
+
+    const ugIds = activeIds.filter((id) => levelOf(id) === 'UG');
+    const pgIds = activeIds.filter((id) => levelOf(id) === 'PG');
+
     const rows = [
-      { metric: 'Total Students', value: total },
-      { metric: 'Active Students', value: active },
-      { metric: 'Verified Students', value: verified },
-      { metric: 'Placed Students', value: placed },
-      { metric: 'Unplaced Students', value: active - placed },
-      { metric: 'Placement Rate (%)', value: pct(placed, active) },
-      { metric: 'Total Offers', value: packages.length },
-      { metric: 'Average CTC (LPA)', value: lpa(mean(packages)) },
-      { metric: 'Median CTC (LPA)', value: lpa(median(packages)) },
-      { metric: 'Highest CTC (LPA)', value: packages.length ? lpa(Math.max(...packages)) : null },
-      { metric: 'Lowest CTC (LPA)', value: packages.length ? lpa(Math.min(...packages)) : null },
+      { metric: 'Total Students', value: totalCount },
+      { metric: 'Verified Students', value: verifiedCount },
       { metric: 'Internships Logged', value: internships },
-      { metric: 'Students Planning Higher Studies', value: higherStudies },
-      { metric: 'Higher Studies (%)', value: pct(higherStudies, active) },
-      { metric: 'Students Interested in Entrepreneurship', value: entrepreneurship },
-      { metric: 'Entrepreneurship Interest (%)', value: pct(entrepreneurship, active) },
+      ...block(' (Overall)', activeIds),
+      ...block(' (Undergraduate)', ugIds),
+      ...block(' (Postgraduate)', pgIds),
     ];
 
     return {
@@ -544,6 +566,109 @@ export class ReportsService {
       columns: [
         { key: 'metric', label: 'Metric' },
         { key: 'value', label: 'Value' },
+      ],
+      rows,
+    };
+  }
+
+  // ─────────────── Training: readiness, pre vs post, attendance ───────────────
+  // One row per active student — pre/post % per skill pillar (same 4 pillars
+  // as the Training module), the equal-weighted readiness index, and
+  // attendance %. Mirrors the exact formula used on the student's own "My
+  // Employability" page and the officer Training Dashboard, so the numbers
+  // in this export always agree with what's shown on screen.
+  private async training(collegeId: string): Promise<ReportDataset> {
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, isActive: true },
+      orderBy: [{ programme: 'asc' }, { rollNumber: 'asc' }],
+      select: { id: true, rollNumber: true, programme: true, user: { select: { fullName: true } } },
+    });
+    const studentIds = students.map((s) => s.id);
+
+    const [scores, attendance] = await Promise.all([
+      this.prisma.assessmentScore.findMany({
+        where: { studentId: { in: studentIds } },
+        select: {
+          studentId: true,
+          marksObtained: true,
+          assessment: { select: { pillar: true, maxMarks: true, phase: true } },
+        },
+      }),
+      this.prisma.trainingAttendance.findMany({
+        where: { studentId: { in: studentIds } },
+        select: { studentId: true, present: true },
+      }),
+    ]);
+
+    const scoresByStudent = new Map<string, typeof scores>();
+    for (const s of scores) {
+      const list = scoresByStudent.get(s.studentId) ?? [];
+      list.push(s);
+      scoresByStudent.set(s.studentId, list);
+    }
+    const attendanceByStudent = new Map<string, { present: number; total: number }>();
+    for (const a of attendance) {
+      const row = attendanceByStudent.get(a.studentId) ?? { present: 0, total: 0 };
+      row.total++;
+      if (a.present) row.present++;
+      attendanceByStudent.set(a.studentId, row);
+    }
+
+    const avgPct = (rows: { marksObtained: unknown; assessment: { maxMarks: number } }[]) =>
+      rows.length
+        ? Math.round(
+            (rows.reduce((sum, r) => sum + (Number(r.marksObtained) / r.assessment.maxMarks) * 100, 0) /
+              rows.length) *
+              10,
+          ) / 10
+        : null;
+
+    const pillarColumns = PILLARS.flatMap((p) => [
+      { key: `${p}_pre`, label: `${PILLAR_LABEL[p]} — Pre %` },
+      { key: `${p}_post`, label: `${PILLAR_LABEL[p]} — Post %` },
+    ]);
+
+    const rows = students.map((s) => {
+      const studentScores = scoresByStudent.get(s.id) ?? [];
+      const readiness = computeReadiness(
+        studentScores.map((r) => ({
+          marksObtained: Number(r.marksObtained),
+          pillar: r.assessment.pillar,
+          maxMarks: r.assessment.maxMarks,
+        })) as PillarScoreRow[],
+      );
+      const att = attendanceByStudent.get(s.id);
+
+      const pillarValues: Record<string, number | null> = {};
+      for (const p of PILLARS) {
+        pillarValues[`${p}_pre`] = avgPct(
+          studentScores.filter((r) => r.assessment.pillar === p && r.assessment.phase === 'PRE'),
+        );
+        pillarValues[`${p}_post`] = avgPct(
+          studentScores.filter((r) => r.assessment.pillar === p && r.assessment.phase === 'POST'),
+        );
+      }
+
+      return {
+        rollNumber: s.rollNumber,
+        fullName: s.user.fullName,
+        programme: s.programme,
+        ...pillarValues,
+        readinessIndex: readiness.scoredPillars.length ? readiness.readinessIndex : null,
+        attendancePct: att && att.total ? Math.round((att.present / att.total) * 100) : null,
+      };
+    });
+
+    return {
+      filename: 'training-readiness',
+      title: 'Training & Readiness',
+      columns: [
+        { key: 'rollNumber', label: 'Roll Number' },
+        { key: 'fullName', label: 'Name' },
+        { key: 'programme', label: 'Programme' },
+        ...pillarColumns,
+        { key: 'readinessIndex', label: 'Readiness Index (%)' },
+        { key: 'attendancePct', label: 'Training Attendance %' },
       ],
       rows,
     };

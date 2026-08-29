@@ -14,11 +14,11 @@ export const REPORT_LABELS: Record<string, string> = {
   students: 'Students',
   companies: 'Companies',
   placement: 'Placement',
-  offers: 'Offers',
   programme: 'Programme Summary',
   batch: 'Batch Summary',
   funnel: 'Application Funnel',
   summary: 'Placement & Readiness Summary',
+  training: 'Training & Readiness',
 };
 
 export const getReportCatalog = () => api<ReportCatalog>('/reports');
