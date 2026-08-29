@@ -143,13 +143,12 @@ export default function PlacementDashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <StatTile label="Placement %" value={`${overall.placementRate.toFixed(1)}%`} />
-        <StatTile label="Highest CTC" value={formatLpa(overall.highestCtc)} />
-        <StatTile label="Average CTC" value={formatLpa(overall.averageCtc)} />
-        <StatTile label="Median CTC" value={formatLpa(overall.medianCtc)} />
-        <StatTile label="Internships" value={overall.internships.toLocaleString('en-IN')} />
-        <StatTile label="PPOs" value={overall.ppos.toLocaleString('en-IN')} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatTile size="sm" tint="lavender" label="Placement %" value={`${overall.placementRate.toFixed(1)}%`} />
+        <StatTile size="sm" tint="cream" label="Highest CTC" value={formatLpa(overall.highestCtc)} />
+        <StatTile size="sm" tint="mint" label="Average CTC" value={formatLpa(overall.averageCtc)} />
+        <StatTile size="sm" tint="rose" label="Median CTC" value={formatLpa(overall.medianCtc)} />
+        <StatTile size="sm" tint="lavender" label="Internships" value={overall.internships.toLocaleString('en-IN')} />
       </div>
 
       <SectionCard
