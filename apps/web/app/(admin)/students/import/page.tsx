@@ -121,8 +121,13 @@ export default function ImportStudentsPage() {
                   className={inputCls}
                   value={school}
                   onChange={(e) => {
-                    setSchool(e.target.value);
-                    setProgramme('');
+                    const v = e.target.value;
+                    setSchool(v);
+                    const subProgrammes = schools.find((c) => c.name === v)?.programmes ?? [];
+                    // A school with no configured sub-programmes IS the programme
+                    // (e.g. MBA, BBA) — auto-fill so it can't be free-typed into
+                    // something else, e.g. "General".
+                    setProgramme(subProgrammes.length > 0 ? '' : v);
                   }}
                 >
                   <option value="">Select a school…</option>
@@ -158,6 +163,8 @@ export default function ImportStudentsPage() {
                     </option>
                   ))}
                 </select>
+              ) : schools.length > 0 && school ? (
+                <p className={`${inputCls} flex items-center bg-app text-body`}>{programme}</p>
               ) : (
                 <input
                   className={inputCls}

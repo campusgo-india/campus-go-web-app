@@ -99,6 +99,7 @@ export interface ProgrammeWiseRow {
   eligible: number;
   placed: number;
   placementRate: number;
+  medianCtc: number | null;
 }
 
 export interface ActiveDrive {

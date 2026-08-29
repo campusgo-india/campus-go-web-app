@@ -524,8 +524,14 @@ export class AnalyticsService {
         },
       }),
       this.prisma.application.findMany({
-        where: { collegeId },
-        select: { studentId: true, status: true, stage: true },
+        where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        select: {
+          studentId: true,
+          status: true,
+          stage: true,
+          offerCtc: true,
+          job: { select: { ctcMin: true, ctcMax: true } },
+        },
       }),
     ]);
 
@@ -536,6 +542,17 @@ export class AnalyticsService {
         )
         .map((a) => a.studentId),
     );
+    const programmeById = new Map(students.map((s) => [s.id, s.programme]));
+    const packagesByProgramme = new Map<string, number[]>();
+    for (const a of applications) {
+      const programme = programmeById.get(a.studentId);
+      if (!programme) continue; // graduated/inactive student, not in this season's table
+      const ctc = effectiveCtc(a.offerCtc, a.job);
+      if (ctc == null) continue;
+      const list = packagesByProgramme.get(programme) ?? [];
+      list.push(ctc);
+      packagesByProgramme.set(programme, list);
+    }
 
     const map = new Map<string, { students: number; eligible: number; placed: number }>();
     for (const s of students) {
@@ -548,13 +565,17 @@ export class AnalyticsService {
 
     return [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([programme, r]) => ({
-        programme,
-        students: r.students,
-        eligible: r.eligible,
-        placed: r.placed,
-        placementRate: r.students > 0 ? Math.round((r.placed / r.students) * 1000) / 10 : 0,
-      }));
+      .map(([programme, r]) => {
+        const packages = packagesByProgramme.get(programme) ?? [];
+        return {
+          programme,
+          students: r.students,
+          eligible: r.eligible,
+          placed: r.placed,
+          placementRate: r.students > 0 ? Math.round((r.placed / r.students) * 1000) / 10 : 0,
+          medianCtc: packages.length ? Math.round(median(packages) * 100) / 100 : null,
+        };
+      });
   }
 
   // ─────────────── Active placement drives ───────────────

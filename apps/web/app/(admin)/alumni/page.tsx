@@ -500,11 +500,18 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  // Programme options are scoped to the selected school, mirroring students/new —
-  // programme used to be a free-text field completely decoupled from school.
-  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, school: e.target.value, programme: '' }));
+  // Programme options are scoped to the selected school, mirroring students/new.
+  // A school with no configured sub-programmes IS the programme (e.g. MBA,
+  // BBA) — auto-fill rather than leave it free-text, so it can't be
+  // accidentally typed as something else (this happened to students: 58
+  // ended up with programme "General" under school MBA/BBA).
+  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const v = e.target.value;
+    const subProgrammes = schools.find((c) => c.name === v)?.programmes ?? [];
+    setForm((f) => ({ ...f, school: v, programme: subProgrammes.length > 0 ? '' : v }));
+  };
   const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
+  const programmeIsAutoFilled = schools.length > 0 && !!form.school && programmesFor.length === 0;
 
   async function submit() {
     setSaving(true);
@@ -630,6 +637,8 @@ function NewAlumniForm({ onCreated, onCancel }: { onCreated: () => void; onCance
                   </option>
                 ))}
               </select>
+            ) : programmeIsAutoFilled ? (
+              <p className={`${inputCls} flex items-center bg-app text-body`}>{form.programme}</p>
             ) : (
               <input
                 className={inputCls}

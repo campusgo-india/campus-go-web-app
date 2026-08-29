@@ -212,9 +212,15 @@ function EditAlumniForm({
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, school: e.target.value, programme: '' }));
+  // A school with no configured sub-programmes IS the programme (e.g. MBA,
+  // BBA) — auto-fill rather than leave it free-text.
+  const setSchool = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const v = e.target.value;
+    const subProgrammes = schools.find((c) => c.name === v)?.programmes ?? [];
+    setForm((f) => ({ ...f, school: v, programme: subProgrammes.length > 0 ? '' : v }));
+  };
   const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
+  const programmeIsAutoFilled = schools.length > 0 && !!form.school && programmesFor.length === 0;
 
   async function submit() {
     setSaving(true);
@@ -303,6 +309,8 @@ function EditAlumniForm({
                 </option>
               ))}
             </select>
+          ) : programmeIsAutoFilled ? (
+            <p className={`${inputCls} flex items-center bg-app text-body`}>{form.programme}</p>
           ) : (
             <input
               className={inputCls}

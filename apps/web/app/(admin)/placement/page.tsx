@@ -335,6 +335,7 @@ function ProgrammeTable({ rows }: { rows: ProgrammeWiseRow[] }) {
             <th className="px-4 py-3 font-medium">Eligible</th>
             <th className="px-4 py-3 font-medium">Placed</th>
             <th className="px-4 py-3 font-medium">Placement %</th>
+            <th className="px-4 py-3 font-medium">Median CTC</th>
           </tr>
         </thead>
         <tbody>
@@ -351,6 +352,7 @@ function ProgrammeTable({ rows }: { rows: ProgrammeWiseRow[] }) {
                   {r.placementRate.toFixed(1)}%
                 </span>
               </td>
+              <td className="px-4 py-3 text-body">{formatLpa(r.medianCtc)}</td>
             </tr>
           ))}
         </tbody>
@@ -458,6 +460,19 @@ function AttentionModal({
   );
   const [search, setSearch] = useState('');
 
+  // The page behind a full-screen modal shouldn't scroll or jump — lock it
+  // while open, and put the scroll position back exactly where it was on
+  // close (rather than wherever focus/layout happens to land).
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   const filtered = (data ?? []).filter((s) => {
     if (!search.trim()) return true;
     const q = search.trim().toLowerCase();
@@ -467,6 +482,32 @@ function AttentionModal({
       s.programme.toLowerCase().includes(q)
     );
   });
+
+  function download() {
+    if (!data || data.length === 0) return;
+    const header = ['Roll No', 'Name', 'School', 'Programme', 'Email', 'Phone'];
+    const escape = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const rows = data.map((s) =>
+      [s.rollNumber, s.fullName, s.school, s.programme, s.email, s.phone ?? '']
+        .map((v) => escape(v))
+        .join(','),
+    );
+    const csv = '﻿' + [header.join(','), ...rows].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date()
+      .toLocaleString('sv-SE', { hour12: false })
+      .replace(' ', '_')
+      .replace(/:/g, '-');
+    const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slug}-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div
@@ -490,13 +531,23 @@ function AttentionModal({
                 : 'Loading…'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-md px-2 py-1 text-subtle transition hover:bg-app hover:text-strong"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-3">
+            {data && data.length > 0 && (
+              <button
+                onClick={download}
+                className="text-xs font-medium text-primary-600 hover:underline"
+              >
+                Download
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-md px-2 py-1 text-subtle transition hover:bg-app hover:text-strong"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {data && data.length > 5 && (

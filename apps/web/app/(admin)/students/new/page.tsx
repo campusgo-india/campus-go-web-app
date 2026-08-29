@@ -48,8 +48,17 @@ export default function NewStudentPage() {
 
   const set = (k: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
   // Reset programme whenever the school changes.
-  const setSchool = (v: string) => setForm((f) => ({ ...f, school: v, programme: '' }));
+  // A school with no configured sub-programmes IS the programme (e.g. MBA,
+  // BBA) — auto-fill rather than leave it free-text, so an officer can't
+  // accidentally type something else in (this happened: 58 students ended up
+  // with programme "General" under school "MBA"/"BBA", which have zero
+  // configured sub-programmes and should just read "MBA"/"BBA").
+  const setSchool = (v: string) => {
+    const subProgrammes = schools.find((c) => c.name === v)?.programmes ?? [];
+    setForm((f) => ({ ...f, school: v, programme: subProgrammes.length > 0 ? '' : v }));
+  };
   const programmesFor = schools.find((c) => c.name === form.school)?.programmes ?? [];
+  const programmeIsAutoFilled = schools.length > 0 && !!form.school && programmesFor.length === 0;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,6 +181,16 @@ export default function NewStudentPage() {
               options={programmesFor}
               placeholder="Select a programme…"
             />
+          ) : programmeIsAutoFilled ? (
+            <div className="space-y-1">
+              <span className="text-sm font-medium text-strong">Programme</span>
+              <p className="flex h-11 items-center rounded-md border border-border bg-app px-4 text-sm text-body">
+                {form.programme}
+              </p>
+              <span className="block text-xs text-subtle">
+                This school has no sub-programmes, so it is the programme.
+              </span>
+            </div>
           ) : (
             <Field
               label="Programme"
