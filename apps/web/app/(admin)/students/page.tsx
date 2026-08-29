@@ -9,7 +9,6 @@ import { useSession } from '../../../lib/session';
 import { BatchCards } from '../../../components/batch-cards';
 import { InlineSkeleton, ListSkeleton } from '../../../components/page-skeleton';
 import {
-  downloadStudentsByProgramme,
   graduateBatch,
   listStudentBatches,
   listStudents,
@@ -32,6 +31,7 @@ export default function StudentsPage() {
 type ViewState =
   | { mode: 'years' }
   | { mode: 'schools'; year: number }
+  | { mode: 'programmes'; year: number; school: string }
   | { mode: 'table'; year: number; school: string };
 
 interface Year {
@@ -73,16 +73,76 @@ function StudentsList() {
   const [resumeFilter, setResumeFilter] = useState<'' | 'uploaded' | 'missing'>('');
   const [programmeFilter, setProgrammeFilter] = useState('');
   const [schools, setSchools] = useState<CollegeSchool[]>([]);
+  const [programmeCounts, setProgrammeCounts] = useState<Record<string, number> | null>(null);
+  const [programmeCountsLoading, setProgrammeCountsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  async function onExportByProgramme() {
+  // Exports exactly what's on screen right now — this school/programme/year
+  // batch with the current filters/search applied — not the whole college.
+  // The backend caps a single page at 200, so page through everything.
+  async function onExportCurrentView() {
+    if (view.mode !== 'table') return;
     setExporting(true);
     setError(null);
     try {
-      await downloadStudentsByProgramme();
+      const filters = {
+        search: debouncedSearch || undefined,
+        school: view.school,
+        programme: programmeFilter || undefined,
+        graduationYear: view.year,
+        detailsComplete: detailsFilter === '' ? undefined : detailsFilter === 'complete',
+        resumeComplete: resumeFilter === '' ? undefined : resumeFilter === 'uploaded',
+      };
+      const first = await listStudents({ ...filters, page: 1, limit: 200 });
+      const all = [...first.items];
+      const pages = first.meta?.pages ?? 1;
+      for (let p = 2; p <= pages; p++) {
+        const res = await listStudents({ ...filters, page: p, limit: 200 });
+        all.push(...res.items);
+      }
+      if (all.length === 0) {
+        setError('No students match the current filters to export.');
+        return;
+      }
+      const header = ['Roll No', 'Name', 'Email', 'School', 'Programme', 'Resume', 'Details', 'Login'];
+      const escape = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+      const rows = all.map((s) =>
+        [
+          s.rollNumber,
+          s.user.fullName,
+          s.user.email,
+          s.school,
+          s.programme,
+          s.resumeComplete ? 'Uploaded' : 'Not uploaded',
+          s.detailsComplete ? 'Complete' : 'Incomplete',
+          !s.isActive ? 'Disabled' : s.user.lastLoginAt ? 'Logged in' : 'Never',
+        ]
+          .map((v) => escape(String(v)))
+          .join(','),
+      );
+      const csv = '﻿' + [header.join(','), ...rows].join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const stamp = new Date()
+        .toLocaleString('sv-SE', { hour12: false })
+        .replace(' ', '_')
+        .replace(/:/g, '-');
+      const slug = [view.school, programmeFilter, String(view.year)]
+        .filter(Boolean)
+        .join('-')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `students-${slug}-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Export failed');
     } finally {
@@ -203,13 +263,49 @@ function StudentsList() {
     setMeta(undefined);
   }
 
+  // A school with more than one configured sub-programme shows a programme
+  // picker before the table (e.g. School of Computer Science → CSE/AI-ML/CT);
+  // a school with 0 or 1 goes straight to the table — nothing to disambiguate.
+  function subProgrammesOf(school: string): string[] {
+    return schools.find((c) => c.name === school)?.programmes ?? [];
+  }
+
   function selectSchool(year: number, school: string) {
-    setView({ mode: 'table', year, school });
+    const subProgrammes = subProgrammesOf(school);
     setSearch('');
     setDebouncedSearch('');
     setDetailsFilter('');
     setResumeFilter('');
     setProgrammeFilter('');
+    setPage(1);
+    setItems([]);
+    setMeta(undefined);
+    if (subProgrammes.length > 1) {
+      setView({ mode: 'programmes', year, school });
+      setProgrammeCounts(null);
+      setProgrammeCountsLoading(true);
+      Promise.all(
+        subProgrammes.map((p) =>
+          listStudents({ school, graduationYear: year, programme: p, limit: 1 }).then(
+            (res) => [p, res.meta?.total ?? 0] as const,
+          ),
+        ),
+      )
+        .then((entries) => setProgrammeCounts(Object.fromEntries(entries)))
+        .catch(() => setProgrammeCounts({}))
+        .finally(() => setProgrammeCountsLoading(false));
+    } else {
+      setView({ mode: 'table', year, school });
+    }
+  }
+
+  function selectProgramme(year: number, school: string, programme: string) {
+    setView({ mode: 'table', year, school });
+    setSearch('');
+    setDebouncedSearch('');
+    setDetailsFilter('');
+    setResumeFilter('');
+    setProgrammeFilter(programme);
     setPage(1);
     setItems([]);
     setMeta(undefined);
@@ -221,8 +317,23 @@ function StudentsList() {
   }
 
   function backToSchools() {
+    if (view.mode === 'programmes') {
+      setView({ mode: 'schools', year: view.year });
+      return;
+    }
     if (view.mode !== 'table') return;
     setView({ mode: 'schools', year: view.year });
+  }
+
+  // From the table, go back to the programme picker if this school has one
+  // (i.e. we came through it), else back to the school picker.
+  function backToProgrammes() {
+    if (view.mode !== 'table') return;
+    if (subProgrammesOf(view.school).length > 1) {
+      setView({ mode: 'programmes', year: view.year, school: view.school });
+    } else {
+      setView({ mode: 'schools', year: view.year });
+    }
   }
 
   function dismissImported() {
@@ -245,8 +356,11 @@ function StudentsList() {
   const title = useMemo(() => {
     if (view.mode === 'years') return 'Students';
     if (view.mode === 'schools') return `Students · ${view.year}`;
-    return `Students · ${view.year} · ${view.school}`;
-  }, [view]);
+    if (view.mode === 'programmes') return `Students · ${view.year} · ${view.school}`;
+    return programmeFilter
+      ? `Students · ${view.year} · ${view.school} · ${programmeFilter}`
+      : `Students · ${view.year} · ${view.school}`;
+  }, [view, programmeFilter]);
 
   const subtitle = useMemo(() => {
     if (view.mode === 'years') {
@@ -255,6 +369,10 @@ function StudentsList() {
     if (view.mode === 'schools') {
       const yearTotal = schoolsForYear.reduce((n, c) => n + c.count, 0);
       return `${yearTotal} students · ${schoolsForYear.length} ${schoolsForYear.length === 1 ? 'school' : 'schools'} in ${view.year}`;
+    }
+    if (view.mode === 'programmes') {
+      const subProgrammes = subProgrammesOf(view.school);
+      return `${subProgrammes.length} programmes in ${view.school}`;
     }
     return meta
       ? `${meta.total} students · ${meta.detailsCompleteCount ?? 0} details complete`
@@ -267,12 +385,25 @@ function StudentsList() {
     ];
     if (view.mode === 'schools') {
       crumbs.push({ label: String(view.year) });
-    } else if (view.mode === 'table') {
-      crumbs.push({ label: String(view.year), onClick: backToSchools });
+    } else if (view.mode === 'programmes') {
+      crumbs.push({ label: String(view.year), onClick: () => setView({ mode: 'schools', year: view.year }) });
       crumbs.push({ label: view.school });
+    } else if (view.mode === 'table') {
+      const hasProgrammePicker = subProgrammesOf(view.school).length > 1;
+      crumbs.push({
+        label: String(view.year),
+        onClick: () => setView({ mode: 'schools', year: view.year }),
+      });
+      crumbs.push({
+        label: view.school,
+        onClick: hasProgrammePicker ? backToProgrammes : undefined,
+      });
+      if (hasProgrammePicker && programmeFilter) {
+        crumbs.push({ label: programmeFilter });
+      }
     }
     return crumbs;
-  }, [view]);
+  }, [view, programmeFilter]);
 
   return (
     <div className="space-y-6">
@@ -309,9 +440,6 @@ function StudentsList() {
           <p className="text-sm text-subtle">{subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="ghost" onClick={onExportByProgramme} loading={exporting}>
-            Export by programme
-          </Button>
           {!readOnly && (
             <>
               <Link href="/students/import">
@@ -408,17 +536,50 @@ function StudentsList() {
         </>
       )}
 
+      {/* ── Programme picker (only shown for a school with 2+ sub-programmes) ── */}
+      {view.mode === 'programmes' && (
+        <>
+          <button
+            onClick={() => setView({ mode: 'schools', year: view.year })}
+            className="text-sm font-medium text-primary-600 hover:underline"
+          >
+            ← All schools in {view.year}
+          </button>
+          {programmeCountsLoading ? (
+            <InlineSkeleton width="w-full" height="h-32" />
+          ) : (
+            <BatchCards
+              items={subProgrammesOf(view.school).map((p) => ({
+                key: p,
+                title: p,
+                category: `${view.school} · Programme`,
+                stats: [{ label: 'students', value: programmeCounts?.[p] ?? 0 }],
+              }))}
+              onSelect={(key) => {
+                if (view.mode !== 'programmes') return;
+                selectProgramme(view.year, view.school, key);
+              }}
+            />
+          )}
+        </>
+      )}
+
       {/* ── Student table ── */}
       {view.mode === 'table' && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button
-              onClick={backToSchools}
+              onClick={backToProgrammes}
               className="text-sm font-medium text-primary-600 hover:underline"
             >
-              ← All schools in {view.year}
+              {subProgrammesOf(view.school).length > 1
+                ? `← All programmes in ${view.school}`
+                : `← All schools in ${view.year}`}
             </button>
             <div className="flex flex-wrap items-center gap-2">
+              <Button variant="ghost" onClick={onExportCurrentView} loading={exporting}>
+                Export
+              </Button>
               {view.mode === 'table' &&
                 (schools.find((c) => c.name === view.school)?.programmes.length ?? 0) > 0 && (
                   <select
