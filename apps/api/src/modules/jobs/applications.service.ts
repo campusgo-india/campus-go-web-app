@@ -243,6 +243,7 @@ export class ApplicationsService {
         student: {
           select: {
             rollNumber: true,
+            programme: true,
             dateOfBirth: true,
             personalEmail: true,
             user: { select: { fullName: true, email: true, phone: true } },
@@ -258,6 +259,9 @@ export class ApplicationsService {
     const rows = apps.map((a) => ({
       rollNumber: a.student.rollNumber,
       fullName: a.student.user.fullName,
+      // Programme, so a job open to multiple programmes doesn't leave the
+      // recruiter guessing which candidates came from which one.
+      programme: a.student.programme,
       // Personal email, not the institutional login — recruiters need a way
       // to reach the candidate after they graduate and lose institute access.
       email: a.student.personalEmail || a.student.user.email,
@@ -284,6 +288,7 @@ export class ApplicationsService {
       columns: [
         { key: 'rollNumber', label: 'Reg No' },
         { key: 'fullName', label: 'Name' },
+        { key: 'programme', label: 'Programme' },
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Mobile' },
         { key: 'dateOfBirth', label: 'DOB' },
@@ -317,6 +322,7 @@ export class ApplicationsService {
           student: {
             select: {
               rollNumber: true,
+              programme: true,
               dateOfBirth: true,
               personalEmail: true,
               collegeId: true,
@@ -341,6 +347,7 @@ export class ApplicationsService {
       return {
         rollNumber: a.student.rollNumber,
         fullName: a.student.user.fullName,
+        programme: a.student.programme,
         email: a.student.personalEmail || a.student.user.email,
         phone: a.student.user.phone ?? '',
         dateOfBirth: a.student.dateOfBirth ? a.student.dateOfBirth.toISOString().slice(0, 10) : '',
@@ -366,6 +373,7 @@ export class ApplicationsService {
       columns: [
         { key: 'rollNumber', label: 'Reg No' },
         { key: 'fullName', label: 'Name' },
+        { key: 'programme', label: 'Programme' },
         { key: 'email', label: 'Email' },
         { key: 'phone', label: 'Mobile' },
         { key: 'dateOfBirth', label: 'DOB' },
