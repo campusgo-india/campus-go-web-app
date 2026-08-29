@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.campusgoindia.student",
+      "sha256_cert_fingerprints": [
+        "95:C4:7E:38:6D:8A:90:06:6C:55:28:79:4B:EA:F9:30:2A:E4:A5:42:D5:1E:DB:FF:7A:8A:6E:C5:86:5F:EF:AB"
+      ]
+    }
+  }
+]
