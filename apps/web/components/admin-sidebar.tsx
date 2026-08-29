@@ -42,7 +42,6 @@ const TEAM_NAV: NavItem = { href: '/settings/team', label: 'Team' };
 // currently college-wide (not yet programme-scoped).
 const COORDINATOR_NAV: NavItem[] = [
   { href: '/placement', label: 'Dashboard' },
-  { href: '/students', label: 'Students' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/internships', label: 'Internships' },
   { href: '/training/dashboard', label: 'Training' },

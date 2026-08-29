@@ -9,8 +9,19 @@ const ROLE_LABELS: Record<string, string> = {
   PLATFORM_ADMIN: 'Platform Admin',
   COLLEGE_ADMIN: 'College Admin',
   PLACEMENT_OFFICER: 'Placement Officer',
+  PLACEMENT_COORDINATOR: 'Placement Coordinator',
   STUDENT: 'Student',
 };
+
+/** Fallback for any role added later without a ROLE_LABELS entry — turns
+ * SCREAMING_SNAKE_CASE into Title Case instead of leaking the raw enum. */
+function titleCaseRole(role: string): string {
+  return role
+    .toLowerCase()
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 
 function initials(name: string): string {
   return name
@@ -44,7 +55,7 @@ export function AdminTopbar() {
               {loading ? 'Loading…' : (user?.fullName ?? 'Unknown')}
             </p>
             <p className="text-xs text-subtle">
-              {user ? (ROLE_LABELS[user.role] ?? user.role) : ''}
+              {user ? (ROLE_LABELS[user.role] ?? titleCaseRole(user.role)) : ''}
               {user?.college ? ` · ${user.college.name}` : ''}
             </p>
           </div>
