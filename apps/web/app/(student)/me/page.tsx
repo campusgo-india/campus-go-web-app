@@ -9,9 +9,6 @@ import { NotificationBell } from '../../../components/notification-bell';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useApi, mutate } from '../../../lib/use-api';
 
-const TERMINAL = ['JOINED', 'REJECTED', 'WITHDRAWN'];
-const PLACING = ['OFFER_RELEASED', 'OFFER_ACCEPTED', 'JOINED'];
-
 // Stage → Badge tint. Anything not listed falls back to cream.
 const STAGE_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
   APPLIED: 'cream',
@@ -76,8 +73,14 @@ export default function StudentHome() {
   if (appsLoading || !apps) return <ListSkeleton />;
 
   const firstName = student?.user.fullName?.split(' ')[0] ?? 'there';
-  const active = apps.filter((a) => !TERMINAL.includes(a.stage));
-  const offers = apps.filter((a) => PLACING.includes(a.stage) || a.offerCtc != null);
+  // Driven by the funnel `status` (APPLIED/IN_PROGRESS/SELECTED/REJECTED/
+  // WITHDRAWN), not the detailed ATS `stage` — a job with an offer already
+  // extended (stage OFFER_RELEASED/OFFER_ACCEPTED) isn't "in progress" by
+  // stage's TERMINAL list, so it double-counted here while Placement
+  // Tracker's status-based funnel correctly called it Selected. Matching the
+  // same field both places is what fixes "0 in progress but 3 selected".
+  const active = apps.filter((a) => a.status === 'APPLIED' || a.status === 'IN_PROGRESS');
+  const offers = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
   const nextInterview = findNextInterview(apps);
   const completion = student?.profileCompletion ?? 0;
   const incompleteSteps = student?.profileSteps?.filter((s) => s.percentage < 100) ?? [];
@@ -105,8 +108,8 @@ export default function StudentHome() {
       {/* Stat strip */}
       <div className="grid grid-cols-3 gap-3">
         <Stat value={apps.length} label="Applications" />
-        <Stat value={active.length} label="In progress" />
-        <Stat value={offers.length} label="Offers" />
+        <Stat value={active.length} label="Applied" />
+        <Stat value={offers.length} label="Selected" />
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -122,8 +125,8 @@ export default function StudentHome() {
         <Link href="/me/placement" className="block">
           <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
             <div>
-              <p className="font-semibold text-strong">My Placement Dashboard</p>
-              <p className="text-xs text-subtle">Application funnel, interviews &amp; offers</p>
+              <p className="font-semibold text-strong">Placement Tracker</p>
+              <p className="text-xs text-subtle">Application funnel, interviews &amp; offer details</p>
             </div>
             <span className="text-primary-600">→</span>
           </Card>
