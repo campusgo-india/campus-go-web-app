@@ -349,8 +349,12 @@ export default function HomePage() {
           <div className="flex flex-col items-center gap-3 pt-6 sm:flex-row sm:justify-between">
             <span className="text-xs text-white/35">© {new Date().getFullYear()} CampusGO. All rights reserved.</span>
             <div className="flex gap-4">
-              <span className="text-xs text-white/35">Privacy</span>
-              <span className="text-xs text-white/35">Terms</span>
+              <Link href="/privacy" className="text-xs text-white/35 hover:text-white/60">
+                Privacy
+              </Link>
+              <Link href="/terms" className="text-xs text-white/35 hover:text-white/60">
+                Terms
+              </Link>
             </div>
           </div>
         </div>
