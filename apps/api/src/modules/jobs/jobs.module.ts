@@ -19,5 +19,9 @@ import { RoundsService } from './rounds.service';
     ApplicationsController,
   ],
   providers: [JobsService, ApplicationsService, RoundsService],
+  // JobsService is consumed by StudentsModule's action-items endpoint (the
+  // "Get Active in Placements" nudge needs the same eligibility-matching
+  // count studentFeed() uses).
+  exports: [JobsService],
 })
 export class JobsModule {}

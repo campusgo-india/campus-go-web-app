@@ -736,6 +736,32 @@ export class JobsService {
     });
   }
 
+  // Lean count for the "Get Active in Placements" nudge — same eligibility
+  // rule as studentFeed() (published, not yet applied, hard + soft criteria
+  // all met), without fetching full job payloads.
+  async matchingOpenJobsCount(userId: string): Promise<number> {
+    const student = await this.studentForUser(userId);
+    const jobs = await this.prisma.job.findMany({
+      where: { status: 'PUBLISHED', ...this.visibleToCollege(student.collegeId) },
+    });
+
+    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
+    const me = toEligibilityStudent(student, isPlaced);
+
+    const myApps = await this.prisma.application.findMany({
+      where: { studentId: student.id, jobId: { in: jobs.map((j) => j.id) } },
+      select: { jobId: true },
+    });
+    const appliedIds = new Set(myApps.map((a) => a.jobId));
+
+    return jobs.filter(
+      (j) =>
+        !appliedIds.has(j.id) &&
+        matchesStudentSchoolAndYear(student, j) &&
+        checkApplyEligibility(me, toEligibilityJob(j)).eligible,
+    ).length;
+  }
+
   async studentJobDetail(userId: string, jobId: string) {
     const student = await this.studentForUser(userId);
     const job = await this.prisma.job.findFirst({

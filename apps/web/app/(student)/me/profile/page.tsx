@@ -3,9 +3,18 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@campusgo/ui';
-import { getOwnStudent, type Student } from '../../../../lib/students';
+import { getMyActionItems, getOwnStudent, type ActionItem, type Student } from '../../../../lib/students';
 import { useSession } from '../../../../lib/session';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
+
+// One glyph per ActionItem.key — icon components are defined further down in
+// this file (function declarations are hoisted, so this is safe up here).
+const ACTION_ITEM_ICON: Record<ActionItem['key'], React.ReactNode> = {
+  profile: <UserIcon />,
+  resume: <DocIcon />,
+  inactive: <BriefcaseIcon />,
+  assessment: <ChartIcon />,
+};
 
 /**
  * Student "Profile" hub — an actions menu listing everything the student can do
@@ -17,6 +26,7 @@ export default function ProfileMenuPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -28,11 +38,12 @@ export default function ProfileMenuPage() {
       .then(setStudent)
       .catch(() => {})
       .finally(() => setLoading(false));
+    getMyActionItems()
+      .then(setActionItems)
+      .catch(() => {});
   }, []);
 
   const verified = student?.verificationStatus === 'VERIFIED';
-  const completion = student?.profileCompletion ?? 0;
-  const profileDone = verified && completion >= 100;
 
   return (
     <div className="space-y-6 pb-4">
@@ -111,34 +122,52 @@ export default function ProfileMenuPage() {
         </Card>
       )}
 
+      {/* Actions Required — dynamic nudges: incomplete profile, stale resume,
+          inactivity with matching jobs open, a pending assessment. Ordered
+          by the backend, profile completion first since it unlocks the rest. */}
+      {actionItems.length > 0 && (
+        <div className="space-y-2">
+          <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
+            Actions Required
+          </p>
+          {actionItems.map((item) => (
+            <Link
+              key={item.key}
+              href={item.ctaHref}
+              className="flex items-start gap-4 rounded-card border border-primary-200 bg-primary-50/60 p-4 transition hover:shadow-card"
+            >
+              <IconBox highlight>{ACTION_ITEM_ICON[item.key]}</IconBox>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-strong">{item.title}</p>
+                <p className="mt-0.5 text-xs text-subtle">{item.body}</p>
+                <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary-600">
+                  {item.ctaLabel} <span className="text-sm">→</span>
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {student && (
+        <Link
+          href="/me/profile/edit"
+          className="flex items-center gap-4 rounded-card border border-border bg-white p-4 transition hover:shadow-card"
+        >
+          <IconBox>
+            <UserIcon />
+          </IconBox>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-strong">Personal details</p>
+            <p className="text-xs text-subtle">Edit your academic &amp; personal info</p>
+          </div>
+          <Arrow />
+        </Link>
+      )}
+
       <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
         Actions on your profile
       </p>
-
-      {/* Highlighted: complete/verify profile */}
-      <Link
-        href="/me/profile/edit"
-        className={`flex items-center gap-4 rounded-card border p-4 transition ${
-          profileDone
-            ? 'border-border bg-white hover:shadow-card'
-            : 'border-primary-200 bg-primary-50/60 hover:shadow-card'
-        }`}
-      >
-        <IconBox highlight={!profileDone}>
-          <UserIcon />
-        </IconBox>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-strong">
-            {profileDone ? 'Personal details' : 'Complete your profile'}
-          </p>
-          <p className="text-xs text-subtle">
-            {profileDone
-              ? 'Edit your academic & personal info'
-              : `${completion}% done · unlock more roles`}
-          </p>
-        </div>
-        <Arrow />
-      </Link>
 
       {/* The rest of the actions */}
       <Card className="divide-y divide-border p-0">

@@ -298,6 +298,19 @@ export function submitOwnProfile(): Promise<Student> {
   return api(`/me/student/submit`, { method: 'POST' });
 }
 
+// ─── "Actions Required" nudges (Profile page) ───
+export interface ActionItem {
+  key: 'profile' | 'resume' | 'inactive' | 'assessment';
+  title: string;
+  body: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+export function getMyActionItems(): Promise<ActionItem[]> {
+  return api<ActionItem[]>('/me/action-items');
+}
+
 /** One-time opt-in for the current placement cycle. */
 export function setPlacementRegistration(registered: boolean): Promise<Student> {
   return api(`/me/student/placement-registration`, {
