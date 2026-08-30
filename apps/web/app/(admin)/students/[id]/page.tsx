@@ -331,11 +331,6 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
                     : '—'
                 }
               />
-              <Detail label="Higher studies planned" value={yesNo(student.higherStudiesPlanned)} />
-              <Detail
-                label="Entrepreneurship interest"
-                value={yesNo(student.entrepreneurshipInterest)}
-              />
             </DetailSection>
 
             {student.semesterMarks && student.semesterMarks.length > 0 && (

@@ -110,21 +110,17 @@ export const PROFILE_STEPS: ProfileStep[] = [
         required: true,
         placeholder: '1–5',
       },
-      {
-        key: 'higherStudiesPlanned',
-        label: 'Higher studies planned?',
-        type: 'boolean',
-        required: true,
-      },
-      {
-        key: 'entrepreneurshipInterest',
-        label: 'Entrepreneurship interest?',
-        type: 'boolean',
-        required: true,
-      },
     ],
   },
 ];
+
+// Higher-studies/entrepreneurship intent used to be self-reported here, but
+// this app-login flow is for placement-interested students only — that data
+// now comes from a separate form the placement cell floats to everyone else,
+// entered onto the student record for reporting purposes (see the Reports
+// module's UG/PG-split "Higher Studies"/"Entrepreneurship" metrics, which
+// still read Student.higherStudiesPlanned/entrepreneurshipInterest — the
+// columns themselves are unchanged, only this wizard no longer asks for them).
 
 export function isProfileFieldFilled(value: unknown, type: ProfileFieldType): boolean {
   if (value === undefined || value === null) return false;

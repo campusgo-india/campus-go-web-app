@@ -466,8 +466,6 @@ function toForm(s: Student): UpdateOwnProfileInput {
     ugSpecialization: str(s.ugSpecialization),
     languagesKnown: str(s.languagesKnown),
     communicationSkillRating: num(s.communicationSkillRating),
-    higherStudiesPlanned: bool(s.higherStudiesPlanned),
-    entrepreneurshipInterest: bool(s.entrepreneurshipInterest),
   };
 }
 
@@ -542,8 +540,6 @@ function clean(form: UpdateOwnProfileInput): UpdateOwnProfileInput {
   str('ugSpecialization');
   str('languagesKnown');
   num('communicationSkillRating');
-  bool('higherStudiesPlanned');
-  bool('entrepreneurshipInterest');
 
   return out;
 }
