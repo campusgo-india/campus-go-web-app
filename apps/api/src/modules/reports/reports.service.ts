@@ -294,6 +294,9 @@ export class ReportsService {
       where: { collegeId, isActive: true },
       select: { programme: true, graduationYear: true },
     });
+    // Not `distinct: ['studentId']` — a student holding offers from 2
+    // different jobs must count as 2 offers, only the "Placed" headcount
+    // below dedupes by student.
     const placed = await this.prisma.application.findMany({
       where: { collegeId, status: 'SELECTED' },
       select: {
@@ -302,17 +305,16 @@ export class ReportsService {
         student: { select: { programme: true } },
         job: { select: { ctcMin: true, ctcMax: true } },
       },
-      distinct: ['studentId'],
     });
 
     const map = new Map<
       string,
-      { total: number; placed: number; offers: number; packages: number[] }
+      { total: number; placedIds: Set<string>; offers: number; packages: number[] }
     >();
     const get = (b: string) => {
       let row = map.get(b);
       if (!row) {
-        row = { total: 0, placed: 0, offers: 0, packages: [] };
+        row = { total: 0, placedIds: new Set(), offers: 0, packages: [] };
         map.set(b, row);
       }
       return row;
@@ -323,7 +325,7 @@ export class ReportsService {
     }
     for (const a of placed) {
       const row = get(a.student.programme);
-      row.placed++;
+      row.placedIds.add(a.studentId);
       row.offers++;
       const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) row.packages.push(ctc);
@@ -332,6 +334,7 @@ export class ReportsService {
     const rows = [...map.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([programme, r]) => {
+        const placedCount = r.placedIds.size;
         const avg = r.packages.length
           ? r.packages.reduce((x, y) => x + y, 0) / r.packages.length
           : null;
@@ -339,9 +342,9 @@ export class ReportsService {
         return {
           programme,
           total: r.total,
-          placed: r.placed,
-          unplaced: r.total - r.placed,
-          placementRate: r.total > 0 ? Math.round((r.placed / r.total) * 1000) / 10 : 0,
+          placed: placedCount,
+          unplaced: r.total - placedCount,
+          placementRate: r.total > 0 ? Math.round((placedCount / r.total) * 1000) / 10 : 0,
           offers: r.offers,
           avgCtcLpa: lpa(avg),
           highestCtcLpa: lpa(high),
@@ -427,6 +430,7 @@ export class ReportsService {
       where: { collegeId, isActive: true },
       select: { graduationYear: true },
     });
+    // Not `distinct: ['studentId']` — see programme() above for why.
     const placed = await this.prisma.application.findMany({
       where: { collegeId, status: 'SELECTED' },
       select: {
@@ -435,17 +439,16 @@ export class ReportsService {
         student: { select: { graduationYear: true } },
         job: { select: { ctcMin: true, ctcMax: true } },
       },
-      distinct: ['studentId'],
     });
 
     const map = new Map<
       number,
-      { total: number; placed: number; offers: number; packages: number[] }
+      { total: number; placedIds: Set<string>; offers: number; packages: number[] }
     >();
     const get = (y: number) => {
       let row = map.get(y);
       if (!row) {
-        row = { total: 0, placed: 0, offers: 0, packages: [] };
+        row = { total: 0, placedIds: new Set(), offers: 0, packages: [] };
         map.set(y, row);
       }
       return row;
@@ -453,7 +456,7 @@ export class ReportsService {
     for (const s of students) get(s.graduationYear).total++;
     for (const a of placed) {
       const row = get(a.student.graduationYear);
-      row.placed++;
+      row.placedIds.add(a.studentId);
       row.offers++;
       const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) row.packages.push(ctc);
@@ -462,6 +465,7 @@ export class ReportsService {
     const rows = [...map.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([graduationYear, r]) => {
+        const placedCount = r.placedIds.size;
         const avg = r.packages.length
           ? r.packages.reduce((x, y) => x + y, 0) / r.packages.length
           : null;
@@ -469,9 +473,9 @@ export class ReportsService {
         return {
           graduationYear,
           total: r.total,
-          placed: r.placed,
-          unplaced: r.total - r.placed,
-          placementRate: r.total > 0 ? Math.round((r.placed / r.total) * 1000) / 10 : 0,
+          placed: placedCount,
+          unplaced: r.total - placedCount,
+          placementRate: r.total > 0 ? Math.round((placedCount / r.total) * 1000) / 10 : 0,
           offers: r.offers,
           avgCtcLpa: lpa(avg),
           highestCtcLpa: lpa(high),

@@ -73,16 +73,20 @@ export class AnalyticsService {
       this.prisma.application
         .groupBy({
           by: ['studentId'],
-          where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+          where: { collegeId, status: 'SELECTED' },
           _count: { _all: true },
         })
         .then((g) => g.length),
       this.prisma.application.findMany({
-        where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        where: { collegeId, status: 'SELECTED' },
         select: { offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
       }),
     ]);
 
+    // offersCount is every SELECTED application, not just the ones with a
+    // resolvable CTC — a student who self-uploads just the offer letter
+    // (no CTC entered anywhere, incl. the job posting) still counts as an
+    // offer, it just doesn't contribute to the package stats below.
     const packages = offers
       .map((o) => effectiveCtc(o.offerCtc, o.job))
       .filter((n): n is number => n != null);
@@ -93,7 +97,7 @@ export class AnalyticsService {
       verifiedStudents: verifiedCount,
       placedStudents: placedCount,
       placementRate, // percentage, one decimal
-      offersCount: packages.length,
+      offersCount: offers.length,
       avgPackage: packages.length ? Math.round(mean(packages)) : null,
       medianPackage: packages.length ? Math.round(median(packages)) : null,
       highestPackage: packages.length ? Math.max(...packages) : null,
@@ -295,7 +299,7 @@ export class AnalyticsService {
         select: { id: true, school: true, isActive: true },
       }),
       this.prisma.application.findMany({
-        where: { collegeId, stage: { in: [...PLACING_STAGES] } },
+        where: { collegeId, status: 'SELECTED' },
         select: {
           studentId: true,
           offerCtc: true,
@@ -325,6 +329,11 @@ export class AnalyticsService {
       return {
         finalYearStudents: 0,
         placedIds: new Set<string>(),
+        // Every SELECTED application in this bucket — a student who holds
+        // offers from 2 different jobs counts as 2 offers here (deliberately
+        // NOT deduped by student, unlike placedIds), matching what "Offers
+        // extended" should mean.
+        offerCount: 0,
         packages: [] as number[],
         internships: 0,
         ppos: 0,
@@ -341,6 +350,11 @@ export class AnalyticsService {
     for (const a of placingApps) {
       const bucket = buckets[bucketOf(a.studentId)];
       bucket.placedIds.add(a.studentId);
+      bucket.offerCount++;
+      // Only contributes to CTC stats when a figure can actually be
+      // resolved (explicit offerCtc, or the job's own JD range) — a student
+      // who self-uploads just the offer letter with no CTC anywhere still
+      // counts as an offer above, it just doesn't move averageCtc/highestCtc.
       const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) bucket.packages.push(ctc);
       companies.add(a.job.company?.name ?? a.job.companyName ?? 'Unknown');
@@ -359,7 +373,7 @@ export class AnalyticsService {
         placed,
         placementRate:
           b.finalYearStudents > 0 ? Math.round((placed / b.finalYearStudents) * 1000) / 10 : 0,
-        offers: b.packages.length,
+        offers: b.offerCount,
         highestCtc: b.packages.length ? Math.max(...b.packages) : null,
         averageCtc: b.packages.length ? Math.round(mean(b.packages) * 100) / 100 : null,
         medianCtc: b.packages.length ? Math.round(median(b.packages) * 100) / 100 : null,
