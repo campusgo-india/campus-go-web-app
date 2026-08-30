@@ -114,25 +114,41 @@ export default function TrainingDashboardPage() {
         subtitle="Average score % per skill pillar, pooled across every scored assessment"
       >
         <div className="space-y-4">
-          {pillars.map((p) => (
-            <div key={p.pillar}>
-              <p className="mb-1.5 text-sm font-medium text-body">{PILLAR_LABEL[p.pillar]}</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <ProgressBar
-                  value={p.prePct ?? 0}
-                  label="Pre-test"
-                  caption={p.prePct != null ? `${p.prePct}%` : 'No data'}
-                  fillClassName="bg-tint-lavender-fg"
-                />
-                <ProgressBar
-                  value={p.postPct ?? 0}
-                  label="Post-test"
-                  caption={p.postPct != null ? `${p.postPct}%` : 'No data'}
-                  fillClassName="bg-tint-mint-fg"
-                />
+          {pillars.map((p) => {
+            // Percentage-point change from pre to post average — only shown
+            // once both sides actually have data (nothing to compare otherwise).
+            const improvement =
+              p.prePct != null && p.postPct != null ? Math.round((p.postPct - p.prePct) * 10) / 10 : null;
+            return (
+              <div key={p.pillar}>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-sm font-medium text-body">{PILLAR_LABEL[p.pillar]}</p>
+                  {improvement != null && (
+                    <span
+                      className={`text-xs font-semibold ${improvement >= 0 ? 'text-success' : 'text-danger'}`}
+                    >
+                      {improvement >= 0 ? '↑ +' : '↓ '}
+                      {improvement} pts
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ProgressBar
+                    value={p.prePct ?? 0}
+                    label="Pre-test"
+                    caption={p.prePct != null ? `${p.prePct}%` : 'No data'}
+                    fillClassName="bg-tint-lavender-fg"
+                  />
+                  <ProgressBar
+                    value={p.postPct ?? 0}
+                    label="Post-test"
+                    caption={p.postPct != null ? `${p.postPct}%` : 'No data'}
+                    fillClassName="bg-tint-mint-fg"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SectionCard>
 

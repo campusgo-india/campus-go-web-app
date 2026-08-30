@@ -122,7 +122,7 @@ export default function MyPlacementDashboardPage() {
           icon={<IconCheckCircle className="h-4 w-4" />}
           label="Selected"
           value={selected.length}
-          hint={bestOfferCtc != null ? `Best offer: ₹${(bestOfferCtc / 100000).toFixed(1)} LPA` : undefined}
+          hint={bestOfferCtc != null ? `Highest Offer: ₹${(bestOfferCtc / 100000).toFixed(1)} LPA` : undefined}
         />
       </div>
 
