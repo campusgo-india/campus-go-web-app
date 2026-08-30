@@ -57,7 +57,14 @@ function runEligibilityChecks(
   ) {
     reasons.push('School not eligible');
   }
-  // Programme is intentionally NOT a restriction — students may apply across programmes.
+  const programmes = job.eligibleProgrammes ?? [];
+  const normalizedProgrammes = programmes.map((p) => p.trim().toLowerCase());
+  if (
+    programmes.length > 0 &&
+    !normalizedProgrammes.includes(student.programme?.trim().toLowerCase() ?? '')
+  ) {
+    reasons.push('Programme not eligible');
+  }
   if (job.graduationYears.length > 0 && !job.graduationYears.includes(student.graduationYear)) {
     reasons.push('Graduation year not eligible');
   }

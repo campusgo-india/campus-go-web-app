@@ -47,6 +47,8 @@ export default function QuickPostPage() {
     workMode: '',
     location: '',
     ctc: '',
+    minTenth: '', // min 10th %
+    minTwelfth: '', // min 12th %
     minUg: '', // min UG %  (undergrad)
     minPg: '', // min PG %  (current/postgrad — student's Percentage)
   });
@@ -127,6 +129,8 @@ export default function QuickPostPage() {
         ctcMax: num(details.ctc),
         minCgpa: num(details.minPg), // PG/current % → student.cgpa (their Percentage)
         minUgPercentage: num(details.minUg), // UG % → student.ugPercentage
+        minTenthPercentage: num(details.minTenth),
+        minTwelfthPercentage: num(details.minTwelfth),
         applicationFormFields: formFields.length > 0 ? cleanFields(formFields) : undefined,
         // Optional time; defaults to end of that day (23:59) if left blank.
         applicationDeadline: deadline
@@ -324,7 +328,27 @@ export default function QuickPostPage() {
                 placeholder="Bangalore"
               />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Field label="Min 10th %">
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={details.minTenth}
+                  onChange={setD('minTenth')}
+                  placeholder="60"
+                  min="0"
+                />
+              </Field>
+              <Field label="Min 12th %">
+                <input
+                  className={inputCls}
+                  type="number"
+                  value={details.minTwelfth}
+                  onChange={setD('minTwelfth')}
+                  placeholder="60"
+                  min="0"
+                />
+              </Field>
               <Field label="Min UG %">
                 <input
                   className={inputCls}
