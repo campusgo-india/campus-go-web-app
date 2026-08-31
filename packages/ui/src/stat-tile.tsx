@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { cn } from './cn';
 
-export type StatGradient = 'primary' | 'sunset' | 'ocean' | 'violet' | 'none';
-export type StatTint = 'lavender' | 'mint' | 'cream' | 'rose';
+export type StatGradient = 'primary' | 'sunset' | 'ocean' | 'violet' | 'accent' | 'none';
+export type StatTint = 'lavender' | 'mint' | 'cream' | 'rose' | 'accent';
 export type StatSize = 'md' | 'sm';
 
 const GRADIENT: Record<StatGradient, string> = {
@@ -10,6 +10,7 @@ const GRADIENT: Record<StatGradient, string> = {
   sunset: 'bg-gradient-sunset text-white',
   ocean: 'bg-gradient-ocean text-white',
   violet: 'bg-gradient-violet text-white',
+  accent: 'bg-gradient-accent text-white',
   none: 'bg-card text-strong shadow-card',
 };
 
@@ -18,6 +19,7 @@ const TINT_BG: Record<StatTint, string> = {
   mint: 'bg-tint-mint',
   cream: 'bg-tint-cream',
   rose: 'bg-tint-rose',
+  accent: 'bg-tint-accent',
 };
 
 const TINT_FG: Record<StatTint, string> = {
@@ -25,6 +27,7 @@ const TINT_FG: Record<StatTint, string> = {
   mint: 'text-tint-mint-fg',
   cream: 'text-tint-cream-fg',
   rose: 'text-tint-rose-fg',
+  accent: 'text-tint-accent-fg',
 };
 
 const SIZE: Record<StatSize, { pad: string; value: string; label: string; icon: string }> = {

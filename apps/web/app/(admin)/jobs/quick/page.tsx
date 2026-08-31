@@ -183,7 +183,7 @@ export default function QuickPostPage() {
             <button
               type="button"
               onClick={() => setShowNewCompany(true)}
-              className="text-xs font-medium text-primary-600 hover:underline"
+              className="text-xs font-medium text-accent-600 hover:underline"
             >
               + Add new company
             </button>

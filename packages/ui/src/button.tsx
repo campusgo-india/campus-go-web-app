@@ -11,6 +11,9 @@ const buttonVariants = cva(
         outline: 'border border-primary-500 text-primary-600 hover:bg-primary-50',
         ghost: 'text-primary-600 hover:bg-primary-50',
         danger: 'bg-danger text-white hover:opacity-95',
+        // The logo's orange — a secondary/highlight action, used sparingly
+        // alongside `primary`, never replacing it as the default action color.
+        accent: 'bg-gradient-accent text-accent-foreground shadow-nav hover:opacity-95',
       },
       size: {
         sm: 'h-9 px-3',

@@ -132,7 +132,7 @@ const WHY_CAMPUSGO: { title: string; body: string; accent: string }[] = [
   { title: 'Data-Driven', body: 'Make placement decisions using structured, current and historical information.', accent: '#C98A1B' },
   { title: 'Measurable', body: 'Connect training and assessments with measurable student development.', accent: '#E5484D' },
   { title: 'Efficient', body: 'Reduce repetitive administrative work and dependency on disconnected spreadsheets.', accent: '#7C8BFF' },
-  { title: 'Scalable', body: 'Support multiple schools, departments, programmes and batches.', accent: '#5B8DEF' },
+  { title: 'Scalable', body: 'Support multiple schools, departments, programmes and batches.', accent: '#E28040' },
   { title: 'Built for Continuity', body: 'Retain institutional knowledge beyond graduation and continuously grow the alumni ecosystem.', accent: '#F78CA0' },
 ];
 
@@ -214,7 +214,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
               <a
                 href={DEMO_MAILTO}
-                className="inline-flex h-12 items-center rounded-md bg-gradient-primary px-6 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95"
+                className="inline-flex h-12 items-center rounded-md bg-gradient-accent px-6 text-sm font-semibold text-accent-foreground shadow-nav hover:opacity-95"
               >
                 Request a Demo
               </a>
@@ -226,7 +226,7 @@ export default function HomePage() {
             <div className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 lg:justify-start">
               <TrustItem color="#6488FB">One branded portal per college</TrustItem>
               <TrustItem color="#5FD99E">Readiness to alumni, one system</TrustItem>
-              <TrustItem color="#F7B267">Multi-college, tenant-isolated by design</TrustItem>
+              <TrustItem color="#E28040">Multi-college, tenant-isolated by design</TrustItem>
             </div>
           </div>
 
@@ -597,7 +597,7 @@ export default function HomePage() {
             <div className="flex flex-shrink-0 flex-col gap-3 sm:flex-row">
               <a
                 href={DEMO_MAILTO}
-                className="inline-flex h-12 items-center justify-center rounded-md bg-gradient-primary px-6 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-gradient-accent px-6 text-sm font-semibold text-accent-foreground shadow-nav hover:opacity-95"
               >
                 Request a Demo
               </a>

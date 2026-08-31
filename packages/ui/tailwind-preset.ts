@@ -16,9 +16,21 @@ const preset: Partial<Config> = {
           300: '#8FAEFF',
           400: '#6488FB',
           500: '#3B6EF5',
-          600: '#2F5AE0',
-          700: '#2647B8',
+          600: '#2C56C4',
+          700: '#1F3F94',
           DEFAULT: '#3B6EF5',
+          foreground: '#FFFFFF',
+        },
+        // The CampusGo logo's orange (graduation-cap arrow) — a genuine
+        // accent, used sparingly (a highlight badge, a secondary button, a
+        // CTA here and there), never as the default action color. Keeps
+        // `primary` as the workhorse blue everywhere else.
+        accent: {
+          50: '#FFF3EA',
+          400: '#F2954A',
+          500: '#E28040',
+          600: '#C2601F',
+          DEFAULT: '#E28040',
           foreground: '#FFFFFF',
         },
         tint: {
@@ -30,6 +42,8 @@ const preset: Partial<Config> = {
           'cream-fg': '#C98A1B',
           rose: '#FEECEC',
           'rose-fg': '#E5484D',
+          accent: '#FDEEE3',
+          'accent-fg': '#C2601F',
         },
         app: '#F4F6FB',
         card: '#FFFFFF',
@@ -48,6 +62,9 @@ const preset: Partial<Config> = {
         'gradient-sunset': 'linear-gradient(135deg, #FBC2A4 0%, #F78CA0 100%)',
         'gradient-ocean': 'linear-gradient(135deg, #7CC0FF 0%, #5B8DEF 100%)',
         'gradient-violet': 'linear-gradient(135deg, #A9B6FF 0%, #7C8BFF 100%)',
+        // The logo's orange — an accent gradient for the odd highlighted CTA,
+        // not a replacement for gradient-primary.
+        'gradient-accent': 'linear-gradient(135deg, #F2954A 0%, #E28040 100%)',
       },
       // Uniform 10px corners across the project. Circular tokens (pill / full,
       // used by avatars, badges, progress bars, nav) intentionally stay round.

@@ -9,6 +9,7 @@ const badgeVariants = cva('inline-flex items-center rounded-full px-3 py-1 text-
       mint: 'bg-tint-mint text-tint-mint-fg',
       cream: 'bg-tint-cream text-tint-cream-fg',
       rose: 'bg-tint-rose text-tint-rose-fg',
+      accent: 'bg-tint-accent text-tint-accent-fg',
       primary: 'bg-primary-50 text-primary-700',
     },
   },
