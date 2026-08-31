@@ -1,13 +1,21 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useSession } from '../lib/session';
+import { MAIN_ROUTES } from './mobile-bottom-nav';
 
 /**
  * Slim brand strip at the top of the student shell. Shows the college's logo
  * when the Platform Admin uploaded one; otherwise the CampusGO wordmark.
+ * Only rendered on the 4 tab-root screens — repeating "you're in St Francis
+ * de Sales' app" chrome on every inner/detail screen just eats vertical
+ * space for something the user already knows (Swiggy/CRED drop this kind of
+ * banner entirely on inner screens).
  */
 export function StudentBrandHeader() {
   const { user } = useSession();
+  const pathname = usePathname();
+  if (!MAIN_ROUTES.has(pathname)) return null;
   return (
     <header className="flex h-16 items-center px-5">
       {user?.college?.logoUrl ? (

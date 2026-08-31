@@ -74,7 +74,7 @@ export default function ProfileMenuPage() {
         )}
         {student && (
           <p className="text-xs text-subtle">
-            {student.rollNumber} · {student.school} · {student.graduationYear}
+            Roll No. {student.rollNumber} · {student.school} · Batch {student.graduationYear}
           </p>
         )}
         {student?.linkedinUrl && (
@@ -152,28 +152,23 @@ export default function ProfileMenuPage() {
         </div>
       )}
 
-      {student && (
-        <Link
-          href="/me/profile/edit"
-          className="flex items-center gap-4 rounded-card border border-border bg-white p-4 transition hover:shadow-card"
-        >
-          <IconBox tint="rose">
-            <UserIcon />
-          </IconBox>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-strong">Personal details</p>
-            <p className="text-xs text-subtle">Edit your academic &amp; personal info</p>
-          </div>
-          <Arrow />
-        </Link>
-      )}
-
       <p className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-subtle">
         Actions on your profile
       </p>
 
-      {/* The rest of the actions */}
+      {/* One grouped list, consistent row height/icon/chevron — a full-width
+          card for a single "Personal details" row read as an oddly heavy
+          block next to this list; it's just the first row here now. */}
       <Card className="divide-y divide-border p-0">
+        {student && (
+          <Row
+            href="/me/profile/edit"
+            title="Personal details"
+            sub="Edit your academic & personal info"
+            icon={<UserIcon />}
+            tint="rose"
+          />
+        )}
         <Row href="/me/resume" title="Resume" sub="Upload & share your resume" icon={<DocIcon />} tint="lavender" />
         <Row href="/me/jobs" title="Jobs" sub="Browse & apply" icon={<BriefcaseIcon />} tint="mint" />
         <Row

@@ -36,14 +36,6 @@ function tintForName(name: string): Tint {
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return AVATAR_TINTS[hash % AVATAR_TINTS.length]!;
 }
-// Maps the badge's red/amber/green semantics onto the closest pastel tint,
-// for the sticky footer's disabled "you already applied" pill.
-const STATUS_TINT: Record<'success' | 'warning' | 'danger', Tint> = {
-  success: 'mint',
-  warning: 'cream',
-  danger: 'rose',
-};
-
 const workModeLabel = (m: string | null) =>
   !m ? null : m === 'ONSITE' ? 'Work from office' : m.charAt(0) + m.slice(1).toLowerCase();
 
@@ -94,9 +86,11 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
   if (!job) return <DetailSkeleton />;
 
   const company = job.companyName ?? job.company?.name ?? 'Company';
-  const chips = [job.jobType.replace(/_/g, ' '), workModeLabel(job.workMode), job.location].filter(
-    Boolean,
-  ) as string[];
+  const chips = [
+    { icon: <ClockIcon />, text: job.jobType.replace(/_/g, ' ') },
+    workModeLabel(job.workMode) ? { icon: <BuildingIcon />, text: workModeLabel(job.workMode)! } : null,
+    job.location ? { icon: <PinIcon />, text: job.location } : null,
+  ].filter(Boolean) as { icon: React.ReactNode; text: string }[];
   const notEligible = job.eligible === false;
   const expired =
     !!job.applicationDeadline && new Date(job.applicationDeadline).getTime() < Date.now();
@@ -131,10 +125,11 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
           <span
-            key={c}
-            className="rounded-full bg-white px-3 py-1 text-xs font-medium text-body shadow-sm"
+            key={c.text}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-medium text-body shadow-sm"
           >
-            {c}
+            <span className="text-subtle">{c.icon}</span>
+            {c.text}
           </span>
         ))}
       </div>
@@ -172,12 +167,13 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
 
       {/* About */}
       <Card className="animate-rise space-y-3 p-4" style={{ animationDelay: '60ms' }}>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Meta label="CTC" value={formatCtc(job.ctcMin, job.ctcMax)} />
+        <div className="flex flex-wrap gap-2">
+          <StatChip icon={<RupeeIcon />} value={formatCtc(job.ctcMin, job.ctcMax)} label="CTC" />
           {job.applicationDeadline && (
-            <Meta
+            <StatChip
+              icon={<CalendarIcon />}
+              value={new Date(job.applicationDeadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
               label="Apply by"
-              value={new Date(job.applicationDeadline).toLocaleDateString()}
               highlight={expired}
             />
           )}
@@ -237,25 +233,13 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Sticky action footer */}
-      <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-        {applied ? (
-          <button
-            disabled
-            className={`w-full rounded-pill py-3 text-sm font-semibold ${
-              st ? `${TINT_BG[STATUS_TINT[st.tint]]} ${TINT_FG[STATUS_TINT[st.tint]]}` : 'bg-app text-subtle'
-            }`}
-          >
-            {st?.label ?? 'Applied'}
-          </button>
-        ) : expired ? (
-          <button
-            disabled
-            className="w-full rounded-pill bg-app py-3 text-sm font-semibold text-subtle"
-          >
-            Applications closed
-          </button>
-        ) : (
+      {/* Sticky action footer — only rendered when there's an actual action
+          to take. The status itself is already shown via the top badge +
+          timeline, so a disabled full-width "button" just repeating
+          "Rejected"/"Applied" is a dead, misleading element — removed rather
+          than duplicated. */}
+      {!applied && !expired && (
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
           <button
             onClick={onApplyClick}
             disabled={applying}
@@ -263,8 +247,35 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
           >
             {applying ? 'Applying…' : 'Apply to this job'}
           </button>
-        )}
-      </div>
+        </div>
+      )}
+      {!applied && expired && (
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <p className="py-2 text-center text-sm text-subtle">Applications closed</p>
+        </div>
+      )}
+      {applied && app?.status === 'REJECTED' && (
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <Link
+            href="/me/jobs"
+            className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
+          >
+            Browse similar jobs
+          </Link>
+        </div>
+      )}
+      {applied && app?.status === 'SELECTED' && app.offerLetterUrl && (
+        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+          <a
+            href={app.offerLetterUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
+          >
+            View offer letter
+          </a>
+        </div>
+      )}
 
       {pdfView && (
         <PdfModal
@@ -298,13 +309,30 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
   );
 }
 
-function Meta({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/** Icon + value + label in a soft rounded chip — the "🔥230kcal ⏱10h5m"
+ * pattern, instead of a plain unlabeled text stack. */
+function StatChip({
+  icon,
+  value,
+  label,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  highlight?: boolean;
+}) {
   return (
-    <div>
-      <p className="text-[11px] uppercase tracking-wide text-subtle">{label}</p>
-      <p className={`text-sm font-semibold ${highlight ? 'text-danger' : 'text-strong'}`}>
-        {value}
-      </p>
+    <div
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 ${highlight ? 'bg-tint-rose' : 'bg-app'}`}
+    >
+      <span className={highlight ? 'text-tint-rose-fg' : 'text-subtle'}>{icon}</span>
+      <div>
+        <p className={`text-sm font-bold leading-tight ${highlight ? 'text-tint-rose-fg' : 'text-strong'}`}>
+          {value}
+        </p>
+        <p className={`text-[10px] leading-tight ${highlight ? 'text-tint-rose-fg' : 'text-subtle'}`}>{label}</p>
+      </div>
     </div>
   );
 }
@@ -315,5 +343,46 @@ function Row({ label, value }: { label: string; value: string }) {
       <dt className="text-xs text-subtle">{label}</dt>
       <dd className="text-right text-sm font-medium text-strong">{value}</dd>
     </div>
+  );
+}
+
+const svp = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, className: 'h-3.5 w-3.5' } as const;
+function ClockIcon() {
+  return (
+    <svg {...svp}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function BuildingIcon() {
+  return (
+    <svg {...svp}>
+      <rect x="4" y="3" width="16" height="18" rx="1" />
+      <path d="M8 7h1M15 7h1M8 11h1M15 11h1M8 15h1M15 15h1" strokeLinecap="round" />
+    </svg>
+  );
+}
+function PinIcon() {
+  return (
+    <svg {...svp}>
+      <path d="M12 21s7-6.5 7-11.5a7 7 0 1 0-14 0C5 14.5 12 21 12 21Z" strokeLinejoin="round" />
+      <circle cx="12" cy="9.5" r="2.3" />
+    </svg>
+  );
+}
+function RupeeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+      <path d="M7 4h10M7 8h10M7 4c4 0 6.5 1.3 6.5 4S11 12 7 12h-.5L15 20" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4 w-4">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
   );
 }

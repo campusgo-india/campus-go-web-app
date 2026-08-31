@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { roundTypeLabel } from '../lib/rounds';
 import type { Application } from '../lib/applications';
 
@@ -80,7 +81,7 @@ export function ApplicationTimeline({ app }: { app: Application }) {
             </div>
 
             {/* content */}
-            <div className={`pb-6 ${last ? 'pb-0' : ''}`}>
+            <div className={`min-w-0 flex-1 pb-6 ${last ? 'pb-0' : ''}`}>
               <p className={`text-sm font-semibold ${labelColor(s.state)}`}>{s.label}</p>
               {s.typeLabel && (
                 <span className="inline-block rounded bg-app px-1.5 py-0.5 text-[10px] font-medium text-subtle">
@@ -88,7 +89,7 @@ export function ApplicationTimeline({ app }: { app: Application }) {
                 </span>
               )}
               {s.sub && <p className="text-xs text-subtle">{s.sub}</p>}
-              {s.detail && <p className="mt-1 text-xs text-body">{s.detail}</p>}
+              {s.detail && <RoundNote text={s.detail} />}
             </div>
           </li>
         );
@@ -97,17 +98,42 @@ export function ApplicationTimeline({ app }: { app: Application }) {
   );
 }
 
+/** A round's free-text note (venue/time/instructions the officer typed) —
+ * collapsed to 2 lines by default with a toggle, instead of dumping the
+ * whole raw paragraph into the timeline. */
+function RoundNote({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 90;
+  return (
+    <div className="mt-1.5 rounded-lg bg-app p-2.5">
+      <p className={`text-xs leading-relaxed text-body ${expanded || !long ? '' : 'line-clamp-2'}`}>
+        {text}
+      </p>
+      {long && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="mt-1 text-[11px] font-semibold text-primary-600"
+        >
+          {expanded ? 'Show less' : 'View full message'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Dot({ state }: { state: StepState }) {
-  const base = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white';
+  const base = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full';
   if (state === 'done')
     return (
-      <span className={`${base} bg-success`}>
+      <span className={`${base} bg-success text-white`}>
         <CheckGlyph />
       </span>
     );
+  // Muted, not alarm-red — a rejection is a normal outcome to show, not a
+  // punitive one. Soft rose fill + red glyph reads as "closed", not "error".
   if (state === 'rejected')
     return (
-      <span className={`${base} bg-danger`}>
+      <span className={`${base} bg-tint-rose text-tint-rose-fg`}>
         <CrossGlyph />
       </span>
     );
@@ -135,7 +161,7 @@ function CrossGlyph() {
 }
 
 function labelColor(state: StepState): string {
-  if (state === 'rejected') return 'text-danger';
+  if (state === 'rejected') return 'text-tint-rose-fg';
   if (state === 'current') return 'text-primary-700';
   if (state === 'upcoming') return 'text-subtle';
   return 'text-strong';

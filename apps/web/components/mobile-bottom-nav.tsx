@@ -12,12 +12,16 @@ const items = [
 ];
 
 // Main tabs only. Sub-screens (job detail, applications, edit profile, …) hide the
-// global nav and show their own contextual sticky action instead.
-const MAIN_ROUTES = new Set(items.map((i) => i.href));
+// global nav and show their own contextual sticky action instead. Exported so
+// StudentBrandHeader can hide the college-logo banner on the same screens —
+// an inner/detail page shouldn't repeat "you're in this college's app" chrome
+// the user already saw on the tab root.
+export const MAIN_ROUTES = new Set(items.map((i) => i.href));
 
-/** Clean icon-above-label bar — active tab just changes color, no pill
- * background. Matches the reference app's nav: white bar, colored active
- * icon+label, gray inactive, no floating/pill chrome. */
+/** Icon-above-label bar with a soft pill behind the active icon — a bare
+ * color change + tiny dot read as too weak a "you are here" signal (CRED/
+ * Swiggy both give the active tab a filled background), so the active
+ * icon now sits on its own tint-lavender pill instead. */
 export function MobileBottomNav() {
   const pathname = usePathname();
   if (!MAIN_ROUTES.has(pathname)) return null;
@@ -33,10 +37,17 @@ export function MobileBottomNav() {
               aria-current={active ? 'page' : undefined}
               className="press flex flex-col items-center gap-1 px-4 py-1.5"
             >
-              <Icon
-                className={cn('h-5 w-5 transition', active ? 'text-primary-600' : 'text-subtle')}
-                strokeWidth={active ? 2.2 : 1.8}
-              />
+              <span
+                className={cn(
+                  'flex h-9 w-9 items-center justify-center rounded-full transition',
+                  active && 'bg-tint-lavender',
+                )}
+              >
+                <Icon
+                  className={cn('h-5 w-5 transition', active ? 'text-primary-600' : 'text-subtle')}
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+              </span>
               <span
                 className={cn(
                   'text-[11px] transition',
@@ -45,12 +56,6 @@ export function MobileBottomNav() {
               >
                 {label}
               </span>
-              <span
-                className={cn(
-                  'h-1 w-1 rounded-full transition',
-                  active ? 'bg-primary-600' : 'bg-transparent',
-                )}
-              />
             </Link>
           );
         })}
