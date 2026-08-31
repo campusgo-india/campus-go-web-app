@@ -5,7 +5,12 @@ import { Prisma } from '@campusgo/database';
 import type { PrismaClient } from '@campusgo/database';
 import { NotificationsService, type NotifyParams } from '../notifications/notifications.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
-import { assertOwnJob, jobVisibleToCollege, type Viewer } from './job-scope.util';
+import {
+  assertOwnJob,
+  computeRecruitmentProgress,
+  jobVisibleToCollege,
+  type Viewer,
+} from './job-scope.util';
 import { CreateRoundDto, PlaceApplicantDto, UpdateRoundDto } from './rounds-dto';
 
 // Student fields the funnel screen needs, reused across the two funnel queries.
@@ -191,7 +196,7 @@ export class RoundsService {
   // programmes' applicants — everyone else outside their remit is filtered
   // out of every bucket (pool, rounds, finalists, placed).
   async funnel(collegeId: string, jobId: string, viewer?: Viewer) {
-    await this.resolveJobForView(collegeId, jobId);
+    const job = await this.resolveJobForView(collegeId, jobId);
     const programmeRestriction = await this.programmeRestriction(viewer);
     const inScope = (programme: string) =>
       !programmeRestriction || programmeRestriction.includes(programme);
@@ -235,6 +240,7 @@ export class RoundsService {
       inProgress: apps.filter((a) => a.status === 'IN_PROGRESS').length,
       selectedCount: apps.filter((a) => a.status === 'SELECTED').length,
       rejectedCount: apps.filter((a) => a.status === 'REJECTED').length,
+      recruitmentProgress: computeRecruitmentProgress(job.status, rounds),
       rounds: rounds.map((r) => ({
         id: r.id,
         seq: r.seq,
@@ -299,6 +305,7 @@ export class RoundsService {
       inProgress: appsRaw.filter((a) => a.status === 'IN_PROGRESS').length,
       selectedCount: appsRaw.filter((a) => a.status === 'SELECTED').length,
       rejectedCount: appsRaw.filter((a) => a.status === 'REJECTED').length,
+      recruitmentProgress: computeRecruitmentProgress(job.status, roundsRaw),
       rounds: roundsRaw.map((r) => ({
         id: r.id,
         seq: r.seq,
@@ -360,6 +367,15 @@ export class RoundsService {
       throw new BadRequestException('A date is required for Round 1.');
     }
     const title = dto.title?.trim() || `Round ${seq}`;
+
+    // The previous "last" round turns out not to have been final after all —
+    // put its original name back (see decideRound()'s auto-rename).
+    if (last?.title === 'Final Round' && last.originalTitle) {
+      await this.prisma.jobRound.update({
+        where: { id: last.id },
+        data: { title: last.originalTitle, originalTitle: null },
+      });
+    }
 
     const round = await this.prisma.jobRound.create({
       data: {
@@ -588,6 +604,20 @@ export class RoundsService {
     const advanced = parts.filter((p) => advance.has(p.applicationId));
     const rejected = parts.filter((p) => !advance.has(p.applicationId));
 
+    // If this is the last round created for the job (highest seq), deciding it
+    // makes it the final round of the funnel — rename it so reports can
+    // cleanly bucket "rejected in the final round" regardless of whether a
+    // given job ran 2, 3, or 4 rounds. The original title is snapshotted so
+    // createRound() can put it back if a further round turns out to be needed
+    // after all. Determined up front so the rejection reason below and the
+    // notification emails already reflect the final name.
+    const maxSeq = await this.prisma.jobRound.aggregate({
+      where: { jobId, collegeId },
+      _max: { seq: true },
+    });
+    const becomesFinalRound = round.seq === maxSeq._max.seq && round.title !== 'Final Round';
+    const roundLabel = becomesFinalRound ? 'Final Round' : round.title;
+
     const now = new Date();
     await this.prisma.$transaction([
       ...advanced.map((p) =>
@@ -609,11 +639,16 @@ export class RoundsService {
             status: 'REJECTED',
             stage: 'REJECTED',
             rejectedAt: now,
-            rejectionReason: `Not selected in ${round.title}`,
+            rejectionReason: `Not selected in ${roundLabel}`,
           },
         }),
       ),
-      this.prisma.jobRound.update({ where: { id: roundId }, data: { status: 'DECIDED' } }),
+      this.prisma.jobRound.update({
+        where: { id: roundId },
+        data: becomesFinalRound
+          ? { status: 'DECIDED', title: 'Final Round', originalTitle: round.title }
+          : { status: 'DECIDED' },
+      }),
     ]);
 
     // Best-effort notifications — one batched email per outcome group, not
@@ -627,14 +662,14 @@ export class RoundsService {
             collegeId,
             {
               type: 'APPLICATION_STAGE_CHANGED',
-              title: `Cleared ${round.title} — ${company}`,
-              body: `You've advanced past ${round.title} for ${job.title}.`,
+              title: `Cleared ${roundLabel} — ${company}`,
+              body: `You've advanced past ${roundLabel} for ${job.title}.`,
               link: `/me/jobs/${job.id}`,
               email: {
                 subject: `Interview Result – ${company} | ${job.title} | Advanced`,
                 html: renderFormalEmail({
                   collegeName: COLLEGE_NAME_TOKEN,
-                  intro: `Congratulations! You have advanced past ${round.title} for ${job.title} at ${company}.`,
+                  intro: `Congratulations! You have advanced past ${roundLabel} for ${job.title} at ${company}.`,
                   ctaLabel: 'View details',
                   ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
                 }),
@@ -832,6 +867,15 @@ export class RoundsService {
     }
     const title = dto.title?.trim() || `Round ${seq}`;
 
+    // The previous "last" round turns out not to have been final after all —
+    // put its original name back (see decidePlatformRound()'s auto-rename).
+    if (last?.title === 'Final Round' && last.originalTitle) {
+      await this.prisma.jobRound.update({
+        where: { id: last.id },
+        data: { title: last.originalTitle, originalTitle: null },
+      });
+    }
+
     const round = await this.prisma.jobRound.create({
       data: {
         jobId,
@@ -1009,6 +1053,16 @@ export class RoundsService {
     const advanced = parts.filter((p) => advance.has(p.applicationId));
     const rejected = parts.filter((p) => !advance.has(p.applicationId));
 
+    // See decideRound() above for why: the last round created, once decided,
+    // is renamed to "Final Round" so reports can bucket rejections by it
+    // regardless of how many rounds a given job ran.
+    const maxSeq = await this.prisma.jobRound.aggregate({
+      where: { jobId, collegeId: PLATFORM_ROUND_SCOPE },
+      _max: { seq: true },
+    });
+    const becomesFinalRound = round.seq === maxSeq._max.seq && round.title !== 'Final Round';
+    const roundLabel = becomesFinalRound ? 'Final Round' : round.title;
+
     const now = new Date();
     await this.prisma.$transaction([
       ...advanced.map((p) =>
@@ -1030,11 +1084,16 @@ export class RoundsService {
             status: 'REJECTED',
             stage: 'REJECTED',
             rejectedAt: now,
-            rejectionReason: `Not selected in ${round.title}`,
+            rejectionReason: `Not selected in ${roundLabel}`,
           },
         }),
       ),
-      this.prisma.jobRound.update({ where: { id: roundId }, data: { status: 'DECIDED' } }),
+      this.prisma.jobRound.update({
+        where: { id: roundId },
+        data: becomesFinalRound
+          ? { status: 'DECIDED', title: 'Final Round', originalTitle: round.title }
+          : { status: 'DECIDED' },
+      }),
     ]);
 
     const company = this.companyName(job);
@@ -1045,14 +1104,14 @@ export class RoundsService {
             advanced.map((p) => p.application),
             {
               type: 'APPLICATION_STAGE_CHANGED',
-              title: `Cleared ${round.title} — ${company}`,
-              body: `You've advanced past ${round.title} for ${job.title}.`,
+              title: `Cleared ${roundLabel} — ${company}`,
+              body: `You've advanced past ${roundLabel} for ${job.title}.`,
               link: `/me/jobs/${job.id}`,
               email: {
                 subject: `Interview Result – ${company} | ${job.title} | Advanced`,
                 html: renderFormalEmail({
                   collegeName: COLLEGE_NAME_TOKEN,
-                  intro: `Congratulations! You have advanced past ${round.title} for ${job.title} at ${company}.`,
+                  intro: `Congratulations! You have advanced past ${roundLabel} for ${job.title} at ${company}.`,
                   ctaLabel: 'View details',
                   ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,
                 }),
@@ -1066,13 +1125,13 @@ export class RoundsService {
             {
               type: 'APPLICATION_STAGE_CHANGED',
               title: `Update — ${job.title}`,
-              body: `You were not selected in ${round.title} for ${job.title} at ${company}.`,
+              body: `You were not selected in ${roundLabel} for ${job.title} at ${company}.`,
               link: `/me/jobs/${job.id}`,
               email: {
                 subject: `Interview Result – ${company} | ${job.title} | Update`,
                 html: renderFormalEmail({
                   collegeName: COLLEGE_NAME_TOKEN,
-                  intro: `We regret to inform you that you were not selected in ${round.title} for ${job.title} at ${company}.`,
+                  intro: `We regret to inform you that you were not selected in ${roundLabel} for ${job.title} at ${company}.`,
                   note: 'We wish you the very best for your future placement drives.',
                   ctaLabel: 'View details',
                   ctaUrl: `${this.webOrigin()}/me/jobs/${job.id}`,

@@ -24,11 +24,21 @@ import {
   rejectApplicant,
   roundTypeLabel,
   ROUND_TYPES,
+  RECRUITMENT_PROGRESS_LABEL,
   type Funnel,
   type FunnelRound,
   type FunnelStudent,
+  type RecruitmentProgress,
   type RoundType,
 } from '../../../../../lib/rounds';
+
+const PROGRESS_TINT: Record<RecruitmentProgress, 'lavender' | 'mint' | 'cream' | 'rose' | 'primary'> = {
+  DRAFT: 'lavender',
+  PUBLISHED: 'primary',
+  CLOSED_FOR_APPLICATIONS: 'cream',
+  IN_PROGRESS: 'lavender',
+  COMPLETED: 'mint',
+};
 
 export default function FunnelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -241,7 +251,12 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
           <p className="mt-1 text-sm font-medium text-subtle">
             {job ? (job.companyName ?? job.company?.name ?? 'Company') : ''}
           </p>
-          <h1 className="mt-0.5 text-2xl font-semibold text-strong">Applicants &amp; rounds</h1>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold text-strong">Applicants &amp; rounds</h1>
+            <Badge tint={PROGRESS_TINT[funnel.recruitmentProgress]}>
+              {RECRUITMENT_PROGRESS_LABEL[funnel.recruitmentProgress]}
+            </Badge>
+          </div>
           <div className="mt-1 flex flex-wrap gap-x-4 text-sm text-subtle">
             <span>{funnel.applicantsTotal} applied</span>
             <span>{funnel.inProgress} in progress</span>

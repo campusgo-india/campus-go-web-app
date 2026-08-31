@@ -20,6 +20,35 @@ export interface Viewer {
   userId: string;
 }
 
+export type RecruitmentProgress =
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'CLOSED_FOR_APPLICATIONS'
+  | 'IN_PROGRESS'
+  | 'COMPLETED';
+
+/**
+ * A clearer, at-a-glance stage than the raw Job.status (DRAFT/PUBLISHED/
+ * CLOSED) — layers in how far the round funnel has actually progressed, so
+ * "closed to new applicants" and "fully wrapped up" don't look the same.
+ * Published: still taking applications, no rounds started yet (creating
+ * Round 1 auto-closes the job — see RoundsService.createRound).
+ * Closed for applications: not accepting new applicants, but no round has
+ * been decided yet (Round 1 may be scheduled/open).
+ * In progress: at least one round decided, at least one still open/undecided.
+ * Completed: every round created for the job has been decided.
+ */
+export function computeRecruitmentProgress(
+  jobStatus: string,
+  rounds: { status: string }[],
+): RecruitmentProgress {
+  if (jobStatus === 'DRAFT') return 'DRAFT';
+  if (rounds.length > 0 && rounds.every((r) => r.status === 'DECIDED')) return 'COMPLETED';
+  if (rounds.some((r) => r.status === 'DECIDED')) return 'IN_PROGRESS';
+  if (jobStatus === 'CLOSED') return 'CLOSED_FOR_APPLICATIONS';
+  return 'PUBLISHED';
+}
+
 // A Placement Officer can VIEW every COLLEGE-scoped job (list, detail,
 // pipeline, funnel) — only MANAGING one (edit, publish, close, delete, or any
 // round action: create/update/delete/attendance/decide/place/reject) is

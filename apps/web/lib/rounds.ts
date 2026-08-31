@@ -58,11 +58,27 @@ export interface FunnelRound {
   participants: FunnelParticipant[];
 }
 
+export type RecruitmentProgress =
+  | 'DRAFT'
+  | 'PUBLISHED'
+  | 'CLOSED_FOR_APPLICATIONS'
+  | 'IN_PROGRESS'
+  | 'COMPLETED';
+
+export const RECRUITMENT_PROGRESS_LABEL: Record<RecruitmentProgress, string> = {
+  DRAFT: 'Draft',
+  PUBLISHED: 'Published',
+  CLOSED_FOR_APPLICATIONS: 'Closed for applications',
+  IN_PROGRESS: 'In progress',
+  COMPLETED: 'Completed',
+};
+
 export interface Funnel {
   applicantsTotal: number;
   inProgress: number;
   selectedCount: number;
   rejectedCount: number;
+  recruitmentProgress: RecruitmentProgress;
   rounds: FunnelRound[];
   pool: FunnelStudent[];
   finalists: FunnelStudent[];

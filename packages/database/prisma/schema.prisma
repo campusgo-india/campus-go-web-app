@@ -684,6 +684,11 @@ model JobRound {
   collegeId   String      @map("college_id")
   seq         Int
   title       String
+  // Snapshot of `title` right before it's auto-renamed to "Final Round" (see
+  // RoundsService.decideRound) — lets the rename be reverted if a further
+  // round later turns out to be needed after all (RoundsService.createRound).
+  // Null unless this round is currently auto-renamed.
+  originalTitle String?   @map("original_title")
   roundType   RoundType?  @map("round_type")
   description String?
   scheduledAt DateTime?   @map("scheduled_at")
