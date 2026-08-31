@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
-import { listCompanies, type Company } from '../../../../lib/companies';
+import { createCompany, listCompanies, type Company } from '../../../../lib/companies';
+import { INDUSTRIES } from '../../../../lib/industries';
 import { listMySchools, type CollegeSchool } from '../../../../lib/courses';
 import {
   createJob,
@@ -30,6 +31,8 @@ export default function QuickPostPage() {
   const [schools, setSchools] = useState<CollegeSchool[]>([]);
   const [title, setTitle] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined);
+  const [showNewCompany, setShowNewCompany] = useState(false);
   const [gradYears, setGradYears] = useState<string[]>([]);
   const toggleGradYear = (y: string) =>
     setGradYears((ys) => (ys.includes(y) ? ys.filter((x) => x !== y) : [...ys, y]));
@@ -114,6 +117,7 @@ export default function QuickPostPage() {
       const job = await createJob({
         title: title.trim(),
         companyName: companyName.trim() || undefined,
+        companyId,
         eligibleSchools,
         eligibleProgrammes,
         graduationYears: gradYears.map(Number),
@@ -173,9 +177,25 @@ export default function QuickPostPage() {
             placeholder="Business Development Executive"
           />
         </Field>
-        <Field label="Company name">
-          <CompanyAutocomplete value={companyName} onChange={setCompanyName} />
-        </Field>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-subtle">Company name</span>
+            <button
+              type="button"
+              onClick={() => setShowNewCompany(true)}
+              className="text-xs font-medium text-primary-600 hover:underline"
+            >
+              + Add new company
+            </button>
+          </div>
+          <CompanyAutocomplete
+            value={companyName}
+            onChange={(name, id) => {
+              setCompanyName(name);
+              setCompanyId(id);
+            }}
+          />
+        </div>
 
         <Field label="Job description PDF">
           <div className="flex items-center gap-3">
@@ -403,6 +423,18 @@ export default function QuickPostPage() {
           Publish notifies all students immediately. Save as draft to publish later.
         </p>
       </Card>
+
+      {showNewCompany && (
+        <NewCompanyModal
+          initialName={companyName}
+          onClose={() => setShowNewCompany(false)}
+          onCreated={(c) => {
+            setCompanyName(c.name);
+            setCompanyId(c.id);
+            setShowNewCompany(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -558,7 +590,10 @@ function CompanyAutocomplete({
   onChange,
 }: {
   value: string;
-  onChange: (v: string) => void;
+  /** id is only ever set when the value exactly matches an existing company
+   * (a suggestion was picked, or one was just created) — any further typing
+   * clears it, since free text is no longer a guaranteed match. */
+  onChange: (name: string, id?: string) => void;
 }) {
   const [suggestions, setSuggestions] = useState<Company[]>([]);
   const [show, setShow] = useState(false);
@@ -595,7 +630,7 @@ function CompanyAutocomplete({
         className={inputCls}
         value={value}
         onChange={(e) => {
-          onChange(e.target.value);
+          onChange(e.target.value, undefined);
           setShow(true);
         }}
         onFocus={() => value.trim() && suggestions.length > 0 && setShow(true)}
@@ -612,7 +647,7 @@ function CompanyAutocomplete({
             e.preventDefault();
             const pick = suggestions[highlight];
             if (pick) {
-              onChange(pick.name);
+              onChange(pick.name, pick.id);
               setShow(false);
             }
           } else if (e.key === 'Escape') {
@@ -630,7 +665,7 @@ function CompanyAutocomplete({
             <li
               key={c.id}
               onMouseDown={() => {
-                onChange(c.name);
+                onChange(c.name, c.id);
                 setShow(false);
               }}
               className={`cursor-pointer px-3 py-2 text-sm ${
@@ -642,6 +677,96 @@ function CompanyAutocomplete({
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Quick inline "add a company" — the equivalent of the '+' next to a
+ * dropdown in tools like Superset, so posting a job for a brand-new
+ * recruiter doesn't mean leaving this form to go add them first. */
+function NewCompanyModal({
+  initialName,
+  onClose,
+  onCreated,
+}: {
+  initialName: string;
+  onClose: () => void;
+  onCreated: (company: Company) => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [industry, setIndustry] = useState('');
+  const [city, setCity] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!name.trim()) {
+      setError('Company name is required.');
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const company = await createCompany({
+        name: name.trim(),
+        industry: industry || undefined,
+        city: city.trim() || undefined,
+      });
+      onCreated(company);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not create company');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <Card className="w-full max-w-sm space-y-4 p-6" onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h2 className="text-lg font-semibold text-strong">Add new company</h2>
+          <p className="text-sm text-subtle">Just the essentials — add contacts and more later from Companies.</p>
+        </div>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-subtle">Company name *</span>
+          <input
+            className={inputCls}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Acme Corp"
+            autoFocus
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-subtle">Industry</span>
+          <select className={inputCls} value={industry} onChange={(e) => setIndustry(e.target.value)}>
+            <option value="">Select industry…</option>
+            {INDUSTRIES.map((i) => (
+              <option key={i} value={i}>
+                {i}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-subtle">City</span>
+          <input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Bengaluru" />
+        </label>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <div className="flex gap-2">
+          <Button onClick={submit} loading={saving} disabled={!name.trim()}>
+            Add company
+          </Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
