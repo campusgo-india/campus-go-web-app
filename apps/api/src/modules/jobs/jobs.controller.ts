@@ -25,6 +25,7 @@ import { AuditService } from '../../common/audit.module';
 import { JobsService } from './jobs.service';
 import { ApplicationsService } from './applications.service';
 import { ApplyDto, BulkPublishDto, CreateJobDto, ListJobsQuery, UpdateJobDto } from './dto';
+import { BulkAddApplicantsDto } from './application-dto';
 import { toCsv, toXlsx } from '../reports/report-serializers';
 
 const EXPORT_CONTENT_TYPE: Record<'csv' | 'xlsx', string> = {
@@ -289,6 +290,26 @@ export class JobsController {
   @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
   async pipeline(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return { data: await this.applications.pipeline(this.collegeId(user), id) };
+  }
+
+  // Manually add applicants by roll number — e.g. a late request after the
+  // job has closed, or bulk-importing a company's own applicant tracker.
+  // Bypasses the normal apply() eligibility/deadline/status checks by design.
+  @Post(':id/applicants')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+  async bulkAddApplicants(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: BulkAddApplicantsDto,
+  ) {
+    return {
+      data: await this.applications.bulkAddApplicants(
+        this.collegeId(user),
+        id,
+        dto.rollNumbers,
+        user.sub,
+      ),
+    };
   }
 
   @Post(':id/apply')

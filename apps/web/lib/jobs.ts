@@ -222,6 +222,23 @@ export function deleteJob(id: string): Promise<{ success: boolean }> {
   return api(`/jobs/${id}`, { method: 'DELETE' });
 }
 
+export interface BulkAddApplicantsResult {
+  addedCount: number;
+  added: string[];
+  alreadyApplied: string[];
+  notFound: string[];
+}
+
+// Manually add applicants by roll number — works on a job in any status
+// (including CLOSED), for late requests or bulk-importing a company's own
+// tracker. Bypasses the normal apply() eligibility/deadline checks.
+export function bulkAddApplicants(
+  id: string,
+  rollNumbers: string[],
+): Promise<BulkAddApplicantsResult> {
+  return api(`/jobs/${id}/applicants`, { method: 'POST', body: JSON.stringify({ rollNumbers }) });
+}
+
 export type ApplicantExportFormat = 'csv' | 'xlsx';
 
 /**

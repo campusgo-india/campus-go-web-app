@@ -6,7 +6,14 @@ import { Badge, Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../../components/confirm-provider';
 import { useSession } from '../../../../../lib/session';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
-import { formatLpa, getJob, uploadOfferLetter, type Job } from '../../../../../lib/jobs';
+import {
+  bulkAddApplicants,
+  formatLpa,
+  getJob,
+  uploadOfferLetter,
+  type BulkAddApplicantsResult,
+  type Job,
+} from '../../../../../lib/jobs';
 import {
   createRound,
   decideRound,
@@ -39,6 +46,11 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
   const [busy, setBusy] = useState(false);
   const [showAddRound, setShowAddRound] = useState(false);
   const [placing, setPlacing] = useState<FunnelStudent | null>(null);
+  const [showAddApplicants, setShowAddApplicants] = useState(false);
+  const [addingApplicants, setAddingApplicants] = useState(false);
+  const [addApplicantsResult, setAddApplicantsResult] = useState<BulkAddApplicantsResult | null>(
+    null,
+  );
 
   async function load(keepTab = true) {
     try {
@@ -109,6 +121,23 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
       setError(err instanceof Error ? err.message : 'Could not add round');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function addApplicants(rollNumbers: string[]) {
+    setAddingApplicants(true);
+    setError(null);
+    try {
+      const result = await bulkAddApplicants(id, rollNumbers);
+      setAddApplicantsResult(result);
+      if (result.addedCount > 0) {
+        await load(false);
+        setTab('pool');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add applicants');
+    } finally {
+      setAddingApplicants(false);
     }
   }
 
@@ -204,23 +233,47 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href={`/jobs/${id}`} className="text-sm text-primary-600 hover:underline">
-          ← {job?.title ?? 'Job'}
-        </Link>
-        <p className="mt-1 text-sm font-medium text-subtle">
-          {job ? (job.companyName ?? job.company?.name ?? 'Company') : ''}
-        </p>
-        <h1 className="mt-0.5 text-2xl font-semibold text-strong">Applicants &amp; rounds</h1>
-        <div className="mt-1 flex flex-wrap gap-x-4 text-sm text-subtle">
-          <span>{funnel.applicantsTotal} applied</span>
-          <span>{funnel.inProgress} in progress</span>
-          <span className="text-success">{funnel.selectedCount} selected</span>
-          <span>{funnel.rejectedCount} rejected</span>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link href={`/jobs/${id}`} className="text-sm text-primary-600 hover:underline">
+            ← {job?.title ?? 'Job'}
+          </Link>
+          <p className="mt-1 text-sm font-medium text-subtle">
+            {job ? (job.companyName ?? job.company?.name ?? 'Company') : ''}
+          </p>
+          <h1 className="mt-0.5 text-2xl font-semibold text-strong">Applicants &amp; rounds</h1>
+          <div className="mt-1 flex flex-wrap gap-x-4 text-sm text-subtle">
+            <span>{funnel.applicantsTotal} applied</span>
+            <span>{funnel.inProgress} in progress</span>
+            <span className="text-success">{funnel.selectedCount} selected</span>
+            <span>{funnel.rejectedCount} rejected</span>
+          </div>
         </div>
+        {!readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAddApplicantsResult(null);
+              setShowAddApplicants(true);
+            }}
+          >
+            + Add applicants by roll no.
+          </Button>
+        )}
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      {showAddApplicants && !readOnly && (
+        <AddApplicantsForm
+          busy={addingApplicants}
+          result={addApplicantsResult}
+          onCancel={() => setShowAddApplicants(false)}
+          onSubmit={addApplicants}
+          onClearResult={() => setAddApplicantsResult(null)}
+        />
+      )}
 
       {/* Visual round-by-round funnel */}
       {funnel.rounds.length > 0 && <FunnelChart funnel={funnel} />}
@@ -913,6 +966,122 @@ function AddRoundForm({
         </Button>
         <Button variant="ghost" onClick={onCancel}>
           Cancel
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// Split on newlines, commas, tabs and stray whitespace — handles a pasted
+// spreadsheet column, a comma-separated list, or a plain text/CSV upload
+// with one roll number per line (a header row, if present, just comes
+// through as an unmatched "roll number" and is reported back, harmless).
+function parseRollNumbers(raw: string): string[] {
+  return raw
+    .split(/[\n,\t]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function AddApplicantsForm({
+  busy,
+  result,
+  onCancel,
+  onSubmit,
+  onClearResult,
+}: {
+  busy: boolean;
+  result: BulkAddApplicantsResult | null;
+  onCancel: () => void;
+  onSubmit: (rollNumbers: string[]) => void;
+  onClearResult: () => void;
+}) {
+  const [raw, setRaw] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const rollNumbers = useMemo(() => parseRollNumbers(raw), [raw]);
+
+  async function onFilePicked(file: File) {
+    const text = await file.text();
+    setRaw((prev) => (prev.trim() ? `${prev}\n${text}` : text));
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div>
+        <p className="text-sm font-semibold text-strong">Add applicants by roll number</p>
+        <p className="mt-0.5 text-xs text-subtle">
+          For a late request after the job closed, or to bulk-add a company&apos;s own tracker.
+          This skips the usual eligibility/deadline checks — anyone matched here is added
+          directly as a new applicant.
+        </p>
+      </div>
+
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-subtle">
+          Roll numbers — paste a list, or one per line
+        </span>
+        <textarea
+          className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
+          rows={5}
+          value={raw}
+          onChange={(e) => setRaw(e.target.value)}
+          placeholder={'21CS001\n21CS002\n21CS003, 21CS004'}
+        />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.txt"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && onFilePicked(e.target.files[0])}
+        />
+        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+          Upload .csv/.txt
+        </Button>
+        <span className="text-xs text-subtle">
+          {rollNumbers.length > 0
+            ? `${rollNumbers.length} roll number${rollNumbers.length === 1 ? '' : 's'} ready`
+            : 'One roll number per row/line — a header row is fine, it\'s just reported as not found'}
+        </span>
+      </div>
+
+      {result && (
+        <div className="space-y-1.5 rounded-md bg-app p-3 text-xs">
+          {result.addedCount > 0 && (
+            <p className="font-medium text-success">
+              Added {result.addedCount} applicant{result.addedCount === 1 ? '' : 's'}: {result.added.join(', ')}
+            </p>
+          )}
+          {result.alreadyApplied.length > 0 && (
+            <p className="text-body">
+              Already applied ({result.alreadyApplied.length}): {result.alreadyApplied.join(', ')}
+            </p>
+          )}
+          {result.notFound.length > 0 && (
+            <p className="text-danger">
+              Not found ({result.notFound.length}): {result.notFound.join(', ')}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button
+          onClick={() => {
+            onClearResult();
+            onSubmit(rollNumbers);
+          }}
+          loading={busy}
+          disabled={rollNumbers.length === 0}
+        >
+          Add {rollNumbers.length > 0 ? rollNumbers.length : ''} applicant
+          {rollNumbers.length === 1 ? '' : 's'}
+        </Button>
+        <Button variant="ghost" onClick={onCancel}>
+          Close
         </Button>
       </div>
     </Card>

@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -34,4 +36,15 @@ export class UpdateInterviewDto {
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsEnum(InterviewResult) result?: InterviewResult;
   @IsOptional() @IsString() feedback?: string;
+}
+
+// Manually add applicants to a job by roll number — for late requests after a
+// job has closed, or bulk-importing a company's own applicant tracker.
+// Deliberately bypasses the self-service apply() checks (job status,
+// deadline, eligibility): an officer choosing to do this is the override.
+export class BulkAddApplicantsDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  rollNumbers!: string[];
 }

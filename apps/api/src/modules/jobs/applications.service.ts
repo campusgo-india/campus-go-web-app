@@ -240,6 +240,90 @@ export class ApplicationsService {
     }));
   }
 
+  // Manually add applicants by roll number — for a late request after a job
+  // has already closed, or to bulk-import a company's own applicant tracker.
+  // Unlike the student self-service apply(), this deliberately skips the job
+  // status/deadline/eligibility checks: an officer choosing to add someone by
+  // hand is the override. Roll numbers are matched case-insensitively;
+  // unmatched or already-applied ones are reported back rather than failing
+  // the whole batch.
+  async bulkAddApplicants(
+    collegeId: string,
+    jobId: string,
+    rollNumbers: string[],
+    addedById: string,
+  ) {
+    const job = await this.prisma.job.findFirst({
+      where: {
+        id: jobId,
+        OR: [{ collegeId }, { scope: 'PLATFORM', targetCollegeIds: { has: collegeId } }],
+      },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const wanted = [...new Set(rollNumbers.map((r) => r.trim()).filter(Boolean))];
+    if (wanted.length === 0) throw new BadRequestException('No roll numbers provided');
+
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, rollNumber: { in: wanted, mode: 'insensitive' } },
+      select: { id: true, rollNumber: true },
+    });
+    const byRoll = new Map(students.map((s) => [s.rollNumber.toLowerCase(), s]));
+
+    const existing = await this.prisma.application.findMany({
+      where: { jobId, studentId: { in: students.map((s) => s.id) } },
+      select: { studentId: true },
+    });
+    const alreadyAppliedIds = new Set(existing.map((a) => a.studentId));
+
+    const notFound: string[] = [];
+    const alreadyApplied: string[] = [];
+    const toCreate: { studentId: string; rollNumber: string }[] = [];
+    const seen = new Set<string>();
+
+    for (const roll of wanted) {
+      const match = byRoll.get(roll.toLowerCase());
+      if (!match) {
+        notFound.push(roll);
+      } else if (alreadyAppliedIds.has(match.id) || seen.has(match.id)) {
+        alreadyApplied.push(match.rollNumber);
+      } else {
+        seen.add(match.id);
+        toCreate.push({ studentId: match.id, rollNumber: match.rollNumber });
+      }
+    }
+
+    if (toCreate.length > 0) {
+      await this.prisma.$transaction(
+        toCreate.map((s) =>
+          this.prisma.application.create({
+            data: {
+              collegeId,
+              jobId,
+              studentId: s.studentId,
+              stage: 'APPLIED',
+              stageHistory: {
+                create: {
+                  fromStage: null,
+                  toStage: 'APPLIED',
+                  changedById: addedById,
+                  note: 'Added manually by roll number',
+                },
+              },
+            },
+          }),
+        ),
+      );
+    }
+
+    return {
+      addedCount: toCreate.length,
+      added: toCreate.map((s) => s.rollNumber),
+      alreadyApplied,
+      notFound,
+    };
+  }
+
   // The College Head (placement head/HOD) is who a recruiter/platform admin
   // should contact about a college's applicants — see the `isCollegeHead`
   // comment on the User model. Every college is seeded with exactly one at
