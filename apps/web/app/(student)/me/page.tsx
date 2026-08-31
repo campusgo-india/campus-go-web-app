@@ -177,22 +177,27 @@ export default function StudentHome() {
       {/* Profile / verification nudge */}
       {showProfileNudge && (
         <Link href="/me/profile/edit" className="block">
-          <Card className="space-y-3 p-5 transition hover:shadow-nav">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-strong">
-                {student!.verificationStatus === 'VERIFIED'
-                  ? 'Complete your profile'
-                  : student!.verificationStatus === 'SUBMITTED'
-                    ? 'Profile submitted — awaiting verification'
-                    : student!.verificationStatus === 'REJECTED'
-                      ? 'Profile needs changes'
-                      : 'Get your profile verified'}
-              </p>
-              <span className="text-xs font-medium text-subtle">{completion}%</span>
+          <Card className="press space-y-3 p-5">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-cream text-tint-cream-fg">
+                <UserIcon />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-strong">
+                  {student!.verificationStatus === 'VERIFIED'
+                    ? 'Complete your profile'
+                    : student!.verificationStatus === 'SUBMITTED'
+                      ? 'Profile submitted — awaiting verification'
+                      : student!.verificationStatus === 'REJECTED'
+                        ? 'Profile needs changes'
+                        : 'Get your profile verified'}
+                </p>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-tint-cream-fg">{completion}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-pill bg-app">
               <div
-                className="h-full rounded-pill bg-primary-400"
+                className="h-full rounded-pill bg-gradient-accent"
                 style={{ width: `${completion}%` }}
               />
             </div>
@@ -313,13 +318,18 @@ function RegisterForPlacementsCard() {
 
   return (
     <Card className="space-y-3 border border-primary-200 bg-primary-50 p-5">
-      <div>
-        <p className="text-sm font-semibold text-strong">Register for placements</p>
-        <p className="mt-1 text-xs text-body">
-          Your profile is verified. Register once to be counted in this season&apos;s placement
-          drive — the placement cell tracks registered students separately from the full student
-          list.
-        </p>
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-primary-600">
+          <TrackIcon />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-strong">Register for placements</p>
+          <p className="mt-1 text-xs text-body">
+            Your profile is verified. Register once to be counted in this season&apos;s placement
+            drive — the placement cell tracks registered students separately from the full student
+            list.
+          </p>
+        </div>
       </div>
       {error && <p className="text-xs text-danger">{error}</p>}
       <Button size="sm" onClick={register} loading={saving}>
@@ -409,6 +419,15 @@ function CalendarIcon() {
     <svg {...iconProps}>
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg {...iconProps}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5" strokeLinecap="round" />
     </svg>
   );
 }

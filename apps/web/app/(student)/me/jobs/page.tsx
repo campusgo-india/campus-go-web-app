@@ -14,10 +14,10 @@ import { useApi } from '../../../../lib/use-api';
 
 type Category = 'ALL' | 'APPLIED' | 'CLOSED';
 
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: 'ALL', label: 'Open' },
-  { key: 'APPLIED', label: 'Applied' },
-  { key: 'CLOSED', label: 'Closed' },
+const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
+  { key: 'ALL', label: 'Open', icon: <BoltIcon /> },
+  { key: 'APPLIED', label: 'Applied', icon: <CheckCircleIcon /> },
+  { key: 'CLOSED', label: 'Closed', icon: <LockIcon /> },
 ];
 
 function isClosed(job: Job): boolean {
@@ -134,16 +134,16 @@ export default function StudentJobsPage() {
 
       {/* Search */}
       <div className="relative">
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-subtle">
+          <SearchIcon />
+        </span>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by company"
-          className="w-full rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-body placeholder:text-subtle focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-body placeholder:text-subtle focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-subtle">
-          🔍
-        </span>
       </div>
 
       {/* Category tabs */}
@@ -153,12 +153,13 @@ export default function StudentJobsPage() {
             <button
               key={c.key}
               onClick={() => setCategory(c.key)}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`press-bg flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition ${
                 category === c.key
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-body hover:bg-primary-50'
               }`}
             >
+              {c.icon}
               {c.label}
             </button>
           ))}
@@ -197,7 +198,12 @@ export default function StudentJobsPage() {
       {isLoading ? (
         <ListSkeleton />
       ) : filteredJobs.length === 0 ? (
-        <Card className="p-6 text-center text-sm text-subtle">{emptyMessage(category)}</Card>
+        <Card className="flex flex-col items-center gap-3 p-8 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg">
+            <BriefcaseIcon />
+          </span>
+          <p className="text-sm text-subtle">{emptyMessage(category)}</p>
+        </Card>
       ) : (
         <div className="space-y-4">
           {filteredJobs.map((j, i) => {
@@ -258,9 +264,12 @@ export default function StudentJobsPage() {
                         alert(err instanceof Error ? err.message : 'Could not open PDF');
                       }
                     }}
-                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline"
+                    className="press inline-flex w-fit items-center gap-2 rounded-md border border-border bg-white px-3 py-1.5 text-sm font-medium text-body"
                   >
-                    📄 View job description (PDF)
+                    <span className="flex h-6 w-6 items-center justify-center rounded bg-danger/10 text-[10px] font-bold text-danger">
+                      PDF
+                    </span>
+                    View job description
                   </button>
                 )}
                 {notEligible && !j.applied && (
@@ -277,5 +286,57 @@ export default function StudentJobsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+const iconProps = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  className: 'h-4 w-4',
+} as const;
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-4.5 w-4.5">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BoltIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.3 2.3 4.7-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BriefcaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="h-6 w-6">
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeLinecap="round" />
+    </svg>
   );
 }
