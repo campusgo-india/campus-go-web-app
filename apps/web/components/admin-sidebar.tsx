@@ -64,6 +64,19 @@ function navFor(role: UserRole | undefined): NavItem[] {
   return []; // unknown / still bootstrapping — render no role-specific links
 }
 
+// On a narrow screen — which is what the wrapped native app always is — a
+// College Admin/Officer/Coordinator gets a reduced nav: Dashboard to get
+// back to their home, Jobs, and Training. The full desktop sidebar is
+// unaffected; this only trims the mobile drawer. Platform Admin's own nav is
+// already this short (Dashboard/Colleges/Jobs), so it's left as-is rather
+// than losing Colleges to the filter below.
+const MOBILE_PRIMARY_LABELS = new Set(['Dashboard', 'Jobs', 'Training']);
+
+function mobileNavFor(role: UserRole | undefined, fullNav: NavItem[]): NavItem[] {
+  if (role === UserRole.PLATFORM_ADMIN) return fullNav;
+  return fullNav.filter((item) => MOBILE_PRIMARY_LABELS.has(item.label));
+}
+
 function Brand({ college }: { college?: { name: string; logoUrl: string | null } | null }) {
   return college?.logoUrl ? (
     <div className="flex items-center gap-3">
@@ -127,6 +140,7 @@ export function AdminSidebar({
   // briefly sees college links). Show neutral placeholders until role is known.
   const ready = !loading && !!user;
   const nav = ready ? navFor(user.role) : [];
+  const mobileNav = ready ? mobileNavFor(user.role, nav) : [];
 
   // Close the drawer automatically once a link has actually navigated.
   useEffect(() => {
@@ -157,7 +171,7 @@ export function AdminSidebar({
                 ✕
               </button>
             </div>
-            <NavLinks nav={nav} ready={ready} onNavigate={onCloseMobile} />
+            <NavLinks nav={mobileNav} ready={ready} onNavigate={onCloseMobile} />
           </aside>
         </div>
       )}
