@@ -46,10 +46,8 @@ function LoginForm() {
   return (
     <Card className="space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-3xl font-bold">
-          <span className="text-primary-700">Campus</span>
-          <span className="text-primary-400">GO</span>
-        </h1>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured */}
+        <img src="/logo.png" alt="CampusGo" className="mx-auto h-12 w-auto object-contain" />
         <p className="text-sm text-subtle">Sign in to your account</p>
       </div>
 

@@ -109,10 +109,8 @@ function Brand({ college }: { college?: { name: string; logoUrl: string | null }
       <span className="text-sm font-semibold leading-tight text-strong">{college.name}</span>
     </div>
   ) : (
-    <span className="text-2xl font-bold">
-      <span className="text-primary-700">Campus</span>
-      <span className="text-primary-400">GO</span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured
+    <img src="/logo.png" alt="CampusGo" className="h-11 w-auto object-contain" />
   );
 }
 

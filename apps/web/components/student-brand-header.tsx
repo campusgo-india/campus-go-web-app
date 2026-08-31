@@ -21,10 +21,8 @@ export function StudentBrandHeader() {
           <span className="truncate text-sm font-semibold text-strong">{user.college.name}</span>
         </div>
       ) : (
-        <span className="text-lg font-bold">
-          <span className="text-primary-700">Campus</span>
-          <span className="text-primary-400">GO</span>
-        </span>
+        // eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured
+        <img src="/logo.png" alt="CampusGo" className="h-9 w-auto object-contain" />
       )}
     </header>
   );
