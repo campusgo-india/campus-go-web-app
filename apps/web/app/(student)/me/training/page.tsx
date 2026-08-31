@@ -74,21 +74,24 @@ const TIER_STATUS: Record<EmployabilityTier, string> = {
 const IMPROVEMENT_TARGET_BUMP = 15;
 
 interface Roadmap {
+  // One short line — the numbers (rank, gap-to-next-tier) are shown visually
+  // via the tier stepper + rank chip instead of being buried in the sentence.
   headline: string;
-  improvementGoal: string | null;
+  improvementGoal: { pillarLabel: string; current: number; target: number } | null;
   actions: string[];
 }
 
 function buildRoadmap(data: EmployabilityDashboard): Roadmap {
-  const { tier, deptRank, gapToNextTier, weakestPillar } = data;
-  const percentile = deptRank.total > 0 ? Math.max(1, Math.round((deptRank.rank / deptRank.total) * 100)) : 100;
-  const rankPhrase = percentile <= 10 ? `Top ${percentile}%` : `#${deptRank.rank} of ${deptRank.total}`;
-
+  const { tier, weakestPillar } = data;
   const target = weakestPillar ? Math.min(100, weakestPillar.percentage + IMPROVEMENT_TARGET_BUMP) : null;
+  const improvementGoal =
+    weakestPillar && target != null
+      ? { pillarLabel: weakestPillar.label, current: weakestPillar.percentage, target }
+      : null;
 
   if (tier === 'TIER_1') {
     return {
-      headline: `You are in the ${rankPhrase} of your batch! You are fully prepared and eligible for Tier 1 (Core & High Package), Tier 2, and Tier 3 campus drives.`,
+      headline: "You're fully prepared — eligible for every campus drive.",
       improvementGoal: null,
       actions: [
         'Focus on advanced technical/domain mock interviews.',
@@ -100,11 +103,8 @@ function buildRoadmap(data: EmployabilityDashboard): Roadmap {
 
   if (tier === 'TIER_2') {
     return {
-      headline: `You are well-prepared for Tier 2 and Tier 3 campus drives. You are only +${gapToNextTier}% away from unlocking Tier 1 eligibility status.`,
-      improvementGoal:
-        weakestPillar && target != null
-          ? `${weakestPillar.label} Focus: Your current ${weakestPillar.label} score is ${weakestPillar.percentage}%. Score ${target}%+ on your next test to upgrade your overall status to Tier 1 Eligible.`
-          : null,
+      headline: 'Well-prepared for Tier 2 & Tier 3 drives.',
+      improvementGoal,
       actions: [
         'Actively participate in all upcoming Tier 2 & Tier 3 campus drives.',
         weakestPillar
@@ -115,17 +115,67 @@ function buildRoadmap(data: EmployabilityDashboard): Roadmap {
   }
 
   return {
-    headline: `You're building your foundation — mandatory training now sets up early job security. You are +${gapToNextTier}% away from unlocking Tier 2 eligibility.`,
-    improvementGoal:
-      weakestPillar && target != null
-        ? `${weakestPillar.label} Focus: Your current ${weakestPillar.label} score is ${weakestPillar.percentage}%. Score ${target}%+ on your next test to move toward Tier 2 eligibility.`
-        : null,
+    headline: 'Building your foundation — mandatory training sets up early job security.',
+    improvementGoal,
     actions: [
       'Enroll in the mandatory Foundation Training track for your weakest pillar.',
       'Prioritize early-placement and entry-level drives to secure a foundational offer.',
       'Milestone goal: reach 65% overall readiness to unlock Tier 2 eligibility.',
     ],
   };
+}
+
+const TIER_STEPS: { key: EmployabilityTier; label: string }[] = [
+  { key: 'TIER_3', label: 'Tier 3' },
+  { key: 'TIER_2', label: 'Tier 2' },
+  { key: 'TIER_1', label: 'Tier 1' },
+];
+
+/** Visual "you are here" ladder across the 3 tiers, instead of describing
+ * the same thing in a sentence. */
+function TierStepper({ tier, gapToNextTier }: { tier: EmployabilityTier; gapToNextTier: number | null }) {
+  const currentIdx = TIER_STEPS.findIndex((t) => t.key === tier);
+  const nextLabel = currentIdx > 0 ? TIER_STEPS[currentIdx - 1]!.label : null;
+  return (
+    <div>
+      <div className="flex items-center">
+        {TIER_STEPS.map((t, i) => {
+          const reached = i <= currentIdx;
+          const current = i === currentIdx;
+          return (
+            <div key={t.key} className="flex flex-1 items-center last:flex-none">
+              <div className="flex flex-col items-center gap-1">
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                    current
+                      ? 'bg-gradient-brand text-white shadow-nav'
+                      : reached
+                        ? 'bg-success text-white'
+                        : 'bg-app text-subtle'
+                  }`}
+                >
+                  {reached && !current ? <CheckIcon /> : i + 1}
+                </span>
+                <span className={`text-[11px] font-semibold ${current ? 'text-strong' : 'text-subtle'}`}>
+                  {t.label}
+                </span>
+              </div>
+              {i < TIER_STEPS.length - 1 && (
+                <div className={`mx-1 h-1 flex-1 rounded-full ${i < currentIdx ? 'bg-success' : 'bg-app'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {nextLabel && gapToNextTier != null && (
+        <p className="mt-2.5 text-center text-xs font-medium text-subtle">
+          <span className="rounded-pill bg-tint-cream px-2.5 py-1 text-tint-cream-fg">
+            +{gapToNextTier}% to {nextLabel}
+          </span>
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function MyEmployabilityPage() {
@@ -154,19 +204,41 @@ export default function MyEmployabilityPage() {
       </div>
 
       {/* Placement roadmap — private tier badge, informational only */}
-      <Card className="animate-rise space-y-3 p-5" style={{ animationDelay: '60ms' }}>
+      <Card className="animate-rise space-y-4 p-5" style={{ animationDelay: '60ms' }}>
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg">
             <CompassIcon />
           </span>
-          <p className="text-sm font-semibold text-strong">Your Placement Roadmap</p>
+          <div>
+            <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+              <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+              Your Placement Roadmap
+            </p>
+            <p className="text-xs text-subtle">{roadmap.headline}</p>
+          </div>
         </div>
-        <p className="text-sm text-body">{roadmap.headline}</p>
+
+        <TierStepper tier={data.tier} gapToNextTier={data.gapToNextTier} />
 
         {roadmap.improvementGoal && (
-          <div className="rounded-md bg-tint-cream p-3">
-            <p className="text-xs font-medium uppercase text-tint-cream-fg">Targeted Improvement Goal</p>
-            <p className="mt-1 text-sm text-body">{roadmap.improvementGoal}</p>
+          <div className="flex items-center gap-4 rounded-md bg-tint-cream p-3.5">
+            <div className="flex-1">
+              <p className="text-xs font-medium uppercase text-tint-cream-fg">
+                {roadmap.improvementGoal.pillarLabel} focus
+              </p>
+              <p className="mt-0.5 text-xs text-body">Score this on your next test to level up.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="text-center">
+                <p className="text-lg font-bold text-subtle">{roadmap.improvementGoal.current}%</p>
+                <p className="text-[10px] text-subtle">Now</p>
+              </div>
+              <span className="text-tint-cream-fg">→</span>
+              <div className="text-center">
+                <p className="text-lg font-bold text-tint-cream-fg">{roadmap.improvementGoal.target}%</p>
+                <p className="text-[10px] text-tint-cream-fg">Target</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -187,7 +259,10 @@ export default function MyEmployabilityPage() {
 
       {/* Skill breakdown */}
       <Card className="animate-rise space-y-5 p-5" style={{ animationDelay: '120ms' }}>
-        <p className="text-sm font-semibold text-strong">Skill breakdown</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+          <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+          Skill breakdown
+        </p>
         {data.pillars.map((p) => {
           const message = pillarReadinessMessage(p.pillar, p.percentage);
           const tint = scoreTint(p.percentage);
@@ -224,7 +299,10 @@ export default function MyEmployabilityPage() {
 
       {/* Active track & attendance */}
       <Card className="animate-rise space-y-4 p-5" style={{ animationDelay: '180ms' }}>
-        <p className="text-sm font-semibold text-strong">Active track &amp; attendance</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+          <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+          Active track &amp; attendance
+        </p>
         <div className="grid grid-cols-2 gap-3">
           <StatTile label="Attendance" value={`${data.attendancePct}%`} tint="mint" />
           <StatTile

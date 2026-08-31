@@ -6,7 +6,7 @@ export type StatTint = 'lavender' | 'mint' | 'cream' | 'rose' | 'accent';
 export type StatSize = 'md' | 'sm';
 
 const GRADIENT: Record<StatGradient, string> = {
-  primary: 'bg-gradient-primary text-white',
+  primary: 'bg-gradient-brand text-white',
   sunset: 'bg-gradient-sunset text-white',
   ocean: 'bg-gradient-ocean text-white',
   violet: 'bg-gradient-violet text-white',

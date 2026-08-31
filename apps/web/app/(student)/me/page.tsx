@@ -129,49 +129,41 @@ export default function StudentHome() {
 
   return (
     <div className="space-y-6">
-      <header className="animate-rise flex items-center justify-between rounded-2xl bg-gradient-primary p-5 text-white shadow-nav">
-        <div>
-          <p className="text-sm text-white/80">Welcome back</p>
-          <h1 className="text-2xl font-semibold">Hi, {firstName}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <NotificationBell
-            href="/me/notifications"
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
+      {/* Brand header + overlapping stat strip, Swiggy/fintech-app style */}
+      <div>
+        <header className="animate-rise relative overflow-hidden rounded-2xl bg-gradient-brand px-5 pb-9 pt-5 text-white shadow-nav">
+          <div
+            className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)' }}
           />
-        </div>
-      </header>
+          <div className="relative flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/80">Welcome back</p>
+              <h1 className="text-2xl font-semibold">Hi, {firstName}</h1>
+            </div>
+            <NotificationBell
+              href="/me/notifications"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
+            />
+          </div>
+        </header>
 
-      {/* Stat strip */}
-      <div className="grid grid-cols-3 gap-3">
-        <Stat value={apps.length} label="Applications" tint="lavender" />
-        <Stat value={interviewsScheduled} label="Interviews" tint="cream" />
-        <Stat value={offers.length} label="Selected" tint="mint" />
+        {/* Stat strip overlaps the header's bottom edge */}
+        <div className="relative -mt-5 grid grid-cols-3 gap-3 px-1">
+          <Stat value={apps.length} label="Applications" tint="lavender" />
+          <Stat value={interviewsScheduled} label="Interviews" tint="cream" />
+          <Stat value={offers.length} label="Selected" tint="mint" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <QuickLink
-          href="/me/training"
-          tint="lavender"
-          icon={<ChartIcon />}
-          title="My Employability"
-          body="Readiness score, assessments & training calendar"
-        />
-        <QuickLink
-          href="/me/placement"
-          tint="mint"
-          icon={<TrackIcon />}
-          title="Placement Tracker"
-          body="Application funnel, interviews & offer details"
-        />
-        <QuickLink
-          href="/me/placement-policy"
-          tint="cream"
-          icon={<DocIcon />}
-          title="Placement Policy"
-          body="Rules & process your placement cell follows this season"
-          className="sm:col-span-2"
-        />
+      {/* Quick launch — Swiggy-style row of colorful icon tiles */}
+      <div className="-mx-4 px-4">
+        <div className="flex gap-3.5 overflow-x-auto pb-1 scrollbar-hide">
+          <QuickLaunch href="/me/jobs" gradient="bg-gradient-brand" icon={<BriefcaseIcon />} label="Jobs" />
+          <QuickLaunch href="/me/training" gradient="bg-gradient-ocean" icon={<ChartIcon />} label="Employability" />
+          <QuickLaunch href="/me/placement" gradient="bg-gradient-violet" icon={<TrackIcon />} label="Tracker" />
+          <QuickLaunch href="/me/placement-policy" gradient="bg-gradient-accent" icon={<DocIcon />} label="Policy" />
+        </div>
       </div>
 
       {/* Profile / verification nudge */}
@@ -217,17 +209,23 @@ export default function StudentHome() {
 
       {/* Next interview hero */}
       {nextInterview ? (
-        <div className="rounded-card bg-gradient-primary p-5 text-white shadow-nav">
-          <p className="text-xs/relaxed opacity-90">
-            Next interview · {fmtDateTime(nextInterview.when)}
-          </p>
-          <h2 className="mt-1 text-xl font-semibold">
-            {nextInterview.jobTitle} — {nextInterview.roundName}
-          </h2>
-          <p className="mt-3 text-sm opacity-90">
-            {nextInterview.company}
-            {nextInterview.mode ? ` · ${nextInterview.mode}` : ''}
-          </p>
+        <div className="relative overflow-hidden rounded-card bg-gradient-brand p-5 text-white shadow-nav">
+          <div
+            className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%)' }}
+          />
+          <div className="relative">
+            <p className="text-xs/relaxed opacity-90">
+              Next interview · {fmtDateTime(nextInterview.when)}
+            </p>
+            <h2 className="mt-1 text-xl font-semibold">
+              {nextInterview.jobTitle} — {nextInterview.roundName}
+            </h2>
+            <p className="mt-3 text-sm opacity-90">
+              {nextInterview.company}
+              {nextInterview.mode ? ` · ${nextInterview.mode}` : ''}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="flex items-start gap-3 rounded-card bg-white p-5 shadow-card">
@@ -246,7 +244,10 @@ export default function StudentHome() {
       {/* Active applications */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-strong">Your applications</h3>
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-strong">
+            <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+            Your applications
+          </h3>
           {apps.length > 0 && (
             <Link href="/me/applications" className="text-sm text-primary-600">
               See all
@@ -341,42 +342,34 @@ function RegisterForPlacementsCard() {
 
 function Stat({ value, label, tint }: { value: number; label: string; tint: Tint }) {
   return (
-    <div className={`rounded-card p-3 text-center ${TINT_BG[tint]}`}>
+    <div className={`press rounded-card p-3 text-center shadow-card ${TINT_BG[tint]}`}>
       <p className={`text-2xl font-bold ${TINT_FG[tint]}`}>{value}</p>
       <p className="text-xs font-medium text-subtle">{label}</p>
     </div>
   );
 }
 
-function QuickLink({
+/** Swiggy-style quick-launch tile: a colorful rounded-square icon with a
+ * label underneath, in a horizontally-scrollable row. */
+function QuickLaunch({
   href,
-  tint,
+  gradient,
   icon,
-  title,
-  body,
-  className = '',
+  label,
 }: {
   href: string;
-  tint: Tint;
+  gradient: string;
   icon: React.ReactNode;
-  title: string;
-  body: string;
-  className?: string;
+  label: string;
 }) {
   return (
-    <Link href={href} className={`block ${className}`}>
-      <Card className="flex items-center gap-3.5 p-4 transition hover:shadow-nav">
-        <span
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${TINT_BG[tint]} ${TINT_FG[tint]}`}
-        >
-          {icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-strong">{title}</p>
-          <p className="text-xs text-subtle">{body}</p>
-        </div>
-        <span className="shrink-0 text-primary-600">→</span>
-      </Card>
+    <Link href={href} className="press flex shrink-0 flex-col items-center gap-1.5">
+      <span
+        className={`flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-nav [&>svg]:h-7 [&>svg]:w-7 ${gradient}`}
+      >
+        {icon}
+      </span>
+      <span className="text-xs font-medium text-body">{label}</span>
     </Link>
   );
 }
@@ -419,6 +412,15 @@ function CalendarIcon() {
     <svg {...iconProps}>
       <rect x="3" y="5" width="18" height="16" rx="2" />
       <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BriefcaseIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeLinecap="round" />
     </svg>
   );
 }
