@@ -247,6 +247,8 @@ export class RoundsService {
         title: r.title,
         roundType: r.roundType,
         description: r.description,
+        venue: r.venue,
+        reportingInstructions: r.reportingInstructions,
         scheduledAt: r.scheduledAt,
         status: r.status,
         overdue: !!r.scheduledAt && r.status === 'OPEN' && r.scheduledAt.getTime() < Date.now(),
@@ -312,6 +314,8 @@ export class RoundsService {
         title: r.title,
         roundType: r.roundType,
         description: r.description,
+        venue: r.venue,
+        reportingInstructions: r.reportingInstructions,
         scheduledAt: r.scheduledAt,
         status: r.status,
         overdue: !!r.scheduledAt && r.status === 'OPEN' && r.scheduledAt.getTime() < Date.now(),
@@ -385,6 +389,8 @@ export class RoundsService {
         title,
         roundType: dto.roundType ?? null,
         description: dto.description ?? null,
+        venue: dto.venue ?? null,
+        reportingInstructions: dto.reportingInstructions ?? null,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         createdById,
       },
@@ -516,6 +522,10 @@ export class RoundsService {
         ...(dto.title !== undefined ? { title: dto.title.trim() || round.title } : {}),
         ...(dto.roundType !== undefined ? { roundType: dto.roundType ?? null } : {}),
         ...(dto.description !== undefined ? { description: dto.description ?? null } : {}),
+        ...(dto.venue !== undefined ? { venue: dto.venue ?? null } : {}),
+        ...(dto.reportingInstructions !== undefined
+          ? { reportingInstructions: dto.reportingInstructions ?? null }
+          : {}),
         ...(dto.scheduledAt !== undefined
           ? { scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null }
           : {}),
@@ -884,6 +894,8 @@ export class RoundsService {
         title,
         roundType: dto.roundType ?? null,
         description: dto.description ?? null,
+        venue: dto.venue ?? null,
+        reportingInstructions: dto.reportingInstructions ?? null,
         scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
         createdById,
       },
@@ -975,6 +987,10 @@ export class RoundsService {
         ...(dto.title !== undefined ? { title: dto.title.trim() || round.title } : {}),
         ...(dto.roundType !== undefined ? { roundType: dto.roundType ?? null } : {}),
         ...(dto.description !== undefined ? { description: dto.description ?? null } : {}),
+        ...(dto.venue !== undefined ? { venue: dto.venue ?? null } : {}),
+        ...(dto.reportingInstructions !== undefined
+          ? { reportingInstructions: dto.reportingInstructions ?? null }
+          : {}),
         ...(dto.scheduledAt !== undefined
           ? { scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null }
           : {}),

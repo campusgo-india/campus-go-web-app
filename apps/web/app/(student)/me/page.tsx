@@ -9,7 +9,6 @@ import {
   type Application,
 } from '../../../lib/applications';
 import { getOwnStudent, setPlacementRegistration, type Student } from '../../../lib/students';
-import { NotificationBell } from '../../../components/notification-bell';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useApi, mutate } from '../../../lib/use-api';
 
@@ -117,17 +116,31 @@ export default function StudentHome() {
 
   return (
     <div className="space-y-6">
-      {/* Greeting — plain, clean, no heavy banner */}
-      <header className="animate-rise flex items-center justify-between">
-        <div>
-          <p className="text-sm text-subtle">Welcome back</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-strong">Hi, {firstName}</h1>
-        </div>
-        <NotificationBell
-          href="/me/notifications"
-          className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg"
-        />
-      </header>
+      {/* Slim greeting pill — the college name/bell already live in the brand
+          header above this page, so this is just the personal "you're
+          signed in" touch, not a second header row. */}
+      <div className="animate-rise flex h-11 items-center rounded-pill bg-gradient-brand px-5 text-sm font-semibold text-white shadow-nav">
+        Welcome back, {firstName}
+      </div>
+
+      {/* Offers-accepted congrats — only when there's something to celebrate */}
+      {offers.length > 0 && (
+        <Link
+          href="/me/applications"
+          className="press flex items-center gap-3 rounded-2xl bg-tint-mint p-4 text-tint-mint-fg"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-lg">
+            🎉
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold">
+              {offers.length} {offers.length === 1 ? 'offer' : 'offers'} accepted!
+            </p>
+            <p className="text-xs opacity-90">You&apos;re ahead of most of your batch — nice work.</p>
+          </div>
+          <ChevronRightIcon />
+        </Link>
+      )}
 
       {/* Stat row — icon-in-circle + big number + label, no card chrome */}
       <div className="flex items-center justify-around rounded-2xl bg-white p-4 shadow-card">
@@ -138,14 +151,16 @@ export default function StudentHome() {
         <StatCol icon={<CheckIcon />} value={offers.length} label="Selected" />
       </div>
 
-      {/* Quick launch — soft pastel feature cards, full-width stack (a
-          2-column grid squeezed longer titles like "Employability" into the
-          icon). */}
-      <div className="space-y-3">
-        <FeatureCard href="/me/jobs" tint="lavender" icon={<BriefcaseIcon />} eyebrow="Discover" title="Jobs" />
+      {/* Quick launch — white cards with a small pastel icon square on top and
+          eyebrow/title below, back in a 2-column grid. The icon now sits
+          above the text instead of beside it, so a long title like
+          "Employability" has the card's full width to wrap into — no more
+          icon/text collision. */}
+      <div className="grid grid-cols-2 gap-3">
+        <FeatureCard href="/me/jobs" tint="cream" icon={<BriefcaseIcon />} eyebrow="Discover" title="Browse jobs" />
         <FeatureCard href="/me/training" tint="mint" icon={<ChartIcon />} eyebrow="Track" title="Employability" />
-        <FeatureCard href="/me/placement" tint="rose" icon={<TrackIcon />} eyebrow="Follow" title="Placement Tracker" />
-        <FeatureCard href="/me/placement-policy" tint="cream" icon={<DocIcon />} eyebrow="Review" title="Placement Policy" />
+        <FeatureCard href="/me/placement" tint="lavender" icon={<TrackIcon />} eyebrow="Follow" title="Tracker" />
+        <FeatureCard href="/me/placement-policy" tint="cream" icon={<DocIcon />} eyebrow="Review" title="Policy" />
       </div>
 
       {/* Profile / verification nudge */}
@@ -253,22 +268,20 @@ export default function StudentHome() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
                       <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${TINT_BG[companyTint]} ${TINT_FG[companyTint]}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${TINT_BG[companyTint]} ${TINT_FG[companyTint]}`}
                       >
                         {a.job.company.name.charAt(0).toUpperCase()}
                       </span>
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-strong">{a.job.title}</p>
-                        <p className="truncate text-xs text-subtle">
-                          {a.job.company.name} · applied{' '}
-                          {new Date(a.appliedAt).toLocaleDateString(undefined, {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                        </p>
+                        <p className="truncate text-xs text-subtle">{a.job.company.name}</p>
                       </div>
                     </div>
-                    <Badge tint={applicationStatusBadge(a.status).tint} size="sm" className="shrink-0">
+                    <Badge
+                      tint={applicationStatusBadge(a.status).tint}
+                      size="sm"
+                      className="shrink-0 uppercase tracking-wide"
+                    >
                       {applicationStatusBadge(a.status).label}
                     </Badge>
                   </div>
@@ -336,9 +349,9 @@ function StatCol({ icon, value, label }: { icon: React.ReactNode; value: number;
   );
 }
 
-/** Soft pastel feature card — eyebrow label, bold title, icon — replaces
- * the earlier vivid-gradient icon tiles with the reference app's pastel
- * "Day 1 Full Body" workout-card language. */
+/** White quick-launch card — small pastel icon square on top, eyebrow +
+ * bold title below. Icon-over-text (not icon-beside-text) so a long title
+ * always has the full card width to wrap into. */
 function FeatureCard({
   href,
   tint,
@@ -357,15 +370,15 @@ function FeatureCard({
   return (
     <Link
       href={href}
-      className={`press relative flex items-center gap-3 overflow-hidden rounded-2xl p-4 ${TINT_BG[tint]} ${className}`}
+      className={`press flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ${className}`}
     >
-      <div className="min-w-0 flex-1">
-        <p className={`text-[11px] font-semibold uppercase tracking-wide ${TINT_FG[tint]}`}>{eyebrow}</p>
-        <p className="mt-0.5 break-words text-base font-extrabold text-strong">{title}</p>
-      </div>
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 ${TINT_FG[tint]}`}>
+      <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${TINT_BG[tint]} ${TINT_FG[tint]}`}>
         {icon}
       </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-subtle">{eyebrow}</p>
+        <p className="mt-0.5 break-words text-sm font-extrabold text-strong">{title}</p>
+      </div>
     </Link>
   );
 }
@@ -425,6 +438,14 @@ function BriefcaseIcon() {
     <svg {...iconProps}>
       <rect x="3" y="7" width="18" height="13" rx="2" />
       <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4 shrink-0">
+      <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

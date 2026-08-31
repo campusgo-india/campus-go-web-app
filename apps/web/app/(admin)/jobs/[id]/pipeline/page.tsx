@@ -113,6 +113,8 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
     title: string;
     roundType: RoundType | '';
     description: string;
+    venue: string;
+    reportingInstructions: string;
     scheduledAt: string;
   }) {
     setBusy(true);
@@ -122,6 +124,8 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
         title: input.title.trim() || undefined,
         roundType: input.roundType || undefined,
         description: input.description.trim() || undefined,
+        venue: input.venue.trim() || undefined,
+        reportingInstructions: input.reportingInstructions.trim() || undefined,
         scheduledAt: input.scheduledAt || undefined,
       })) as { id: string };
       setShowAddRound(false);
@@ -882,6 +886,8 @@ function AddRoundForm({
     title: string;
     roundType: RoundType | '';
     description: string;
+    venue: string;
+    reportingInstructions: string;
     scheduledAt: string;
   }) => void;
 }) {
@@ -892,6 +898,8 @@ function AddRoundForm({
   const [title, setTitle] = useState(nextLabel);
   const [roundType, setRoundType] = useState<RoundType | ''>('');
   const [description, setDescription] = useState('');
+  const [venue, setVenue] = useState('');
+  const [reportingInstructions, setReportingInstructions] = useState('');
   const [when, setWhen] = useState('');
   const cls =
     'h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400';
@@ -943,21 +951,46 @@ function AddRoundForm({
           </select>
         </label>
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-subtle">
+            Date &amp; time {nextLabel === 'Round 1' ? '*' : '(optional)'}
+          </span>
+          <input
+            type="datetime-local"
+            className={cls}
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-subtle">Venue (optional)</span>
+          <input
+            className={cls}
+            value={venue}
+            onChange={(e) => setVenue(e.target.value)}
+            placeholder="e.g. Corporate Office, Bommasandra"
+          />
+        </label>
+      </div>
       <label className="block space-y-1">
-        <span className="text-xs font-medium text-subtle">Description / instructions</span>
+        <span className="text-xs font-medium text-subtle">Reporting instructions (optional)</span>
+        <input
+          className={cls}
+          value={reportingInstructions}
+          onChange={(e) => setReportingInstructions(e.target.value)}
+          placeholder="e.g. CTP, 9:00 AM"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-subtle">Additional notes (optional)</span>
         <textarea
           className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Venue, link, prerequisites, or any other details students should know…"
+          placeholder="Dress code, documents to carry, or anything else that doesn't fit above…"
         />
-      </label>
-      <label className="block space-y-1 sm:w-1/2">
-        <span className="text-xs font-medium text-subtle">
-          Date {nextLabel === 'Round 1' ? '*' : '(optional)'}
-        </span>
-        <input type="date" className={cls} value={when} onChange={(e) => setWhen(e.target.value)} />
       </label>
       <p className="text-xs text-subtle">
         {nextLabel === 'Round 1'
@@ -971,6 +1004,8 @@ function AddRoundForm({
               title,
               roundType,
               description,
+              venue,
+              reportingInstructions,
               scheduledAt: when ? new Date(when).toISOString() : '',
             })
           }

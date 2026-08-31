@@ -778,6 +778,8 @@ export class ApplicationsService {
           title: string;
           roundType: string | null;
           description: string | null;
+          venue: string | null;
+          reportingInstructions: string | null;
           scheduledAt: Date | null;
           status: string;
         };
@@ -826,6 +828,8 @@ export class ApplicationsService {
         title: r.round.title,
         roundType: r.round.roundType,
         description: r.round.description,
+        venue: r.round.venue,
+        reportingInstructions: r.round.reportingInstructions,
         scheduledAt: r.round.scheduledAt,
         roundStatus: r.round.status,
         outcome: r.outcome,

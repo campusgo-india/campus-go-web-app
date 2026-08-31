@@ -1,3 +1,7 @@
+'use client';
+
+import { useId } from 'react';
+
 /** SVG ring meter — the reference app's "98% Success" progress-ring pattern.
  * Center content (usually a big number) is passed as children, absolutely
  * centered over the ring. */
@@ -6,6 +10,8 @@ export function CircularProgress({
   size = 104,
   strokeWidth = 10,
   trackClassName = 'text-app',
+  gradientFrom = '#5B8DEF',
+  gradientTo = '#1F3F94',
   children,
 }: {
   /** 0–100. Clamped. */
@@ -14,21 +20,26 @@ export function CircularProgress({
   strokeWidth?: number;
   /** Tailwind text-color class for the unfilled track. */
   trackClassName?: string;
+  /** Stroke gradient stops — defaults to the brand blue. */
+  gradientFrom?: string;
+  gradientTo?: string;
   children?: React.ReactNode;
 }) {
   const pct = Math.max(0, Math.min(100, value));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - pct / 100);
-  const gradientId = 'circularProgressGradient';
+  // Unique per instance — a shared id would make every ring on the page
+  // paint the first instance's gradient once more than one is mounted.
+  const gradientId = `circular-progress-${useId()}`;
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90" viewBox={`0 0 ${size} ${size}`}>
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#5B8DEF" />
-            <stop offset="100%" stopColor="#1F3F94" />
+            <stop offset="0%" stopColor={gradientFrom} />
+            <stop offset="100%" stopColor={gradientTo} />
           </linearGradient>
         </defs>
         <circle

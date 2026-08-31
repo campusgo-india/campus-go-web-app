@@ -52,6 +52,8 @@ export interface FunnelRound {
   title: string;
   roundType: RoundType | null;
   description: string | null;
+  venue: string | null;
+  reportingInstructions: string | null;
   scheduledAt: string | null;
   status: RoundStatus;
   overdue: boolean;
@@ -95,16 +97,20 @@ export interface PendingResult {
 
 export const getFunnel = (jobId: string) => api<Funnel>(`/jobs/${jobId}/funnel`);
 
-export const createRound = (
-  jobId: string,
-  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
-) => api(`/jobs/${jobId}/rounds`, { method: 'POST', body: JSON.stringify(input) });
+export interface RoundInput {
+  title?: string;
+  roundType?: RoundType;
+  description?: string;
+  venue?: string;
+  reportingInstructions?: string;
+  scheduledAt?: string;
+}
 
-export const updateRound = (
-  jobId: string,
-  roundId: string,
-  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
-) => api(`/jobs/${jobId}/rounds/${roundId}`, { method: 'PATCH', body: JSON.stringify(input) });
+export const createRound = (jobId: string, input: RoundInput) =>
+  api(`/jobs/${jobId}/rounds`, { method: 'POST', body: JSON.stringify(input) });
+
+export const updateRound = (jobId: string, roundId: string, input: RoundInput) =>
+  api(`/jobs/${jobId}/rounds/${roundId}`, { method: 'PATCH', body: JSON.stringify(input) });
 
 export const deleteRound = (jobId: string, roundId: string) =>
   api(`/jobs/${jobId}/rounds/${roundId}`, { method: 'DELETE' });
@@ -150,16 +156,10 @@ export const listPendingResults = () => api<PendingResult[]>('/jobs/rounds/pendi
 
 export const getPlatformFunnel = (jobId: string) => api<Funnel>(`/platform/jobs/${jobId}/funnel`);
 
-export const createPlatformRound = (
-  jobId: string,
-  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
-) => api(`/platform/jobs/${jobId}/rounds`, { method: 'POST', body: JSON.stringify(input) });
+export const createPlatformRound = (jobId: string, input: RoundInput) =>
+  api(`/platform/jobs/${jobId}/rounds`, { method: 'POST', body: JSON.stringify(input) });
 
-export const updatePlatformRound = (
-  jobId: string,
-  roundId: string,
-  input: { title?: string; roundType?: RoundType; description?: string; scheduledAt?: string },
-) =>
+export const updatePlatformRound = (jobId: string, roundId: string, input: RoundInput) =>
   api(`/platform/jobs/${jobId}/rounds/${roundId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),

@@ -27,6 +27,8 @@ export interface ApplicationRoundStep {
   title: string;
   roundType: RoundType | null;
   description: string | null;
+  venue: string | null;
+  reportingInstructions: string | null;
   scheduledAt: string | null;
   roundStatus: 'OPEN' | 'DECIDED';
   outcome: 'PENDING' | 'ADVANCED' | 'REJECTED';
@@ -66,7 +68,7 @@ export function applicationStatusBadge(status: string): {
   label: string;
   tint: 'success' | 'warning' | 'danger';
 } {
-  if (status === 'SELECTED') return { label: 'Selected', tint: 'success' };
+  if (status === 'SELECTED') return { label: 'Offer accepted', tint: 'success' };
   if (status === 'REJECTED') return { label: 'Rejected', tint: 'danger' };
   if (status === 'WITHDRAWN') return { label: 'Withdrawn', tint: 'danger' };
   if (status === 'IN_PROGRESS') return { label: 'In progress', tint: 'warning' };

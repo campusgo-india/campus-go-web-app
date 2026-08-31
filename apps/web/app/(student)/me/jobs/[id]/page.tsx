@@ -38,6 +38,8 @@ function tintForName(name: string): Tint {
 }
 const workModeLabel = (m: string | null) =>
   !m ? null : m === 'ONSITE' ? 'Work from office' : m.charAt(0) + m.slice(1).toLowerCase();
+// Highest round seq the application has reached — rounds arrive ordered by seq asc.
+const roundProgress = (app: Application) => app.rounds.at(-1)?.seq ?? 0;
 
 export default function StudentJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -169,12 +171,27 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
       <Card className="animate-rise space-y-3 p-4" style={{ animationDelay: '60ms' }}>
         <div className="flex flex-wrap gap-2">
           <StatChip icon={<RupeeIcon />} value={formatCtc(job.ctcMin, job.ctcMax)} label="CTC" />
-          {job.applicationDeadline && (
+          {app ? (
             <StatChip
               icon={<CalendarIcon />}
-              value={new Date(job.applicationDeadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
-              label="Apply by"
-              highlight={expired}
+              value={new Date(app.appliedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+              label="Applied on"
+            />
+          ) : (
+            job.applicationDeadline && (
+              <StatChip
+                icon={<CalendarIcon />}
+                value={new Date(job.applicationDeadline).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                label="Apply by"
+                highlight={expired}
+              />
+            )
+          )}
+          {app && app.rounds.length > 0 && (
+            <StatChip
+              icon={<ClockIcon />}
+              value={`${roundProgress(app)} of ${job.totalRounds ?? app.rounds.length}`}
+              label="Rounds"
             />
           )}
         </div>

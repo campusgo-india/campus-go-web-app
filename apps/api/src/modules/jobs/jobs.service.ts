@@ -764,11 +764,12 @@ export class JobsService {
 
   async studentJobDetail(userId: string, jobId: string) {
     const student = await this.studentForUser(userId);
-    const job = await this.prisma.job.findFirst({
+    const jobRow = await this.prisma.job.findFirst({
       where: { id: jobId, ...this.visibleToCollege(student.collegeId) },
-      include: { company: true },
+      include: { company: true, _count: { select: { rounds: true } } },
     });
-    if (!job) throw new NotFoundException('Job not found');
+    if (!jobRow) throw new NotFoundException('Job not found');
+    const { _count, ...job } = jobRow;
 
     const app = await this.prisma.application.findUnique({
       where: { jobId_studentId: { jobId, studentId: student.id } },
@@ -792,6 +793,7 @@ export class JobsService {
       eligibilityReasons: reasons,
       applied: !!app,
       myStage: app?.stage ?? null,
+      totalRounds: _count.rounds,
     };
   }
 

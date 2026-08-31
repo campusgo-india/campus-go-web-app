@@ -20,6 +20,8 @@ export class CreateRoundDto {
   @IsOptional() @IsString() @MinLength(1) title?: string;
   @IsOptional() @IsEnum(RoundType) roundType?: RoundType;
   @IsOptional() @IsString() description?: string;
+  @EmptyToUndefined() @IsOptional() @IsString() venue?: string;
+  @EmptyToUndefined() @IsOptional() @IsString() reportingInstructions?: string;
   @EmptyToUndefined() @IsOptional() @IsDateString() scheduledAt?: string;
 }
 
@@ -27,6 +29,8 @@ export class UpdateRoundDto {
   @IsOptional() @IsString() @MinLength(1) title?: string;
   @IsOptional() @IsEnum(RoundType) roundType?: RoundType;
   @IsOptional() @IsString() description?: string;
+  @EmptyToUndefined() @IsOptional() @IsString() venue?: string;
+  @EmptyToUndefined() @IsOptional() @IsString() reportingInstructions?: string;
   @EmptyToUndefined() @IsOptional() @IsDateString() scheduledAt?: string;
 }
 

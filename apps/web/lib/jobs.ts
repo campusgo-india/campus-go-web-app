@@ -121,6 +121,8 @@ export interface Job {
   myStage?: string | null;
   eligible?: boolean;
   eligibilityReasons?: string[];
+  // Only populated on the student job-detail endpoint — total rounds defined for this job.
+  totalRounds?: number;
 }
 
 export interface CreateJobInput {

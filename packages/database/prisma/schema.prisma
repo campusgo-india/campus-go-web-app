@@ -691,6 +691,12 @@ model JobRound {
   originalTitle String?   @map("original_title")
   roundType   RoundType?  @map("round_type")
   description String?
+  // Structured fields a student's timeline can render as labelled Date/
+  // Venue/Reporting rows instead of forcing every detail into one pasted
+  // paragraph — `description` still exists for anything that doesn't fit
+  // (dress code, documents to carry, etc.) and shows as a collapsible note.
+  venue                 String?  @map("venue")
+  reportingInstructions String?  @map("reporting_instructions")
   scheduledAt DateTime?   @map("scheduled_at")
   status      RoundStatus @default(OPEN)
   createdById String      @map("created_by_id")

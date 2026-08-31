@@ -50,19 +50,32 @@ export default function ProfileMenuPage() {
     <div className="space-y-6 pb-4">
       <h1 className="text-2xl font-semibold text-strong">Profile</h1>
 
-      {/* Identity — centered circular avatar + edit badge, reference-app style */}
+      {/* Identity — centered circular avatar with an accent ring; a green
+          verified badge overlaps it once the profile's been checked (the
+          reference app's signal for "this is a real, confirmed student"),
+          falling back to the edit-pencil badge until then so there's still
+          an obvious way in to finish the profile. */}
       <Card className="flex flex-col items-center p-6 text-center">
         <div className="relative">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-nav">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-nav ring-4 ring-accent-400/70">
             {initial(student?.user.fullName)}
           </div>
-          <Link
-            href="/me/profile/edit"
-            aria-label="Edit profile"
-            className="press absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 shadow-card"
-          >
-            <PencilIcon />
-          </Link>
+          {verified ? (
+            <span
+              aria-label="Profile verified"
+              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-success text-white"
+            >
+              <CheckGlyph />
+            </span>
+          ) : (
+            <Link
+              href="/me/profile/edit"
+              aria-label="Edit profile"
+              className="press absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 shadow-card"
+            >
+              <PencilIcon />
+            </Link>
+          )}
         </div>
 
         {loading ? (
@@ -101,7 +114,13 @@ export default function ProfileMenuPage() {
         {/* Profile completion ring, same visual language as Employability's readiness ring */}
         {student && (
           <div className="mt-5 flex w-full items-center gap-4 border-t border-border pt-5">
-            <CircularProgress value={student.profileCompletion} size={64} strokeWidth={6}>
+            <CircularProgress
+              value={student.profileCompletion}
+              size={64}
+              strokeWidth={6}
+              gradientFrom="#F2954A"
+              gradientTo="#C2601F"
+            >
               <span className="text-sm font-bold text-strong">{student.profileCompletion}%</span>
             </CircularProgress>
             <div className="min-w-0 flex-1 text-left">
@@ -271,7 +290,7 @@ function Row({
 function IconBox({ children, tint }: { children: React.ReactNode; tint?: Tint }) {
   return (
     <div
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
         tint ? `${TINT_BG[tint]} ${TINT_FG[tint]}` : 'bg-app text-strong'
       }`}
     >
