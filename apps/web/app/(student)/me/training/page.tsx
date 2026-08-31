@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Badge, Card, ProgressBar, StatTile } from '@campusgo/ui';
 import type { BadgeProps } from '@campusgo/ui';
@@ -183,21 +184,30 @@ function TierStepper({ tier, gapToNextTier }: { tier: EmployabilityTier; gapToNe
   );
 }
 
+const TABS = [
+  { key: 'roadmap', label: 'Roadmap' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'schedule', label: 'Schedule' },
+] as const;
+type TabKey = (typeof TABS)[number]['key'];
+
 export default function MyEmployabilityPage() {
   const { data, isLoading } = useApi<EmployabilityDashboard>('/me/training/dashboard', getMyDashboard);
+  const [tab, setTab] = useState<TabKey>('roadmap');
 
   if (isLoading || !data) return <ListSkeleton />;
 
   const roadmap = buildRoadmap(data);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold text-strong">My Employability</h1>
         <p className="text-sm text-subtle">Your readiness across the 4 placement pillars.</p>
       </header>
 
-      {/* Overall readiness — ring meter, reference-app "98% Success" pattern */}
+      {/* Overall readiness — ring meter, reference-app "98% Success" pattern.
+          Stays visible above the tabs since it's the headline number. */}
       <Card className="animate-rise flex items-center gap-5 p-5">
         <CircularProgress value={data.readinessIndex} size={100} strokeWidth={9}>
           <div className="text-center">
@@ -216,8 +226,24 @@ export default function MyEmployabilityPage() {
         </div>
       </Card>
 
-      {/* Placement roadmap — private tier badge, informational only */}
-      <Card className="animate-rise space-y-4 p-5" style={{ animationDelay: '60ms' }}>
+      {/* Swiggy-style segmented tabs — Roadmap / Skills / Schedule, instead of
+          one long scroll of stacked cards. */}
+      <div className="flex gap-2 rounded-pill bg-white p-1 shadow-card">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`press-bg flex-1 rounded-pill py-2 text-sm font-semibold transition ${
+              tab === t.key ? 'bg-gradient-brand text-white shadow-nav' : 'text-subtle'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'roadmap' && (
+      <Card className="animate-rise space-y-4 p-5">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg">
             <CompassIcon />
@@ -269,9 +295,10 @@ export default function MyEmployabilityPage() {
           </ul>
         </div>
       </Card>
+      )}
 
-      {/* Skill breakdown */}
-      <Card className="animate-rise space-y-5 p-5" style={{ animationDelay: '120ms' }}>
+      {tab === 'skills' && (
+      <Card className="animate-rise space-y-5 p-5">
         <p className="flex items-center gap-2 text-sm font-semibold text-strong">
           <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
           Skill breakdown
@@ -310,9 +337,10 @@ export default function MyEmployabilityPage() {
           <span>→</span>
         </Link>
       </Card>
+      )}
 
-      {/* Active track & attendance */}
-      <Card className="animate-rise space-y-4 p-5" style={{ animationDelay: '180ms' }}>
+      {tab === 'schedule' && (
+      <Card className="animate-rise space-y-4 p-5">
         <p className="flex items-center gap-2 text-sm font-semibold text-strong">
           <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
           Active track &amp; attendance
@@ -348,6 +376,7 @@ export default function MyEmployabilityPage() {
           <span>→</span>
         </Link>
       </Card>
+      )}
     </div>
   );
 }

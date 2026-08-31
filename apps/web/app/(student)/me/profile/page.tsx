@@ -110,9 +110,13 @@ export default function ProfileMenuPage() {
                 {student.profileSteps.map((s) => (
                   <div key={s.key} className="flex items-center justify-between text-xs">
                     <span className="text-subtle">{s.label}</span>
-                    <span className={s.percentage >= 100 ? 'font-medium text-success' : 'text-subtle'}>
-                      {s.percentage >= 100 ? '✓' : `${s.completed}/${s.total}`}
-                    </span>
+                    {s.percentage >= 100 ? (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-success text-white">
+                        <CheckGlyph />
+                      </span>
+                    ) : (
+                      <span className="text-subtle">{s.completed}/{s.total}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -314,6 +318,13 @@ function PencilIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
       <path d="m16.5 3.5 4 4L7 21l-4.5.5.5-4.5Z" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-2.5 w-2.5">
+      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

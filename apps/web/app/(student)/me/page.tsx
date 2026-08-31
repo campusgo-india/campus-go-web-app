@@ -3,27 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
+import {
+  applicationStatusBadge,
+  listMyApplications,
+  type Application,
+} from '../../../lib/applications';
 import { getOwnStudent, setPlacementRegistration, type Student } from '../../../lib/students';
-import { listMyApplications, type Application } from '../../../lib/applications';
 import { NotificationBell } from '../../../components/notification-bell';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useApi, mutate } from '../../../lib/use-api';
-
-// Stage → Badge tint. Anything not listed falls back to cream.
-const STAGE_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
-  APPLIED: 'cream',
-  VERIFIED: 'cream',
-  SHORTLISTED: 'lavender',
-  ROUND_1: 'lavender',
-  ROUND_2: 'lavender',
-  ROUND_3: 'lavender',
-  HR: 'lavender',
-  OFFER_RELEASED: 'mint',
-  OFFER_ACCEPTED: 'mint',
-  JOINED: 'mint',
-};
-
-const label = (s: string) => s.replace(/_/g, ' ');
 
 type Tint = 'lavender' | 'mint' | 'cream' | 'rose' | 'accent';
 const TINT_BG: Record<Tint, string> = {
@@ -150,26 +138,14 @@ export default function StudentHome() {
         <StatCol icon={<CheckIcon />} value={offers.length} label="Selected" />
       </div>
 
-      {/* Quick launch — soft pastel feature cards, not small gradient icon tiles */}
-      <div className="grid grid-cols-2 gap-3.5">
-        <FeatureCard
-          href="/me/jobs"
-          tint="lavender"
-          icon={<BriefcaseIcon />}
-          eyebrow="Discover"
-          title="Jobs"
-          className="col-span-2"
-        />
+      {/* Quick launch — soft pastel feature cards, full-width stack (a
+          2-column grid squeezed longer titles like "Employability" into the
+          icon). */}
+      <div className="space-y-3">
+        <FeatureCard href="/me/jobs" tint="lavender" icon={<BriefcaseIcon />} eyebrow="Discover" title="Jobs" />
         <FeatureCard href="/me/training" tint="mint" icon={<ChartIcon />} eyebrow="Track" title="Employability" />
-        <FeatureCard href="/me/placement" tint="rose" icon={<TrackIcon />} eyebrow="Follow" title="Tracker" />
-        <FeatureCard
-          href="/me/placement-policy"
-          tint="cream"
-          icon={<DocIcon />}
-          eyebrow="Review"
-          title="Policy"
-          className="col-span-2"
-        />
+        <FeatureCard href="/me/placement" tint="rose" icon={<TrackIcon />} eyebrow="Follow" title="Placement Tracker" />
+        <FeatureCard href="/me/placement-policy" tint="cream" icon={<DocIcon />} eyebrow="Review" title="Placement Policy" />
       </div>
 
       {/* Profile / verification nudge */}
@@ -292,8 +268,8 @@ export default function StudentHome() {
                         </p>
                       </div>
                     </div>
-                    <Badge tint={STAGE_TINT[a.stage] ?? 'cream'} className="shrink-0">
-                      {label(a.stage)}
+                    <Badge tint={applicationStatusBadge(a.status).tint} size="sm" className="shrink-0">
+                      {applicationStatusBadge(a.status).label}
                     </Badge>
                   </div>
                 </Card>
@@ -385,7 +361,7 @@ function FeatureCard({
     >
       <div className="min-w-0 flex-1">
         <p className={`text-[11px] font-semibold uppercase tracking-wide ${TINT_FG[tint]}`}>{eyebrow}</p>
-        <p className="mt-0.5 text-base font-extrabold text-strong">{title}</p>
+        <p className="mt-0.5 break-words text-base font-extrabold text-strong">{title}</p>
       </div>
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 ${TINT_FG[tint]}`}>
         {icon}

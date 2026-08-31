@@ -7,6 +7,7 @@ import { useConfirm } from '../../../../components/confirm-provider';
 import { ApplicationTimeline } from '../../../../components/application-timeline';
 import { ListSkeleton } from '../../../../components/page-skeleton';
 import {
+  applicationStatusBadge,
   listMyApplications,
   setOwnOfferLetter,
   withdrawApplication,
@@ -14,14 +15,6 @@ import {
 } from '../../../../lib/applications';
 import { formatLpa, uploadOfferLetter } from '../../../../lib/jobs';
 import { mutate, useApi } from '../../../../lib/use-api';
-
-const STATUS: Record<string, { label: string; tint: 'mint' | 'rose' | 'cream' | 'lavender' }> = {
-  APPLIED: { label: 'Applied', tint: 'cream' },
-  IN_PROGRESS: { label: 'In progress', tint: 'lavender' },
-  SELECTED: { label: 'Selected', tint: 'mint' },
-  REJECTED: { label: 'Not selected', tint: 'rose' },
-  WITHDRAWN: { label: 'Withdrawn', tint: 'cream' },
-};
 
 const APPS_KEY = '/student/applications';
 
@@ -85,7 +78,7 @@ export default function MyApplicationsPage() {
         </Card>
       ) : (
         apps.map((a, i) => {
-          const st = STATUS[a.status] ?? { label: a.status, tint: 'cream' as const };
+          const st = applicationStatusBadge(a.status);
           const canWithdraw = a.status === 'APPLIED' || a.status === 'IN_PROGRESS';
           return (
             <Card
@@ -98,7 +91,7 @@ export default function MyApplicationsPage() {
                   <h2 className="font-semibold text-strong">{a.job.title}</h2>
                   <p className="text-sm text-subtle">{a.job.company.name}</p>
                 </div>
-                <Badge tint={st.tint}>{st.label}</Badge>
+                <Badge tint={st.tint} size="sm">{st.label}</Badge>
               </div>
 
               <ApplicationTimeline app={a} />

@@ -98,12 +98,40 @@ export function ApplicationTimeline({ app }: { app: Application }) {
 }
 
 function Dot({ state }: { state: StepState }) {
-  const base = 'flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white';
-  if (state === 'done') return <span className={`${base} bg-success`}>✓</span>;
-  if (state === 'rejected') return <span className={`${base} bg-danger`}>✕</span>;
+  const base = 'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white';
+  if (state === 'done')
+    return (
+      <span className={`${base} bg-success`}>
+        <CheckGlyph />
+      </span>
+    );
+  if (state === 'rejected')
+    return (
+      <span className={`${base} bg-danger`}>
+        <CrossGlyph />
+      </span>
+    );
   if (state === 'current')
     return <span className={`${base} animate-pop bg-primary-500 ring-4 ring-primary-500/20`} />;
-  return <span className="h-5 w-5 rounded-full border-2 border-border bg-white" />;
+  return <span className="h-5 w-5 shrink-0 rounded-full border-2 border-border bg-white" />;
+}
+
+// Proper stroke-icon glyphs, matching the app's icon style everywhere else —
+// a plain "✓"/"✕" text character renders in the OS's default glyph weight,
+// which visibly clashes with the rest of the UI's custom iconography.
+function CheckGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-2.5 w-2.5">
+      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CrossGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="h-2.5 w-2.5">
+      <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function labelColor(state: StepState): string {

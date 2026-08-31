@@ -57,6 +57,22 @@ export interface Application {
   student?: { id: string; rollNumber: string; fullName: string; programme: string };
 }
 
+// Small, literal red/amber/green reading of an application's status — used
+// wherever a student sees a compact status badge (Home, My Applications,
+// Job detail). Rejected/Withdrawn read as "done, didn't work out" (danger);
+// Applied/In Progress as "still moving" (warning); Selected as the win
+// (success) — 3 colors, not one per granular ATS stage.
+export function applicationStatusBadge(status: string): {
+  label: string;
+  tint: 'success' | 'warning' | 'danger';
+} {
+  if (status === 'SELECTED') return { label: 'Selected', tint: 'success' };
+  if (status === 'REJECTED') return { label: 'Rejected', tint: 'danger' };
+  if (status === 'WITHDRAWN') return { label: 'Withdrawn', tint: 'danger' };
+  if (status === 'IN_PROGRESS') return { label: 'In progress', tint: 'warning' };
+  return { label: 'Applied', tint: 'warning' };
+}
+
 export interface PipelineEntry {
   id: string;
   stage: string;

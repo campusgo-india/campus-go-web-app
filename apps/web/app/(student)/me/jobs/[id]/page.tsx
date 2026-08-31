@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Card } from '@campusgo/ui';
 import { applyToJob, formatCtc, formatLpa, getJob, type Job } from '../../../../../lib/jobs';
-import { listMyApplications, type Application } from '../../../../../lib/applications';
+import {
+  applicationStatusBadge,
+  listMyApplications,
+  type Application,
+} from '../../../../../lib/applications';
 import { PdfModal } from '../../../../../components/pdf-modal';
 import { ApplyModal } from '../../../../../components/apply-modal';
 import { ApplicationTimeline } from '../../../../../components/application-timeline';
@@ -13,12 +17,31 @@ import { EligibilityCheckModal } from '../../../../../components/eligibility-che
 import { DetailSkeleton } from '../../../../../components/page-skeleton';
 import { mutate, useApi } from '../../../../../lib/use-api';
 
-const STATUS: Record<string, { label: string; tint: 'mint' | 'rose' | 'cream' | 'lavender' }> = {
-  APPLIED: { label: 'Applied', tint: 'cream' },
-  IN_PROGRESS: { label: 'In progress', tint: 'lavender' },
-  SELECTED: { label: 'Selected', tint: 'mint' },
-  REJECTED: { label: 'Not selected', tint: 'rose' },
-  WITHDRAWN: { label: 'Withdrawn', tint: 'cream' },
+type Tint = 'lavender' | 'mint' | 'cream' | 'rose';
+const TINT_BG: Record<Tint, string> = {
+  lavender: 'bg-tint-lavender',
+  mint: 'bg-tint-mint',
+  cream: 'bg-tint-cream',
+  rose: 'bg-tint-rose',
+};
+const TINT_FG: Record<Tint, string> = {
+  lavender: 'text-tint-lavender-fg',
+  mint: 'text-tint-mint-fg',
+  cream: 'text-tint-cream-fg',
+  rose: 'text-tint-rose-fg',
+};
+const AVATAR_TINTS: Tint[] = ['lavender', 'mint', 'cream', 'rose'];
+function tintForName(name: string): Tint {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_TINTS[hash % AVATAR_TINTS.length]!;
+}
+// Maps the badge's red/amber/green semantics onto the closest pastel tint,
+// for the sticky footer's disabled "you already applied" pill.
+const STATUS_TINT: Record<'success' | 'warning' | 'danger', Tint> = {
+  success: 'mint',
+  warning: 'cream',
+  danger: 'rose',
 };
 
 const workModeLabel = (m: string | null) =>
@@ -78,7 +101,8 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
   const expired =
     !!job.applicationDeadline && new Date(job.applicationDeadline).getTime() < Date.now();
   const applied = !!app;
-  const st = app ? (STATUS[app.status] ?? STATUS.APPLIED) : null;
+  const st = app ? applicationStatusBadge(app.status) : null;
+  const avatarTint = tintForName(company);
 
   return (
     <div className="space-y-5 pb-28">
@@ -88,14 +112,20 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
 
       {/* Header */}
       <div className="animate-rise flex items-start gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl font-bold text-strong shadow-card">
+        <div
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold shadow-card ${TINT_BG[avatarTint]} ${TINT_FG[avatarTint]}`}
+        >
           {company.trim().charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold leading-tight text-strong">{job.title}</h1>
           <p className="text-sm text-subtle">{company}</p>
         </div>
-        {applied && st && <Badge tint={st.tint}>{st.label}</Badge>}
+        {applied && st && (
+          <Badge tint={st.tint} size="sm">
+            {st.label}
+          </Badge>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -112,22 +142,25 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
       {/* Track application (if applied) */}
       {applied && app && (
         <Card className="animate-rise space-y-3 p-4">
-          <p className="text-sm font-semibold text-strong">Application status</p>
+          <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+            <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+            Application status
+          </p>
           <ApplicationTimeline app={app} />
           {app.status === 'SELECTED' && (
-            <div className="flex flex-wrap items-center gap-3 rounded-md bg-success/10 px-3 py-2">
-              <span className="text-sm font-medium text-success">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-tint-mint px-3.5 py-3">
+              <span className="text-sm font-semibold text-tint-mint-fg">
                 🎉 You&apos;ve been selected!
               </span>
               {app.offerCtc != null && (
-                <span className="text-sm text-body">{formatLpa(app.offerCtc)}</span>
+                <span className="text-sm font-medium text-body">{formatLpa(app.offerCtc)}</span>
               )}
               {app.offerLetterUrl && (
                 <a
                   href={app.offerLetterUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm font-medium text-primary-600 hover:underline"
+                  className="text-sm font-semibold text-primary-600 hover:underline"
                 >
                   Offer letter
                 </a>
@@ -151,7 +184,10 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         </div>
         {job.description && (
           <>
-            <p className="text-sm font-semibold text-strong">About this job</p>
+            <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+              <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+              About this job
+            </p>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-body">
               {job.description}
             </p>
@@ -178,7 +214,10 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
 
       {/* Who can apply */}
       <Card className="animate-rise space-y-2 p-4" style={{ animationDelay: '120ms' }}>
-        <p className="text-sm font-semibold text-strong">Who can apply</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-strong">
+          <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+          Who can apply
+        </p>
         <dl className="space-y-2">
           <Row label="Schools" value={job.eligibleSchools.join(', ') || 'Any'} />
           <Row label="Programmes" value={job.eligibleProgrammes.join(', ') || 'Any'} />
@@ -203,7 +242,9 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         {applied ? (
           <button
             disabled
-            className="w-full rounded-pill bg-app py-3 text-sm font-semibold text-subtle"
+            className={`w-full rounded-pill py-3 text-sm font-semibold ${
+              st ? `${TINT_BG[STATUS_TINT[st.tint]]} ${TINT_FG[STATUS_TINT[st.tint]]}` : 'bg-app text-subtle'
+            }`}
           >
             {st?.label ?? 'Applied'}
           </button>
@@ -218,7 +259,7 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
           <button
             onClick={onApplyClick}
             disabled={applying}
-            className="press w-full rounded-pill bg-gradient-primary py-3 text-sm font-semibold text-white shadow-nav disabled:opacity-60"
+            className="press w-full rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav disabled:opacity-60"
           >
             {applying ? 'Applying…' : 'Apply to this job'}
           </button>
