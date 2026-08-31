@@ -37,22 +37,11 @@ const clearRoleCookie = () => {
  * Bootstraps and holds the client session. On mount (e.g. after a page reload
  * that clears the in-memory access token) it restores the token from the
  * httpOnly refresh cookie, then loads the current user. If there's no valid
- * session it clears the routing cookie and redirects to `loginPath`.
- *
- * `loginPath` defaults to /login (the shared staff+student form); the
- * student route group passes /student-login instead, so an unauthenticated
- * visit anywhere under /me lands on the student-only entry point rather than
- * the general one — this is also what makes the wrapped native app (which
- * only ever opens /me) effectively student-only, with no separate "app
- * mode" detection needed.
+ * session it clears the routing cookie and redirects to /login — one shared
+ * form for every role, including inside the wrapped native app (middleware
+ * routes an authenticated user to the right shell for their role either way).
  */
-export function SessionProvider({
-  children,
-  loginPath = '/login',
-}: {
-  children: React.ReactNode;
-  loginPath?: string;
-}) {
+export function SessionProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +62,7 @@ export function SessionProvider({
           setAccessToken(null);
           clearRoleCookie();
           setUser(null);
-          router.replace(loginPath);
+          router.replace('/login');
         }
       } finally {
         if (active) setLoading(false);
@@ -82,7 +71,7 @@ export function SessionProvider({
     return () => {
       active = false;
     };
-  }, [router, loginPath]);
+  }, [router]);
 
   const signOut = useCallback(async () => {
     try {
@@ -94,9 +83,9 @@ export function SessionProvider({
       clearRoleCookie();
       setUser(null);
       await mutate(() => true, undefined, { revalidate: false });
-      router.replace(loginPath);
+      router.replace('/login');
     }
-  }, [router, loginPath]);
+  }, [router]);
 
   return (
     <SessionContext.Provider value={{ user, loading, signOut }}>{children}</SessionContext.Provider>
