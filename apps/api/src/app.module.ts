@@ -24,6 +24,7 @@ import { AlumniModule } from './modules/alumni/alumni.module';
 import { InternshipsModule } from './modules/internships/internships.module';
 import { TrainingModule } from './modules/training/training.module';
 import { FeedbackModule } from './modules/feedback/feedback.module';
+import { ContactModule } from './modules/contact/contact.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -60,6 +61,7 @@ import { HealthController } from './modules/health/health.controller';
     InternshipsModule,
     TrainingModule,
     FeedbackModule,
+    ContactModule,
   ],
   controllers: [HealthController],
   providers: [

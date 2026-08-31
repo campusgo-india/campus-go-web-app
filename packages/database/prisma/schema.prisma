@@ -1020,3 +1020,20 @@ model TrainingFeedback {
   @@unique([sessionId, studentId])
   @@map("training_feedback")
 }
+
+// The marketing site's "Contact us" / "Request a demo" form submissions —
+// not tenant-scoped (no collegeId), a prospective college isn't onboarded
+// yet. No relations to anything else; purely a lead-capture record.
+model ContactEnquiry {
+  id          String   @id @default(uuid())
+  name        String
+  institution String
+  designation String?
+  email       String
+  phone       String?
+  message     String?
+  source      String   @default("CONTACT") // CONTACT | DEMO
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("contact_enquiries")
+}

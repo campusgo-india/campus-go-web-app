@@ -16,6 +16,8 @@ import { UserRole, isAdminRole } from '@campusgo/shared';
 const PUBLIC_PATHS = [
   '/',
   '/login',
+  '/about',
+  '/contact',
   '/privacy',
   '/terms',
   '/forgot-password',
