@@ -25,6 +25,30 @@ const STAGE_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
 
 const label = (s: string) => s.replace(/_/g, ' ');
 
+type Tint = 'lavender' | 'mint' | 'cream' | 'rose' | 'accent';
+const TINT_BG: Record<Tint, string> = {
+  lavender: 'bg-tint-lavender',
+  mint: 'bg-tint-mint',
+  cream: 'bg-tint-cream',
+  rose: 'bg-tint-rose',
+  accent: 'bg-tint-accent',
+};
+const TINT_FG: Record<Tint, string> = {
+  lavender: 'text-tint-lavender-fg',
+  mint: 'text-tint-mint-fg',
+  cream: 'text-tint-cream-fg',
+  rose: 'text-tint-rose-fg',
+  accent: 'text-tint-accent-fg',
+};
+// A stable-ish color per company so the same company always gets the same
+// avatar tint across a session, instead of reshuffling on every render.
+const AVATAR_TINTS: Tint[] = ['lavender', 'mint', 'cream', 'rose', 'accent'];
+function tintForName(name: string): Tint {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_TINTS[hash % AVATAR_TINTS.length]!;
+}
+
 interface NextInterview {
   when: Date;
   roundName: string;
@@ -120,39 +144,34 @@ export default function StudentHome() {
 
       {/* Stat strip */}
       <div className="grid grid-cols-3 gap-3">
-        <Stat value={apps.length} label="Applications" />
-        <Stat value={interviewsScheduled} label="Interviews" />
-        <Stat value={offers.length} label="Selected" />
+        <Stat value={apps.length} label="Applications" tint="lavender" />
+        <Stat value={interviewsScheduled} label="Interviews" tint="cream" />
+        <Stat value={offers.length} label="Selected" tint="mint" />
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link href="/me/training" className="block">
-          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
-            <div>
-              <p className="font-semibold text-strong">My Employability</p>
-              <p className="text-xs text-subtle">Readiness score, assessments &amp; training calendar</p>
-            </div>
-            <span className="text-primary-600">→</span>
-          </Card>
-        </Link>
-        <Link href="/me/placement" className="block">
-          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
-            <div>
-              <p className="font-semibold text-strong">Placement Tracker</p>
-              <p className="text-xs text-subtle">Application funnel, interviews &amp; offer details</p>
-            </div>
-            <span className="text-primary-600">→</span>
-          </Card>
-        </Link>
-        <Link href="/me/placement-policy" className="block sm:col-span-2">
-          <Card className="flex items-center justify-between p-4 transition hover:shadow-nav">
-            <div>
-              <p className="font-semibold text-strong">Placement Policy</p>
-              <p className="text-xs text-subtle">Rules &amp; process your placement cell follows this season</p>
-            </div>
-            <span className="text-primary-600">→</span>
-          </Card>
-        </Link>
+        <QuickLink
+          href="/me/training"
+          tint="lavender"
+          icon={<ChartIcon />}
+          title="My Employability"
+          body="Readiness score, assessments & training calendar"
+        />
+        <QuickLink
+          href="/me/placement"
+          tint="mint"
+          icon={<TrackIcon />}
+          title="Placement Tracker"
+          body="Application funnel, interviews & offer details"
+        />
+        <QuickLink
+          href="/me/placement-policy"
+          tint="cream"
+          icon={<DocIcon />}
+          title="Placement Policy"
+          body="Rules & process your placement cell follows this season"
+          className="sm:col-span-2"
+        />
       </div>
 
       {/* Profile / verification nudge */}
@@ -206,11 +225,16 @@ export default function StudentHome() {
           </p>
         </div>
       ) : (
-        <div className="rounded-card bg-white p-5 shadow-card">
-          <p className="text-sm font-semibold text-strong">No interviews scheduled</p>
-          <p className="mt-1 text-xs text-subtle">
-            Keep applying — scheduled rounds will show up here.
-          </p>
+        <div className="flex items-start gap-3 rounded-card bg-white p-5 shadow-card">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg">
+            <CalendarIcon />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-strong">No interviews scheduled</p>
+            <p className="mt-1 text-xs text-subtle">
+              Keep applying — scheduled rounds will show up here.
+            </p>
+          </div>
         </div>
       )}
 
@@ -233,25 +257,37 @@ export default function StudentHome() {
             </Link>
           </Card>
         ) : (
-          (active.length > 0 ? active : apps).slice(0, 4).map((a) => (
-            <Link key={a.id} href="/me/applications" className="block">
-              <Card className="p-4 transition hover:shadow-nav">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-strong">{a.job.title}</p>
-                    <p className="text-xs text-subtle">
-                      {a.job.company.name} · applied{' '}
-                      {new Date(a.appliedAt).toLocaleDateString(undefined, {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </p>
+          (active.length > 0 ? active : apps).slice(0, 4).map((a) => {
+            const companyTint = tintForName(a.job.company.name);
+            return (
+              <Link key={a.id} href="/me/applications" className="block">
+                <Card className="p-4 transition hover:shadow-nav">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${TINT_BG[companyTint]} ${TINT_FG[companyTint]}`}
+                      >
+                        {a.job.company.name.charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-strong">{a.job.title}</p>
+                        <p className="truncate text-xs text-subtle">
+                          {a.job.company.name} · applied{' '}
+                          {new Date(a.appliedAt).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge tint={STAGE_TINT[a.stage] ?? 'cream'} className="shrink-0">
+                      {label(a.stage)}
+                    </Badge>
                   </div>
-                  <Badge tint={STAGE_TINT[a.stage] ?? 'cream'}>{label(a.stage)}</Badge>
-                </div>
-              </Card>
-            </Link>
-          ))
+                </Card>
+              </Link>
+            );
+          })
         )}
       </section>
     </div>
@@ -293,11 +329,86 @@ function RegisterForPlacementsCard() {
   );
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, tint }: { value: number; label: string; tint: Tint }) {
   return (
-    <Card className="p-3 text-center">
-      <p className="text-2xl font-semibold text-strong">{value}</p>
-      <p className="text-xs text-subtle">{label}</p>
-    </Card>
+    <div className={`rounded-card p-3 text-center ${TINT_BG[tint]}`}>
+      <p className={`text-2xl font-bold ${TINT_FG[tint]}`}>{value}</p>
+      <p className="text-xs font-medium text-subtle">{label}</p>
+    </div>
+  );
+}
+
+function QuickLink({
+  href,
+  tint,
+  icon,
+  title,
+  body,
+  className = '',
+}: {
+  href: string;
+  tint: Tint;
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  className?: string;
+}) {
+  return (
+    <Link href={href} className={`block ${className}`}>
+      <Card className="flex items-center gap-3.5 p-4 transition hover:shadow-nav">
+        <span
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${TINT_BG[tint]} ${TINT_FG[tint]}`}
+        >
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-strong">{title}</p>
+          <p className="text-xs text-subtle">{body}</p>
+        </div>
+        <span className="shrink-0 text-primary-600">→</span>
+      </Card>
+    </Link>
+  );
+}
+
+const iconProps = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  className: 'h-5 w-5',
+} as const;
+
+function ChartIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TrackIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DocIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z" strokeLinejoin="round" />
+      <path d="M14 3v6h6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+    </svg>
   );
 }
