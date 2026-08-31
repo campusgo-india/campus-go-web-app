@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Badge, Card, ProgressBar, StatTile } from '@campusgo/ui';
 import type { BadgeProps } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../components/page-skeleton';
+import { CircularProgress } from '../../../../components/circular-progress';
 import { useApi } from '../../../../lib/use-api';
 import {
   getMyDashboard,
@@ -138,15 +139,15 @@ function TierStepper({ tier, gapToNextTier }: { tier: EmployabilityTier; gapToNe
   const nextLabel = currentIdx > 0 ? TIER_STEPS[currentIdx - 1]!.label : null;
   return (
     <div>
-      <div className="flex items-center">
+      <div className="flex items-start">
         {TIER_STEPS.map((t, i) => {
           const reached = i <= currentIdx;
           const current = i === currentIdx;
           return (
-            <div key={t.key} className="flex flex-1 items-center last:flex-none">
+            <div key={t.key} className="flex flex-1 items-start last:flex-none">
               <div className="flex flex-col items-center gap-1">
                 <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                     current
                       ? 'bg-gradient-brand text-white shadow-nav'
                       : reached
@@ -161,7 +162,11 @@ function TierStepper({ tier, gapToNextTier }: { tier: EmployabilityTier; gapToNe
                 </span>
               </div>
               {i < TIER_STEPS.length - 1 && (
-                <div className={`mx-1 h-1 flex-1 rounded-full ${i < currentIdx ? 'bg-success' : 'bg-app'}`} />
+                // mt-[14px] centers this 4px line against the 32px circle
+                // above it (16px center - 2px half-height) — items-center on
+                // the row would instead center it against the taller
+                // circle+label block, which is the bug this replaces.
+                <div className={`mx-1 mt-[14px] h-1 flex-1 rounded-full ${i < currentIdx ? 'bg-success' : 'bg-app'}`} />
               )}
             </div>
           );
@@ -192,16 +197,24 @@ export default function MyEmployabilityPage() {
         <p className="text-sm text-subtle">Your readiness across the 4 placement pillars.</p>
       </header>
 
-      {/* Overall readiness */}
-      <div className="animate-rise space-y-3">
-        <StatTile
-          label="Overall Employability Readiness"
-          value={`${data.readinessIndex}%`}
-          hint={`Dept. Rank: #${data.deptRank.rank} of ${data.deptRank.total} · visible only to you`}
-          gradient="primary"
-        />
-        <Badge tint={TIER_TINT[data.tier]}>{TIER_STATUS[data.tier]}</Badge>
-      </div>
+      {/* Overall readiness — ring meter, reference-app "98% Success" pattern */}
+      <Card className="animate-rise flex items-center gap-5 p-5">
+        <CircularProgress value={data.readinessIndex} size={100} strokeWidth={9}>
+          <div className="text-center">
+            <p className="text-xl font-extrabold text-strong">{data.readinessIndex}%</p>
+            <p className="text-[10px] font-medium text-subtle">Ready</p>
+          </div>
+        </CircularProgress>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-strong">Overall Employability Readiness</p>
+          <p className="mt-1 text-xs text-subtle">
+            Dept. Rank #{data.deptRank.rank} of {data.deptRank.total} · visible only to you
+          </p>
+          <div className="mt-2.5">
+            <Badge tint={TIER_TINT[data.tier]}>{TIER_STATUS[data.tier]}</Badge>
+          </div>
+        </div>
+      </Card>
 
       {/* Placement roadmap — private tier badge, informational only */}
       <Card className="animate-rise space-y-4 p-5" style={{ animationDelay: '60ms' }}>
@@ -267,30 +280,31 @@ export default function MyEmployabilityPage() {
           const message = pillarReadinessMessage(p.pillar, p.percentage);
           const tint = scoreTint(p.percentage);
           return (
-            <div key={p.pillar} className="flex gap-3">
-              <span
-                className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${TINT_BG[tint]} ${TINT_FG[tint]}`}
-              >
-                {PILLAR_ICON[p.pillar]}
-              </span>
-              <div className="min-w-0 flex-1">
-                <ProgressBar
-                  label={p.label}
-                  caption={p.percentage != null ? `${p.percentage}%` : 'No data yet'}
-                  value={p.percentage ?? 0}
-                  fillClassName={BAR_FILL[tint]}
-                />
-                <p className="mt-1.5 text-sm text-body">
-                  {message ?? `Take a ${p.label.toLowerCase()} assessment to see your readiness here.`}
-                </p>
-                <p className="mt-0.5 text-xs text-subtle">Covers: {PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
+            <div key={p.pillar} className={`rounded-xl p-3.5 ${TINT_BG[tint]}`}>
+              <div className="flex items-center gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70 ${TINT_FG[tint]}`}>
+                  {PILLAR_ICON[p.pillar]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-strong">{p.label}</p>
+                    <p className={`text-sm font-bold ${TINT_FG[tint]}`}>
+                      {p.percentage != null ? `${p.percentage}%` : '—'}
+                    </p>
+                  </div>
+                  <ProgressBar value={p.percentage ?? 0} fillClassName={BAR_FILL[tint]} size="sm" />
+                </div>
               </div>
+              <p className="mt-2 text-xs leading-relaxed text-body">
+                {message ?? `Take a ${p.label.toLowerCase()} assessment to see your readiness here.`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-subtle">{PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
             </div>
           );
         })}
         <Link
           href="/me/training/assessments"
-          className="press flex items-center justify-between rounded-lg bg-gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-nav"
+          className="press flex items-center justify-between rounded-lg bg-gradient-brand px-4 py-3 text-sm font-semibold text-primary-foreground shadow-nav"
         >
           Take an assessment
           <span>→</span>

@@ -11,7 +11,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <ConfirmProvider>
         <div className="mx-auto flex min-h-screen max-w-md flex-col bg-app">
           <StudentBrandHeader />
-          <main className="flex-1 px-5 pb-28 pt-3">{children}</main>
+          <main className="flex-1 px-5 pb-24 pt-3">{children}</main>
           <MobileBottomNav />
           <TrainingFeedbackModal />
         </div>

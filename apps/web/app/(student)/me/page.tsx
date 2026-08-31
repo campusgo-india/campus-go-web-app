@@ -129,41 +129,47 @@ export default function StudentHome() {
 
   return (
     <div className="space-y-6">
-      {/* Brand header + overlapping stat strip, Swiggy/fintech-app style */}
-      <div>
-        <header className="animate-rise relative overflow-hidden rounded-2xl bg-gradient-brand px-5 pb-9 pt-5 text-white shadow-nav">
-          <div
-            className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)' }}
-          />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm text-white/80">Welcome back</p>
-              <h1 className="text-2xl font-semibold">Hi, {firstName}</h1>
-            </div>
-            <NotificationBell
-              href="/me/notifications"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
-            />
-          </div>
-        </header>
-
-        {/* Stat strip overlaps the header's bottom edge */}
-        <div className="relative -mt-5 grid grid-cols-3 gap-3 px-1">
-          <Stat value={apps.length} label="Applications" tint="lavender" />
-          <Stat value={interviewsScheduled} label="Interviews" tint="cream" />
-          <Stat value={offers.length} label="Selected" tint="mint" />
+      {/* Greeting — plain, clean, no heavy banner */}
+      <header className="animate-rise flex items-center justify-between">
+        <div>
+          <p className="text-sm text-subtle">Welcome back</p>
+          <h1 className="text-2xl font-extrabold tracking-tight text-strong">Hi, {firstName}</h1>
         </div>
+        <NotificationBell
+          href="/me/notifications"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg"
+        />
+      </header>
+
+      {/* Stat row — icon-in-circle + big number + label, no card chrome */}
+      <div className="flex items-center justify-around rounded-2xl bg-white p-4 shadow-card">
+        <StatCol icon={<DocIcon />} value={apps.length} label="Applications" />
+        <div className="h-10 w-px bg-border" />
+        <StatCol icon={<CalendarIcon />} value={interviewsScheduled} label="Interviews" />
+        <div className="h-10 w-px bg-border" />
+        <StatCol icon={<CheckIcon />} value={offers.length} label="Selected" />
       </div>
 
-      {/* Quick launch — Swiggy-style row of colorful icon tiles */}
-      <div className="-mx-4 px-4">
-        <div className="flex gap-3.5 overflow-x-auto pb-1 scrollbar-hide">
-          <QuickLaunch href="/me/jobs" gradient="bg-gradient-brand" icon={<BriefcaseIcon />} label="Jobs" />
-          <QuickLaunch href="/me/training" gradient="bg-gradient-ocean" icon={<ChartIcon />} label="Employability" />
-          <QuickLaunch href="/me/placement" gradient="bg-gradient-violet" icon={<TrackIcon />} label="Tracker" />
-          <QuickLaunch href="/me/placement-policy" gradient="bg-gradient-accent" icon={<DocIcon />} label="Policy" />
-        </div>
+      {/* Quick launch — soft pastel feature cards, not small gradient icon tiles */}
+      <div className="grid grid-cols-2 gap-3.5">
+        <FeatureCard
+          href="/me/jobs"
+          tint="lavender"
+          icon={<BriefcaseIcon />}
+          eyebrow="Discover"
+          title="Jobs"
+          className="col-span-2"
+        />
+        <FeatureCard href="/me/training" tint="mint" icon={<ChartIcon />} eyebrow="Track" title="Employability" />
+        <FeatureCard href="/me/placement" tint="rose" icon={<TrackIcon />} eyebrow="Follow" title="Tracker" />
+        <FeatureCard
+          href="/me/placement-policy"
+          tint="cream"
+          icon={<DocIcon />}
+          eyebrow="Review"
+          title="Policy"
+          className="col-span-2"
+        />
       </div>
 
       {/* Profile / verification nudge */}
@@ -340,36 +346,50 @@ function RegisterForPlacementsCard() {
   );
 }
 
-function Stat({ value, label, tint }: { value: number; label: string; tint: Tint }) {
+/** Icon-in-neutral-circle above a big number, label below — no card tint,
+ * matches the reference app's Profile stat row exactly. */
+function StatCol({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
   return (
-    <div className={`press rounded-card p-3 text-center shadow-card ${TINT_BG[tint]}`}>
-      <p className={`text-2xl font-bold ${TINT_FG[tint]}`}>{value}</p>
-      <p className="text-xs font-medium text-subtle">{label}</p>
+    <div className="flex flex-col items-center gap-1.5">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-app text-subtle">
+        {icon}
+      </span>
+      <p className="text-xl font-bold text-strong">{value}</p>
+      <p className="text-[11px] font-medium text-subtle">{label}</p>
     </div>
   );
 }
 
-/** Swiggy-style quick-launch tile: a colorful rounded-square icon with a
- * label underneath, in a horizontally-scrollable row. */
-function QuickLaunch({
+/** Soft pastel feature card — eyebrow label, bold title, icon — replaces
+ * the earlier vivid-gradient icon tiles with the reference app's pastel
+ * "Day 1 Full Body" workout-card language. */
+function FeatureCard({
   href,
-  gradient,
+  tint,
   icon,
-  label,
+  eyebrow,
+  title,
+  className = '',
 }: {
   href: string;
-  gradient: string;
+  tint: Tint;
   icon: React.ReactNode;
-  label: string;
+  eyebrow: string;
+  title: string;
+  className?: string;
 }) {
   return (
-    <Link href={href} className="press flex shrink-0 flex-col items-center gap-1.5">
-      <span
-        className={`flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-nav [&>svg]:h-7 [&>svg]:w-7 ${gradient}`}
-      >
+    <Link
+      href={href}
+      className={`press relative flex items-center gap-3 overflow-hidden rounded-2xl p-4 ${TINT_BG[tint]} ${className}`}
+    >
+      <div className="min-w-0 flex-1">
+        <p className={`text-[11px] font-semibold uppercase tracking-wide ${TINT_FG[tint]}`}>{eyebrow}</p>
+        <p className="mt-0.5 text-base font-extrabold text-strong">{title}</p>
+      </div>
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 ${TINT_FG[tint]}`}>
         {icon}
       </span>
-      <span className="text-xs font-medium text-body">{label}</span>
     </Link>
   );
 }
@@ -403,6 +423,14 @@ function DocIcon() {
     <svg {...iconProps}>
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z" strokeLinejoin="round" />
       <path d="M14 3v6h6" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

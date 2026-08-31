@@ -15,12 +15,15 @@ const items = [
 // global nav and show their own contextual sticky action instead.
 const MAIN_ROUTES = new Set(items.map((i) => i.href));
 
+/** Clean icon-above-label bar — active tab just changes color, no pill
+ * background. Matches the reference app's nav: white bar, colored active
+ * icon+label, gray inactive, no floating/pill chrome. */
 export function MobileBottomNav() {
   const pathname = usePathname();
   if (!MAIN_ROUTES.has(pathname)) return null;
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-5 pb-5">
-      <div className="flex items-center justify-around rounded-pill bg-gradient-primary px-2 py-3 shadow-nav">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -28,15 +31,26 @@ export function MobileBottomNav() {
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
-              className={cn(
-                'flex flex-col items-center gap-0.5 rounded-pill px-4 py-1.5 text-[11px] font-medium transition press',
-                active
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-white/80 hover:text-white',
-              )}
+              className="press flex flex-col items-center gap-1 px-4 py-1.5"
             >
-              <Icon className={cn('h-5 w-5 transition', active && 'scale-110')} />
-              <span>{label}</span>
+              <Icon
+                className={cn('h-5 w-5 transition', active ? 'text-primary-600' : 'text-subtle')}
+                strokeWidth={active ? 2.2 : 1.8}
+              />
+              <span
+                className={cn(
+                  'text-[11px] transition',
+                  active ? 'font-semibold text-primary-600' : 'font-medium text-subtle',
+                )}
+              >
+                {label}
+              </span>
+              <span
+                className={cn(
+                  'h-1 w-1 rounded-full transition',
+                  active ? 'bg-primary-600' : 'bg-transparent',
+                )}
+              />
             </Link>
           );
         })}

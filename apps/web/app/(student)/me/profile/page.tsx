@@ -6,6 +6,7 @@ import { Card } from '@campusgo/ui';
 import { getMyActionItems, getOwnStudent, type ActionItem, type Student } from '../../../../lib/students';
 import { useSession } from '../../../../lib/session';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
+import { CircularProgress } from '../../../../components/circular-progress';
 
 // One glyph per ActionItem.key — icon components are defined further down in
 // this file (function declarations are hoisted, so this is safe up here).
@@ -49,78 +50,76 @@ export default function ProfileMenuPage() {
     <div className="space-y-6 pb-4">
       <h1 className="text-2xl font-semibold text-strong">Profile</h1>
 
-      {/* Identity card */}
-      <Card className="flex items-center gap-4 p-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-primary text-xl font-semibold text-white">
-          {initial(student?.user.fullName)}
+      {/* Identity — centered circular avatar + edit badge, reference-app style */}
+      <Card className="flex flex-col items-center p-6 text-center">
+        <div className="relative">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-nav">
+            {initial(student?.user.fullName)}
+          </div>
+          <Link
+            href="/me/profile/edit"
+            aria-label="Edit profile"
+            className="press absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 shadow-card"
+          >
+            <PencilIcon />
+          </Link>
         </div>
-        <div className="min-w-0">
-          {loading ? (
-            <InlineSkeleton width="w-32" height="h-5" />
-          ) : (
-            <p className="truncate text-base font-semibold text-strong">
-              {student?.user.fullName ?? 'Student'}
-            </p>
-          )}
-          {student && (
-            <p className="truncate text-xs text-subtle">
-              {student.rollNumber} · {student.school} · {student.graduationYear}
-            </p>
-          )}
-          {student?.linkedinUrl && (
-            <a
-              href={student.linkedinUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-0.5 inline-flex items-center gap-1 text-xs text-primary-600 hover:underline"
-            >
-              <LinkedInIcon />
-              LinkedIn profile
-            </a>
-          )}
-          {student && (
-            <span
-              className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                verified ? 'bg-success/15 text-success' : 'bg-tint-cream text-tint-cream-fg'
-              }`}
-            >
-              {verified ? 'Verified' : verLabel(student.verificationStatus)}
-            </span>
-          )}
-        </div>
-      </Card>
 
-      {/* Step-by-step completion */}
-      {student && (
-        <Card className="space-y-3 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-strong">Profile completion</p>
-            <span className="text-sm font-semibold text-primary-600">
-              {student.profileCompletion}%
-            </span>
+        {loading ? (
+          <div className="mt-3">
+            <InlineSkeleton width="w-32" height="h-5" />
           </div>
-          <div className="h-2 overflow-hidden rounded-pill bg-app">
-            <div
-              className="h-full rounded-pill bg-gradient-primary transition-all"
-              style={{ width: `${student.profileCompletion}%` }}
-            />
-          </div>
-          <div className="space-y-2">
-            {student.profileSteps.map((s) => (
-              <div key={s.key} className="flex items-center justify-between text-sm">
-                <span className="text-body">{s.label}</span>
-                <span
-                  className={`text-xs font-medium ${
-                    s.percentage >= 100 ? 'text-success' : 'text-subtle'
-                  }`}
-                >
-                  {s.percentage >= 100 ? '✓' : `${s.completed}/${s.total}`}
-                </span>
+        ) : (
+          <p className="mt-3 text-lg font-extrabold text-strong">{student?.user.fullName ?? 'Student'}</p>
+        )}
+        {student && (
+          <p className="text-xs text-subtle">
+            {student.rollNumber} · {student.school} · {student.graduationYear}
+          </p>
+        )}
+        {student?.linkedinUrl && (
+          <a
+            href={student.linkedinUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-xs text-primary-600 hover:underline"
+          >
+            <LinkedInIcon />
+            LinkedIn profile
+          </a>
+        )}
+        {student && (
+          <span
+            className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+              verified ? 'bg-success/15 text-success' : 'bg-tint-cream text-tint-cream-fg'
+            }`}
+          >
+            {verified ? 'Verified' : verLabel(student.verificationStatus)}
+          </span>
+        )}
+
+        {/* Profile completion ring, same visual language as Employability's readiness ring */}
+        {student && (
+          <div className="mt-5 flex w-full items-center gap-4 border-t border-border pt-5">
+            <CircularProgress value={student.profileCompletion} size={64} strokeWidth={6}>
+              <span className="text-sm font-bold text-strong">{student.profileCompletion}%</span>
+            </CircularProgress>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-semibold text-strong">Profile completion</p>
+              <div className="mt-1.5 space-y-1">
+                {student.profileSteps.map((s) => (
+                  <div key={s.key} className="flex items-center justify-between text-xs">
+                    <span className="text-subtle">{s.label}</span>
+                    <span className={s.percentage >= 100 ? 'font-medium text-success' : 'text-subtle'}>
+                      {s.percentage >= 100 ? '✓' : `${s.completed}/${s.total}`}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       {/* Actions Required — dynamic nudges: incomplete profile, stale resume,
           inactivity with matching jobs open, a pending assessment. Ordered
@@ -136,7 +135,7 @@ export default function ProfileMenuPage() {
               href={item.ctaHref}
               className="flex items-start gap-4 rounded-card border border-primary-200 bg-primary-50/60 p-4 transition hover:shadow-card"
             >
-              <IconBox highlight>{ACTION_ITEM_ICON[item.key]}</IconBox>
+              <IconBox tint="cream">{ACTION_ITEM_ICON[item.key]}</IconBox>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-strong">{item.title}</p>
                 <p className="mt-0.5 text-xs text-subtle">{item.body}</p>
@@ -154,7 +153,7 @@ export default function ProfileMenuPage() {
           href="/me/profile/edit"
           className="flex items-center gap-4 rounded-card border border-border bg-white p-4 transition hover:shadow-card"
         >
-          <IconBox>
+          <IconBox tint="rose">
             <UserIcon />
           </IconBox>
           <div className="flex-1">
@@ -171,37 +170,42 @@ export default function ProfileMenuPage() {
 
       {/* The rest of the actions */}
       <Card className="divide-y divide-border p-0">
-        <Row href="/me/resume" title="Resume" sub="Upload & share your resume" icon={<DocIcon />} />
-        <Row href="/me/jobs" title="Jobs" sub="Browse & apply" icon={<BriefcaseIcon />} />
+        <Row href="/me/resume" title="Resume" sub="Upload & share your resume" icon={<DocIcon />} tint="lavender" />
+        <Row href="/me/jobs" title="Jobs" sub="Browse & apply" icon={<BriefcaseIcon />} tint="mint" />
         <Row
           href="/me/applications"
           title="My applications"
           sub="Track your status"
           icon={<ListIcon />}
+          tint="cream"
         />
         <Row
           href="/me/internships"
           title="Internships"
           sub="Add internships you found"
           icon={<StarIcon />}
+          tint="rose"
         />
         <Row
           href="/me/feedback"
           title="Placement Feedback"
           sub="Share your end-of-season feedback"
           icon={<ChartIcon />}
+          tint="lavender"
         />
         <Row
           href="/me/notifications"
           title="Notifications"
           sub="Alerts on your account"
           icon={<BellIcon />}
+          tint="mint"
         />
         <Row
           href="/me/change-password"
           title="Change password"
           sub="Update your login password"
           icon={<LockIcon />}
+          tint="cream"
         />
       </Card>
 
@@ -226,20 +230,36 @@ export default function ProfileMenuPage() {
   );
 }
 
+type Tint = 'lavender' | 'mint' | 'cream' | 'rose';
+const TINT_BG: Record<Tint, string> = {
+  lavender: 'bg-tint-lavender',
+  mint: 'bg-tint-mint',
+  cream: 'bg-tint-cream',
+  rose: 'bg-tint-rose',
+};
+const TINT_FG: Record<Tint, string> = {
+  lavender: 'text-tint-lavender-fg',
+  mint: 'text-tint-mint-fg',
+  cream: 'text-tint-cream-fg',
+  rose: 'text-tint-rose-fg',
+};
+
 function Row({
   href,
   title,
   sub,
   icon,
+  tint = 'lavender',
 }: {
   href: string;
   title: string;
   sub: string;
   icon: React.ReactNode;
+  tint?: Tint;
 }) {
   return (
     <Link href={href} className="flex items-center gap-4 px-4 py-4 transition hover:bg-app/50 press press-bg">
-      <IconBox>{icon}</IconBox>
+      <IconBox tint={tint}>{icon}</IconBox>
       <div className="flex-1">
         <p className="text-sm font-semibold text-strong">{title}</p>
         <p className="text-xs text-subtle">{sub}</p>
@@ -249,13 +269,11 @@ function Row({
   );
 }
 
-function IconBox({ children, highlight }: { children: React.ReactNode; highlight?: boolean }) {
+function IconBox({ children, tint }: { children: React.ReactNode; tint?: Tint }) {
   return (
     <div
-      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
-        highlight
-          ? 'border-primary-300 bg-white text-primary-600'
-          : 'border-border bg-white text-strong'
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+        tint ? `${TINT_BG[tint]} ${TINT_FG[tint]}` : 'bg-app text-strong'
       }`}
     >
       {children}
@@ -289,6 +307,13 @@ function UserIcon() {
     <svg {...sv}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
+    </svg>
+  );
+}
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
+      <path d="m16.5 3.5 4 4L7 21l-4.5.5.5-4.5Z" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

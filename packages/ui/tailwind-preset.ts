@@ -65,13 +65,13 @@ const preset: Partial<Config> = {
         // The logo's orange — an accent gradient for the odd highlighted CTA,
         // not a replacement for gradient-primary.
         'gradient-accent': 'linear-gradient(135deg, #F2954A 0%, #E28040 100%)',
-        // The logo's own color story — blue graduation cap sweeping into the
-        // orange arrow. The signature "this is CampusGo" gradient: primary
-        // buttons, hero bands, headline accents. Bolder than gradient-primary
-        // on purpose — this is the one place blue-only stops being enough.
-        // End stop is accent-600 (darker), not accent-500 — keeps white
-        // button text legible all the way across, unlike the brighter orange.
-        'gradient-brand': 'linear-gradient(135deg, #3B6EF5 0%, #C2601F 100%)',
+        // The signature "this is CampusGo" gradient: primary buttons, hero
+        // bands, headline accents. A blue-to-orange blend was tried and
+        // dropped — the mid-transition reads muddy/brown, not premium.
+        // Richer than gradient-primary (deeper navy end stop, per
+        // webgradients.com-style two-stop depth) while staying pure blue —
+        // orange stays a flat/solid accent elsewhere, never gradient-blended.
+        'gradient-brand': 'linear-gradient(135deg, #5B8DEF 0%, #1F3F94 100%)',
       },
       // Uniform 10px corners across the project. Circular tokens (pill / full,
       // used by avatars, badges, progress bars, nav) intentionally stay round.
