@@ -33,24 +33,35 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export function AdminTopbar() {
+export function AdminTopbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, loading, signOut } = useSession();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-white px-8">
-      <input
-        type="search"
-        placeholder="Search…"
-        className="h-10 w-72 rounded-pill border border-border bg-app px-4 text-sm outline-none transition focus:border-primary-400 focus:bg-white"
-      />
-      <div className="flex items-center gap-4">
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-white px-4 md:px-8">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          className="shrink-0 rounded-md p-2 text-body hover:bg-app md:hidden"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+            <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+          </svg>
+        </button>
+        <input
+          type="search"
+          placeholder="Search…"
+          className="hidden h-10 w-72 rounded-pill border border-border bg-app px-4 text-sm outline-none transition focus:border-primary-400 focus:bg-white md:block"
+        />
+      </div>
+      <div className="flex shrink-0 items-center gap-2 md:gap-4">
         <NotificationBell href="/notifications" />
 
-        <div className="flex items-center gap-3">
+        <div className="hidden items-center gap-3 sm:flex">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-primary text-sm font-semibold text-white">
             {loading || !user ? '··' : initials(user.fullName)}
           </span>
-          <div className="leading-tight">
+          <div className="hidden leading-tight lg:block">
             <p className="text-sm font-medium text-strong">
               {loading ? 'Loading…' : (user?.fullName ?? 'Unknown')}
             </p>
@@ -61,7 +72,7 @@ export function AdminTopbar() {
           </div>
         </div>
 
-        <Link href="/settings/change-password">
+        <Link href="/settings/change-password" className="hidden md:block">
           <Button variant="ghost" size="sm">
             Change password
           </Button>

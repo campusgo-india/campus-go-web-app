@@ -136,8 +136,8 @@ export default function TrainingAssessmentsPage() {
           </Link>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-card border border-border bg-white">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto rounded-card border border-border bg-white">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>

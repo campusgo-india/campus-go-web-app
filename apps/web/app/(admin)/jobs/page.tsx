@@ -217,8 +217,8 @@ export default function JobsPage() {
           {search ? 'No jobs match your search.' : 'No jobs yet. Post one to get started.'}
         </Card>
       ) : view === 'list' ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-white">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto rounded-xl border border-border bg-white">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
               <tr>
                 <th className="px-4 py-3 font-medium">Job</th>
