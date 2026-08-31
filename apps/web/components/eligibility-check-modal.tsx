@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Card } from '@campusgo/ui';
 import { type Job } from '../lib/jobs';
 import { getOwnStudent, updateOwnProfile, type Student } from '../lib/students';
@@ -30,6 +31,11 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
   const [error, setError] = useState<string | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
+  // Portal to document.body — see pdf-modal.tsx for why (a transformed
+  // ancestor, e.g. the student shell's page-transition wrapper, otherwise
+  // silently confines `fixed inset-0` to that ancestor's box).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -52,7 +58,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
       .finally(() => setLoading(false));
   }, [open]);
 
-  if (!open || !job) return null;
+  if (!open || !job || !mounted) return null;
 
   const fields: FieldDef[] = [];
 
@@ -150,7 +156,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
       role="dialog"
@@ -242,6 +248,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
           )}
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@campusgo/ui';
 import { UserRole } from '@campusgo/shared';
 import { useSession } from '../lib/session';
@@ -170,6 +171,13 @@ export function AdminSidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // Portal to document.body — the admin shell's page-transition wrapper
+  // (see (admin)/template.tsx) has a CSS transform animation, which
+  // silently confines `fixed inset-0` to that ancestor's box instead of
+  // the real viewport if rendered inline.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <>
       <aside className="hidden w-64 shrink-0 flex-col overflow-y-auto border-r border-border bg-white px-4 py-6 md:flex">
@@ -179,24 +187,27 @@ export function AdminSidebar({
         <NavLinks nav={nav} ready={ready} />
       </aside>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
-          <div className="absolute inset-0 bg-black/40" onClick={onCloseMobile} />
-          <aside className="animate-pop absolute inset-y-0 left-0 flex w-72 flex-col overflow-y-auto bg-white px-4 py-6 shadow-nav">
-            <div className="flex items-center justify-between px-3 pb-8">
-              <Brand college={user?.college} />
-              <button
-                onClick={onCloseMobile}
-                aria-label="Close menu"
-                className="rounded-md p-1.5 text-subtle hover:bg-app hover:text-strong"
-              >
-                ✕
-              </button>
-            </div>
-            <NavLinks nav={mobileNav} ready={ready} onNavigate={onCloseMobile} />
-          </aside>
-        </div>
-      )}
+      {mobileOpen &&
+        mounted &&
+        createPortal(
+          <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/40" onClick={onCloseMobile} />
+            <aside className="animate-pop absolute inset-y-0 left-0 flex w-72 flex-col overflow-y-auto bg-white px-4 py-6 shadow-nav">
+              <div className="flex items-center justify-between px-3 pb-8">
+                <Brand college={user?.college} />
+                <button
+                  onClick={onCloseMobile}
+                  aria-label="Close menu"
+                  className="rounded-md p-1.5 text-subtle hover:bg-app hover:text-strong"
+                >
+                  ✕
+                </button>
+              </div>
+              <NavLinks nav={mobileNav} ready={ready} onNavigate={onCloseMobile} />
+            </aside>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

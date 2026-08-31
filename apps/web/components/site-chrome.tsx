@@ -13,24 +13,24 @@ const FOOTER_PLATFORM = [
 ];
 const FOOTER_FOR = ['Colleges', 'Universities', 'Placement Teams', 'Students'];
 
-/** Shared dark header across every public marketing page (home, about, contact). */
+/** Shared header across every public marketing page (home, about, contact). */
 export function SiteHeader() {
   return (
-    <header className="bg-[#0B1330]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="text-xl font-extrabold tracking-tight sm:text-2xl">
-          <span className="text-primary-300">Campus</span>
-          <span className="text-primary-400">Go</span>
+    <header className="border-b border-border bg-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+        <Link href="/" className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured */}
+          <img src="/site-logo.png" alt="CampusGo — From Campus to Career" className="h-9 w-auto sm:h-10" />
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
-          <Link href="/#platform" className="text-sm font-medium text-white/75 hover:text-white">Platform</Link>
-          <Link href="/#readiness" className="text-sm font-medium text-white/75 hover:text-white">Readiness</Link>
-          <Link href="/about" className="text-sm font-medium text-white/75 hover:text-white">About</Link>
-          <Link href="/contact" className="text-sm font-medium text-white/75 hover:text-white">Contact</Link>
+          <Link href="/#platform" className="text-sm font-medium text-body hover:text-primary-600">Platform</Link>
+          <Link href="/#readiness" className="text-sm font-medium text-body hover:text-primary-600">Readiness</Link>
+          <Link href="/about" className="text-sm font-medium text-body hover:text-primary-600">About</Link>
+          <Link href="/contact" className="text-sm font-medium text-body hover:text-primary-600">Contact</Link>
         </nav>
         <Link
           href="/login"
-          className="inline-flex h-10 items-center rounded-md border border-white/20 bg-white/10 px-4 text-sm font-semibold text-white/95 hover:bg-white/15"
+          className="inline-flex h-10 shrink-0 items-center rounded-md bg-gradient-primary px-4 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95"
         >
           Login
         </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Full-screen PDF preview. Renders every page to a <canvas> with pdf.js so the
@@ -23,6 +24,14 @@ export function PdfModal({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  // Portal to document.body: rendered inline, this would sit inside whatever
+  // ancestor happens to have a CSS transform/animation applied (e.g. the
+  // student shell's page-transition wrapper) — which silently turns
+  // `fixed inset-0` into "fixed to that ancestor's box" instead of the real
+  // viewport, shrinking the overlay down to the page content's size instead
+  // of covering the screen. Portaling avoids that class of bug entirely.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +98,9 @@ export function PdfModal({
     };
   }, [url]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex flex-col bg-black/60 p-3 sm:p-6"
       role="dialog"
@@ -151,6 +162,7 @@ export function PdfModal({
           <div ref={containerRef} className={status === 'error' ? 'hidden' : ''} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

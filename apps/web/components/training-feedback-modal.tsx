@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@campusgo/ui';
 import { useSession } from '../lib/session';
 import { getPendingFeedback, submitFeedback, type PendingFeedback } from '../lib/training';
@@ -22,6 +23,11 @@ export function TrainingFeedbackModal() {
   const [ratings, setRatings] = useState({ contentQuality: 0, trainerDelivery: 0, relevanceToPlacement: 0 });
   const [submitting, setSubmitting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // Portal to document.body — see pdf-modal.tsx for why (a transformed
+  // ancestor, e.g. the student shell's page-transition wrapper, otherwise
+  // silently confines `fixed inset-0` to that ancestor's box).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (loading || !user) return;
@@ -32,7 +38,7 @@ export function TrainingFeedbackModal() {
       });
   }, [loading, user]);
 
-  if (!pending || dismissed) return null;
+  if (!pending || dismissed || !mounted) return null;
 
   const allRated = QUESTIONS.every((q) => ratings[q.key] > 0);
 
@@ -54,7 +60,7 @@ export function TrainingFeedbackModal() {
     }
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
       <div className="w-full max-w-md space-y-4 rounded-t-2xl bg-white p-6 shadow-nav sm:rounded-2xl">
         <div>
@@ -81,7 +87,8 @@ export function TrainingFeedbackModal() {
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

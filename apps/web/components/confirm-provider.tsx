@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@campusgo/ui';
 
 export interface ConfirmOptions {
@@ -33,6 +34,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
   const [checked, setChecked] = useState(false);
   const resolver = useRef<((v: boolean) => void) | null>(null);
+  // Portal to document.body — see pdf-modal.tsx for why (a transformed
+  // ancestor, e.g. the student shell's page-transition wrapper, otherwise
+  // silently confines `fixed inset-0` to that ancestor's box).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const confirm = useCallback<ConfirmFn>((o) => {
     setOpts(o);
@@ -53,47 +59,50 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      {opts && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => close(false)}
-        >
+      {opts &&
+        mounted &&
+        createPortal(
           <div
-            className="w-full max-w-md rounded-card border border-border bg-white p-6 shadow-nav"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => close(false)}
           >
-            <h2 className="text-lg font-semibold text-strong">{opts.title}</h2>
-            {opts.message != null && (
-              <div className="mt-2 whitespace-pre-line text-sm text-body">{opts.message}</div>
-            )}
-            {opts.acknowledgement && (
-              <label className="mt-4 flex items-start gap-2 text-sm text-body">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary-600"
-                />
-                <span>{opts.acknowledgement}</span>
-              </label>
-            )}
-            <div className="mt-6 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => close(false)}>
-                {opts.cancelLabel ?? 'Cancel'}
-              </Button>
-              <Button
-                variant={opts.destructive ? 'danger' : 'primary'}
-                onClick={() => close(true)}
-                disabled={!canConfirm}
-              >
-                {opts.confirmLabel ?? 'Confirm'}
-              </Button>
+            <div
+              className="w-full max-w-md rounded-card border border-border bg-white p-6 shadow-nav"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-semibold text-strong">{opts.title}</h2>
+              {opts.message != null && (
+                <div className="mt-2 whitespace-pre-line text-sm text-body">{opts.message}</div>
+              )}
+              {opts.acknowledgement && (
+                <label className="mt-4 flex items-start gap-2 text-sm text-body">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => setChecked(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-primary-600"
+                  />
+                  <span>{opts.acknowledgement}</span>
+                </label>
+              )}
+              <div className="mt-6 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => close(false)}>
+                  {opts.cancelLabel ?? 'Cancel'}
+                </Button>
+                <Button
+                  variant={opts.destructive ? 'danger' : 'primary'}
+                  onClick={() => close(true)}
+                  disabled={!canConfirm}
+                >
+                  {opts.confirmLabel ?? 'Confirm'}
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </ConfirmContext.Provider>
   );
 }

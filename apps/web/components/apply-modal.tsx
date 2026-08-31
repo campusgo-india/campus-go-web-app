@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Card } from '@campusgo/ui';
 import type { ApplicationField, Job } from '../lib/jobs';
 
@@ -27,6 +28,12 @@ export function ApplyModal({
 
   const set = (id: string, value: string) => setResponses((r) => ({ ...r, [id]: value }));
 
+  // Portal to document.body — see pdf-modal.tsx for why (a transformed
+  // ancestor, e.g. the student shell's page-transition wrapper, otherwise
+  // silently confines `fixed inset-0` to that ancestor's box).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   async function submit() {
     for (const f of fields) {
       if (f.required && !(responses[f.id] ?? '').trim()) {
@@ -43,7 +50,9 @@ export function ApplyModal({
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
       role="dialog"
@@ -113,6 +122,7 @@ export function ApplyModal({
           </Button>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -153,26 +153,26 @@ export default function HomePage() {
       <SiteHeader />
 
       {/* ============ HERO ============ */}
-      <section className="relative overflow-hidden bg-[#0B1330]">
+      <section className="relative overflow-hidden bg-white">
         <div
           className="pointer-events-none absolute -right-24 -top-40 h-[560px] w-[560px] rounded-full opacity-70"
-          style={{ background: 'radial-gradient(circle, rgba(91,141,239,0.35) 0%, rgba(11,19,48,0) 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(59,110,245,0.08) 0%, rgba(255,255,255,0) 70%)' }}
         />
         <div
-          className="pointer-events-none absolute -left-32 bottom-0 h-[420px] w-[420px] rounded-full opacity-50"
-          style={{ background: 'radial-gradient(circle, rgba(124,140,255,0.28) 0%, rgba(11,19,48,0) 70%)' }}
+          className="pointer-events-none absolute -left-32 bottom-0 h-[420px] w-[420px] rounded-full opacity-70"
+          style={{ background: 'radial-gradient(circle, rgba(226,128,64,0.08) 0%, rgba(255,255,255,0) 70%)' }}
         />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-12 px-6 py-16 sm:py-20 lg:flex-row lg:items-center lg:py-24">
           <div className="w-full max-w-xl text-center lg:text-left">
-            <span className="inline-flex items-center rounded-full bg-primary-400/15 px-3.5 py-1.5 text-xs font-medium text-primary-300">
+            <span className="inline-flex items-center rounded-full bg-primary-50 px-3.5 py-1.5 text-xs font-medium text-primary-600">
               The Complete Placement &amp; Career Readiness Platform
             </span>
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-strong sm:text-5xl">
               From Campus
               <br />
               to Career.
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-white/60 lg:mx-0">
+            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-subtle lg:mx-0">
               CampusGo connects students, training, employers, opportunities, recruitment and
               placement outcomes in one centralized platform — helping institutions manage the
               complete journey, before, during and after placement.
@@ -184,14 +184,14 @@ export default function HomePage() {
               >
                 Request a Demo
               </Link>
-              <a href="#platform" className="text-sm font-semibold text-white/85 hover:text-white">
+              <a href="#platform" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
                 Explore CampusGo ↓
               </a>
             </div>
 
             <div className="mt-12 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 lg:justify-start">
-              <TrustItem color="#6488FB">One branded portal per college</TrustItem>
-              <TrustItem color="#5FD99E">Readiness to alumni, one system</TrustItem>
+              <TrustItem color="#3B6EF5">One branded portal per college</TrustItem>
+              <TrustItem color="#1F9D6B">Readiness to alumni, one system</TrustItem>
               <TrustItem color="#E28040">Multi-college, tenant-isolated by design</TrustItem>
             </div>
           </div>
@@ -589,7 +589,7 @@ function TrustItem({ color, children }: { color: string; children: React.ReactNo
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
         <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span className="text-sm text-white/70">{children}</span>
+      <span className="text-sm text-body">{children}</span>
     </div>
   );
 }
@@ -669,7 +669,7 @@ function HeroGraphic() {
           <stop offset="0" stopColor="#FBC2A4" /><stop offset="1" stopColor="#F78CA0" />
         </linearGradient>
       </defs>
-      <line x1="70" y1="90" x2="330" y2="370" stroke="rgba(255,255,255,0.16)" strokeWidth="2" strokeDasharray="3 8" />
+      <line x1="70" y1="90" x2="330" y2="370" stroke="rgba(11,19,48,0.12)" strokeWidth="2" strokeDasharray="3 8" />
       <rect x="20" y="40" width="200" height="88" rx="16" fill="url(#hg1)" opacity="0.92" transform="rotate(-6 120 84)" />
       <rect x="150" y="160" width="220" height="88" rx="16" fill="url(#hg2)" opacity="0.95" transform="rotate(4 260 204)" />
       <rect x="60" y="290" width="230" height="88" rx="16" fill="url(#hg3)" transform="rotate(-3 175 334)" />
