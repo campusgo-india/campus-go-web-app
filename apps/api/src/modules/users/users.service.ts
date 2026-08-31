@@ -45,7 +45,15 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where: {
         collegeId,
-        role: { in: ['COLLEGE_ADMIN', 'PLACEMENT_OFFICER', 'PLACEMENT_COORDINATOR'] },
+        role: {
+          in: [
+            'COLLEGE_ADMIN',
+            'PLACEMENT_OFFICER',
+            'PLACEMENT_COORDINATOR',
+            'MANAGEMENT',
+            'TRAINING',
+          ],
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

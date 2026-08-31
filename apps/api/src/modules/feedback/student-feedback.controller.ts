@@ -23,9 +23,14 @@ export class MeFeedbackController {
   }
 }
 
-/** Officer/admin (+ coordinator, view-only): aggregate view of every submitted student feedback. */
+/** Officer/admin (+ coordinator/management, view-only): aggregate view of every submitted student feedback. */
 @Controller('feedback/students')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
+@Roles(
+  UserRole.COLLEGE_ADMIN,
+  UserRole.PLACEMENT_OFFICER,
+  UserRole.PLACEMENT_COORDINATOR,
+  UserRole.MANAGEMENT,
+)
 export class OfficerStudentFeedbackController {
   constructor(
     private readonly feedback: StudentFeedbackService,

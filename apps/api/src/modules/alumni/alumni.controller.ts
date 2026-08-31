@@ -26,17 +26,20 @@ export class AlumniController {
   }
 
   @Get()
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListAlumniQuery) {
     const { items, meta } = await this.alumni.list(this.collegeId(user), query);
     return { data: items, meta };
   }
 
   @Get('stats')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async stats(@CurrentUser() user: JwtPayload) {
     return { data: await this.alumni.stats(this.collegeId(user)) };
   }
 
   @Get(':id')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return { data: await this.alumni.findOne(this.collegeId(user), id) };
   }

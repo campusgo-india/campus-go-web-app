@@ -6,7 +6,7 @@ import { TrainingSessionsService } from './sessions.service';
 import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
 
 @Controller('training/sessions')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.TRAINING)
 export class TrainingSessionsController {
   constructor(private readonly sessions: TrainingSessionsService) {}
 

@@ -22,6 +22,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 export default function CompaniesPage() {
   const { user } = useSession();
+  const readOnly = user?.role === 'MANAGEMENT';
   const [items, setItems] = useState<Company[]>([]);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -74,9 +75,11 @@ export default function CompaniesPage() {
           <h1 className="text-2xl font-semibold text-strong">Companies</h1>
           <p className="text-sm text-subtle">{items.length} recruiters</p>
         </div>
-        <Button onClick={() => setShowForm((s) => !s)}>
-          {showForm ? 'Cancel' : 'Add company'}
-        </Button>
+        {!readOnly && (
+          <Button onClick={() => setShowForm((s) => !s)}>
+            {showForm ? 'Cancel' : 'Add company'}
+          </Button>
+        )}
       </header>
 
       {showForm && (

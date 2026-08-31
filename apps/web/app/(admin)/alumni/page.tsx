@@ -31,6 +31,7 @@ interface ViewState {
 
 export default function AlumniPage() {
   const { user } = useSession();
+  const readOnly = user?.role === 'MANAGEMENT';
   const [items, setItems] = useState<Alumni[]>([]);
   const [stats, setStats] = useState<AlumniStats | null>(null);
   const [filters, setFilters] = useState<AlumniFilters>({});
@@ -184,7 +185,7 @@ export default function AlumniPage() {
           <h1 className="text-2xl font-semibold text-strong">{title}</h1>
           <p className="text-sm text-subtle">{subtitle}</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>Add alumnus</Button>
+        {!readOnly && <Button onClick={() => setShowForm(true)}>Add alumnus</Button>}
       </header>
 
       {/* Self-registration link to share with graduating batches */}
@@ -396,12 +397,14 @@ export default function AlumniPage() {
                           {!a.isApproved && (
                             <>
                               <Badge tint="cream">Pending</Badge>
-                              <button
-                                onClick={() => approve(a)}
-                                className="rounded-pill bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700"
-                              >
-                                Approve
-                              </button>
+                              {!readOnly && (
+                                <button
+                                  onClick={() => approve(a)}
+                                  className="rounded-pill bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700"
+                                >
+                                  Approve
+                                </button>
+                              )}
                             </>
                           )}
                           {a.isMentor && <Badge tint="lavender">Mentor</Badge>}

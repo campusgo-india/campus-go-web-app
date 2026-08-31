@@ -8,6 +8,12 @@ export const UserRole = {
   COLLEGE_ADMIN: 'COLLEGE_ADMIN',
   PLACEMENT_OFFICER: 'PLACEMENT_OFFICER',
   PLACEMENT_COORDINATOR: 'PLACEMENT_COORDINATOR',
+  // Read-only: Dashboard, Companies, Jobs, Alumni, Internships, Training
+  // (dashboard rollup only), Feedback, Reports. No Students/Placement Policy.
+  MANAGEMENT: 'MANAGEMENT',
+  // Full manage, scoped to Training only (assessments/batches/sessions/
+  // attendance/feedback analytics) + read-only Dashboard.
+  TRAINING: 'TRAINING',
   STUDENT: 'STUDENT',
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
@@ -18,6 +24,8 @@ export const ADMIN_ROLES: UserRole[] = [
   UserRole.COLLEGE_ADMIN,
   UserRole.PLACEMENT_OFFICER,
   UserRole.PLACEMENT_COORDINATOR,
+  UserRole.MANAGEMENT,
+  UserRole.TRAINING,
 ];
 
 export const isAdminRole = (role: UserRole): boolean => ADMIN_ROLES.includes(role);

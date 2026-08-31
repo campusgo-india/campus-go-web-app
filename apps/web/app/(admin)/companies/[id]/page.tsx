@@ -17,6 +17,7 @@ import { useSession } from '../../../../lib/session';
 export default function CompanyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { user } = useSession();
+  const readOnly = user?.role === 'MANAGEMENT';
   const [company, setCompany] = useState<Company | null>(null);
   const [history, setHistory] = useState<HiringHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,59 +137,65 @@ export default function CompanyDetailPage({ params }: { params: Promise<{ id: st
                 {[c.designation, c.email, c.phone].filter(Boolean).join(' · ')}
               </p>
             </div>
-            <button
-              onClick={() => deleteContact(c.id)}
-              disabled={busy}
-              className="text-xs text-danger hover:underline"
-            >
-              Remove
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => deleteContact(c.id)}
+                disabled={busy}
+                className="text-xs text-danger hover:underline"
+              >
+                Remove
+              </button>
+            )}
           </div>
         ))}
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <input
-            className={inputCls}
-            placeholder="Name"
-            value={contact.name}
-            onChange={(e) => setContact({ ...contact, name: e.target.value })}
-          />
-          <input
-            className={inputCls}
-            placeholder="Email"
-            value={contact.email}
-            onChange={(e) => setContact({ ...contact, email: e.target.value })}
-          />
-          <input
-            className={inputCls}
-            placeholder="Designation"
-            value={contact.designation}
-            onChange={(e) => setContact({ ...contact, designation: e.target.value })}
-          />
-          <input
-            className={inputCls}
-            placeholder="Phone"
-            value={contact.phone}
-            onChange={(e) => setContact({ ...contact, phone: e.target.value })}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-xs text-subtle">
-            <input
-              type="checkbox"
-              checked={contact.isPrimary}
-              onChange={(e) => setContact({ ...contact, isPrimary: e.target.checked })}
-            />
-            Primary contact
-          </label>
-          <Button
-            size="sm"
-            onClick={submitContact}
-            disabled={busy || !contact.name.trim() || !contact.email.trim()}
-          >
-            Add contact
-          </Button>
-        </div>
+        {!readOnly && (
+          <>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <input
+                className={inputCls}
+                placeholder="Name"
+                value={contact.name}
+                onChange={(e) => setContact({ ...contact, name: e.target.value })}
+              />
+              <input
+                className={inputCls}
+                placeholder="Email"
+                value={contact.email}
+                onChange={(e) => setContact({ ...contact, email: e.target.value })}
+              />
+              <input
+                className={inputCls}
+                placeholder="Designation"
+                value={contact.designation}
+                onChange={(e) => setContact({ ...contact, designation: e.target.value })}
+              />
+              <input
+                className={inputCls}
+                placeholder="Phone"
+                value={contact.phone}
+                onChange={(e) => setContact({ ...contact, phone: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-xs text-subtle">
+                <input
+                  type="checkbox"
+                  checked={contact.isPrimary}
+                  onChange={(e) => setContact({ ...contact, isPrimary: e.target.checked })}
+                />
+                Primary contact
+              </label>
+              <Button
+                size="sm"
+                onClick={submitContact}
+                disabled={busy || !contact.name.trim() || !contact.email.trim()}
+              >
+                Add contact
+              </Button>
+            </div>
+          </>
+        )}
       </Card>
 
       {/* Hiring history */}

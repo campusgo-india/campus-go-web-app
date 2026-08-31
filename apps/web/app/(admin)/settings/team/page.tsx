@@ -24,6 +24,8 @@ const ROLE_LABEL: Record<string, string> = {
   COLLEGE_ADMIN: 'College Admin',
   PLACEMENT_OFFICER: 'Placement Officer',
   PLACEMENT_COORDINATOR: 'Placement Coordinator',
+  MANAGEMENT: 'Management',
+  TRAINING: 'Training',
 };
 
 export default function TeamSettingsPage() {
@@ -266,6 +268,8 @@ export default function TeamSettingsPage() {
                           <option value="PLACEMENT_OFFICER">Placement Officer</option>
                           <option value="COLLEGE_ADMIN">College Admin</option>
                           <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
+                          <option value="MANAGEMENT">Management</option>
+                          <option value="TRAINING">Training</option>
                         </select>
                       )}
                       {m.role === 'PLACEMENT_COORDINATOR' && m.assignedProgrammes.length > 0 && (
@@ -531,6 +535,8 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
             <option value="PLACEMENT_OFFICER">Placement Officer</option>
             <option value="COLLEGE_ADMIN">College Admin</option>
             <option value="PLACEMENT_COORDINATOR">Placement Coordinator</option>
+            <option value="MANAGEMENT">Management</option>
+            <option value="TRAINING">Training</option>
           </select>
         </Field>
         {form.role === 'PLACEMENT_COORDINATOR' && (
@@ -592,6 +598,9 @@ function NewMemberForm({ onCreated }: { onCreated: (r: CreateUserResult) => void
         Placement Officers manage students, companies, jobs and the ATS pipeline. College Admins can
         additionally manage the team. Placement Coordinators are read-only, scoped to their assigned
         programmes — they can see jobs posted and which of their programmes' students have applied.
+        Management is read-only across the whole college — Dashboard, Companies, Jobs, Alumni,
+        Internships, Training, Feedback and Reports. Training has full access to the Training module
+        only (assessments, sessions, batches, attendance, feedback analytics), plus the Dashboard.
         Set a password to share directly, or leave blank for a one-time temp password.
       </p>
       {error && <p className="text-sm text-danger">{error}</p>}

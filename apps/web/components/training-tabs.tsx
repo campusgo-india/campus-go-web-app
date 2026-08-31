@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@campusgo/ui';
+import { useSession } from '../lib/session';
 
 const TABS: Array<{ href: string; label: string }> = [
   { href: '/training/dashboard', label: 'Dashboard' },
@@ -12,6 +13,13 @@ const TABS: Array<{ href: string; label: string }> = [
   { href: '/training/feedback', label: 'Feedback' },
 ];
 
+// Placement Coordinator and Management only have read access to the rollup
+// Dashboard + Feedback analytics (see training/dashboard and
+// training/feedback controllers) — Assessments/Sessions/Batches would 403,
+// so those tabs are hidden rather than shown as a dead end.
+const READ_ONLY_LABELS = new Set(['Dashboard', 'Feedback']);
+const READ_ONLY_ROLES = new Set(['PLACEMENT_COORDINATOR', 'MANAGEMENT']);
+
 /**
  * Shared tab strip across every Training screen (Dashboard / Assessments /
  * Sessions / Batches / Feedback) so the module reads as one connected
@@ -20,9 +28,13 @@ const TABS: Array<{ href: string; label: string }> = [
  */
 export function TrainingTabs() {
   const pathname = usePathname();
+  const { user } = useSession();
+  const tabs = user && READ_ONLY_ROLES.has(user.role)
+    ? TABS.filter((t) => READ_ONLY_LABELS.has(t.label))
+    : TABS;
   return (
     <nav className="flex gap-1 overflow-x-auto border-b border-border">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         // Assessments lives at the bare /training route, so match it
         // exactly; every other tab owns a whole subtree (e.g. a session's
         // /training/sessions/[id]/edit should still highlight "Sessions").

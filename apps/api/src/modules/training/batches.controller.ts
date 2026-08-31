@@ -6,7 +6,7 @@ import { TrainingBatchesService } from './batches.service';
 import { CreateBatchDto, SetBatchMembersDto, UpdateBatchDto } from './dto';
 
 @Controller('training/batches')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.TRAINING)
 export class TrainingBatchesController {
   constructor(private readonly batches: TrainingBatchesService) {}
 

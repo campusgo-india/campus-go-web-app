@@ -32,6 +32,7 @@ export class CompaniesController {
   }
 
   @Get()
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListCompaniesQuery) {
     const { items, meta } = await this.companies.list(
       this.collegeId(user),
@@ -50,6 +51,7 @@ export class CompaniesController {
   }
 
   @Get(':id')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return {
       data: await this.companies.findOne(this.collegeId(user), id, {
@@ -60,6 +62,7 @@ export class CompaniesController {
   }
 
   @Get(':id/hiring-history')
+  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
   async hiringHistory(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return { data: await this.companies.hiringHistory(this.collegeId(user), id) };
   }

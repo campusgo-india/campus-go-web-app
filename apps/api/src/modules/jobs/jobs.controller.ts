@@ -112,7 +112,13 @@ export class JobsController {
   // (unguessable URLs) so the API enforces access control and then sends the
   // caller to the actual file. Any student/officer of the owning college may view.
   @Get(':id/pdf')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR, UserRole.STUDENT)
+  @Roles(
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+    UserRole.STUDENT,
+  )
   async pdf(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Res() res: Response) {
     const ref = await this.jobs.pdfRef(this.collegeId(user), id);
     if (!ref.pdfUrl) throw new NotFoundException('No PDF for this job');
@@ -125,7 +131,13 @@ export class JobsController {
 
   // GET /jobs — officer management list OR student eligible feed, by role.
   @Get()
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR, UserRole.STUDENT)
+  @Roles(
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+    UserRole.STUDENT,
+  )
   async list(@CurrentUser() user: JwtPayload, @Query() query: ListJobsQuery) {
     if (user.role === UserRole.STUDENT) {
       return { data: await this.jobs.studentFeed(user.sub) };
@@ -144,7 +156,13 @@ export class JobsController {
   }
 
   @Get(':id')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR, UserRole.STUDENT)
+  @Roles(
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+    UserRole.STUDENT,
+  )
   async findOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     if (user.role === UserRole.STUDENT) {
       return { data: await this.jobs.studentJobDetail(user.sub, id) };

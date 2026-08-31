@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../components/confirm-provider';
+import { useSession } from '../../../../lib/session';
 import {
   deleteAlumni,
   getAlumni,
@@ -19,6 +20,8 @@ export default function AlumniDetailPage({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const router = useRouter();
   const confirm = useConfirm();
+  const { user } = useSession();
+  const readOnly = user?.role === 'MANAGEMENT';
   const [alumni, setAlumni] = useState<Alumni | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,14 +107,16 @@ export default function AlumniDetailPage({ params }: { params: Promise<{ id: str
             ))}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-            Edit
-          </Button>
-          <Button variant="ghost" size="sm" onClick={remove}>
-            Remove
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              Edit
+            </Button>
+            <Button variant="ghost" size="sm" onClick={remove}>
+              Remove
+            </Button>
+          </div>
+        )}
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}

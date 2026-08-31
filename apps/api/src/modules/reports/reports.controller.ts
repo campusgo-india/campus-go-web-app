@@ -26,7 +26,7 @@ const CONTENT_TYPE: Record<Format, string> = {
 };
 
 @Controller('reports')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.MANAGEMENT)
 export class ReportsController {
   constructor(
     private readonly reports: ReportsService,

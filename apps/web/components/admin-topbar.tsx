@@ -10,6 +10,8 @@ const ROLE_LABELS: Record<string, string> = {
   COLLEGE_ADMIN: 'College Admin',
   PLACEMENT_OFFICER: 'Placement Officer',
   PLACEMENT_COORDINATOR: 'Placement Coordinator',
+  MANAGEMENT: 'Management',
+  TRAINING: 'Training',
   STUDENT: 'Student',
 };
 

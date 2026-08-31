@@ -44,7 +44,7 @@ type ViewState =
 export default function InternshipsPage() {
   const confirm = useConfirm();
   const { user } = useSession();
-  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR' || user?.role === 'MANAGEMENT';
   const [items, setItems] = useState<Internship[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

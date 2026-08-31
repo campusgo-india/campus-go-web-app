@@ -23,11 +23,19 @@ export class CreateUserDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   email!: string;
 
-  @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR])
+  @IsIn([
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+    UserRole.TRAINING,
+  ])
   role!:
     | typeof UserRole.COLLEGE_ADMIN
     | typeof UserRole.PLACEMENT_OFFICER
-    | typeof UserRole.PLACEMENT_COORDINATOR;
+    | typeof UserRole.PLACEMENT_COORDINATOR
+    | typeof UserRole.MANAGEMENT
+    | typeof UserRole.TRAINING;
 
   @EmptyToUndefined()
   @IsOptional()
@@ -56,7 +64,13 @@ export class UpdateUserDto {
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
   phone?: string;
   @IsOptional()
-  @IsIn([UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR])
+  @IsIn([
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+    UserRole.TRAINING,
+  ])
   role?: string;
   @IsOptional()
   @IsArray()

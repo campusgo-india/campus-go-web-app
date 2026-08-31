@@ -6,7 +6,7 @@ import { AssessmentsService } from './assessments.service';
 import { BulkScoreEntryDto, CreateAssessmentDto, ImportScoresDto, UpdateAssessmentDto } from './dto';
 
 @Controller('training/assessments')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER)
+@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.TRAINING)
 export class AssessmentsController {
   constructor(private readonly assessments: AssessmentsService) {}
 

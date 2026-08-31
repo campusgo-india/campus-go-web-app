@@ -16,7 +16,7 @@ export interface TeamMember {
 export interface CreateUserInput {
   fullName: string;
   email: string;
-  role: string; // COLLEGE_ADMIN | PLACEMENT_OFFICER | PLACEMENT_COORDINATOR
+  role: string; // COLLEGE_ADMIN | PLACEMENT_OFFICER | PLACEMENT_COORDINATOR | MANAGEMENT | TRAINING
   phone?: string;
   // PLACEMENT_COORDINATOR only: the programmes they're responsible
   // for — may cover more than one (e.g. BBA & MBA).

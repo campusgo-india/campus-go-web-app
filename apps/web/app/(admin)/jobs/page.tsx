@@ -34,7 +34,7 @@ function initialView(): ViewMode {
 export default function JobsPage() {
   const router = useRouter();
   const { user } = useSession();
-  const readOnly = user?.role === 'PLACEMENT_COORDINATOR';
+  const readOnly = user?.role === 'PLACEMENT_COORDINATOR' || user?.role === 'MANAGEMENT';
   const [items, setItems] = useState<Job[]>([]);
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');

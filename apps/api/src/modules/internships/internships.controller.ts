@@ -33,7 +33,12 @@ export class InternshipsController {
   }
 
   @Get()
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
+  @Roles(
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+  )
   async list(@CurrentUser() user: JwtPayload) {
     return {
       data: await this.internships.list(this.collegeId(user), { role: user.role, userId: user.sub }),
@@ -41,7 +46,12 @@ export class InternshipsController {
   }
 
   @Get('export')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
+  @Roles(
+    UserRole.COLLEGE_ADMIN,
+    UserRole.PLACEMENT_OFFICER,
+    UserRole.PLACEMENT_COORDINATOR,
+    UserRole.MANAGEMENT,
+  )
   async export(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const dataset = await this.internships.exportDataset(this.collegeId(user), {
       role: user.role,

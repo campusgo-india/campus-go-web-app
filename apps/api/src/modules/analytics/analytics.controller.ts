@@ -4,13 +4,20 @@ import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { AnalyticsService } from './analytics.service';
 
-// Every endpoint here is read-only, so Placement Coordinator gets full access
-// — same as College Admin/Placement Officer. NOTE: unlike students/jobs/
-// internships, these aren't yet scoped to a coordinator's assigned
-// programmes (the underlying queries are college-wide aggregates); a
-// coordinator currently sees the whole college's placement numbers here.
+// Every endpoint here is read-only, so Placement Coordinator/Management/
+// Training all get full access — same as College Admin/Placement Officer.
+// NOTE: unlike students/jobs/internships, these aren't yet scoped to a
+// coordinator's assigned programmes (the underlying queries are college-wide
+// aggregates); a coordinator currently sees the whole college's placement
+// numbers here, same as everyone else with access.
 @Controller('analytics')
-@Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
+@Roles(
+  UserRole.COLLEGE_ADMIN,
+  UserRole.PLACEMENT_OFFICER,
+  UserRole.PLACEMENT_COORDINATOR,
+  UserRole.MANAGEMENT,
+  UserRole.TRAINING,
+)
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
 

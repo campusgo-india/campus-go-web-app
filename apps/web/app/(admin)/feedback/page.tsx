@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge, Button, Card, StatTile } from '@campusgo/ui';
 import { ListSkeleton } from '../../../components/page-skeleton';
+import { useSession } from '../../../lib/session';
 import {
   getFeedbackWindow,
   getStudentFeedbackSummary,
@@ -132,6 +133,8 @@ function EmployerTab() {
 }
 
 function StudentTab() {
+  const { user } = useSession();
+  const canToggleWindow = user?.role === 'COLLEGE_ADMIN' || user?.role === 'PLACEMENT_OFFICER';
   const [data, setData] = useState<StudentFeedbackSummary | null>(null);
   const [feedbackWindow, setFeedbackWindowState] = useState<FeedbackWindow | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -175,14 +178,16 @@ function StudentTab() {
               : 'Students cannot submit feedback until you open it — trigger this once the placement season wraps up.'}
           </p>
         </div>
-        <Button
-          size="sm"
-          variant={feedbackWindow.open ? 'outline' : 'primary'}
-          onClick={toggleWindow}
-          loading={toggling}
-        >
-          {feedbackWindow.open ? 'Close survey' : 'Open survey'}
-        </Button>
+        {canToggleWindow && (
+          <Button
+            size="sm"
+            variant={feedbackWindow.open ? 'outline' : 'primary'}
+            onClick={toggleWindow}
+            loading={toggling}
+          >
+            {feedbackWindow.open ? 'Close survey' : 'Open survey'}
+          </Button>
+        )}
       </Card>
 
       <StatTile label="Responses" value={data.responseCount} gradient="primary" />

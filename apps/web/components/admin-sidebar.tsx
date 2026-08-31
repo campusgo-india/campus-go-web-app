@@ -56,11 +56,35 @@ const COORDINATOR_NAV: NavItem[] = [
   { href: '/feedback', label: 'Feedback' },
 ];
 
+// Management: read-only, broader than a coordinator — visibility into every
+// department's numbers, not just their own programmes (backend queries are
+// college-wide, same as Coordinator). No Students/Placement Policy.
+const MANAGEMENT_NAV: NavItem[] = [
+  { href: '/placement', label: 'Dashboard' },
+  { href: '/companies', label: 'Companies' },
+  { href: '/jobs', label: 'Jobs' },
+  { href: '/alumni', label: 'Alumni' },
+  { href: '/internships', label: 'Internships' },
+  { href: '/training/dashboard', label: 'Training' },
+  { href: '/feedback', label: 'Feedback' },
+  { href: '/reports', label: 'Reports' },
+];
+
+// Training: the training department's own login — full manage access
+// scoped to the Training module only (assessments/sessions/batches/
+// attendance/feedback analytics), plus the read-only main dashboard.
+const TRAINING_NAV: NavItem[] = [
+  { href: '/placement', label: 'Dashboard' },
+  { href: '/training', label: 'Training' },
+];
+
 function navFor(role: UserRole | undefined): NavItem[] {
   if (role === UserRole.PLATFORM_ADMIN) return PLATFORM_NAV;
   if (role === UserRole.COLLEGE_ADMIN) return [...COLLEGE_NAV, OFFER_LIMIT_NAV, TEAM_NAV];
   if (role === UserRole.PLACEMENT_OFFICER) return COLLEGE_NAV;
   if (role === UserRole.PLACEMENT_COORDINATOR) return COORDINATOR_NAV;
+  if (role === UserRole.MANAGEMENT) return MANAGEMENT_NAV;
+  if (role === UserRole.TRAINING) return TRAINING_NAV;
   return []; // unknown / still bootstrapping — render no role-specific links
 }
 
