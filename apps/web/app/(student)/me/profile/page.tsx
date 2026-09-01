@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@campusgo/ui';
 import { getMyActionItems, getOwnStudent, type ActionItem, type Student } from '../../../../lib/students';
+import type { StepCompletion } from '@campusgo/shared';
 import { useSession } from '../../../../lib/session';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
 import { CircularProgress } from '../../../../components/circular-progress';
@@ -48,22 +49,20 @@ export default function ProfileMenuPage() {
 
   return (
     <div className="space-y-6 pb-4">
-      <h1 className="text-2xl font-semibold text-strong">Profile</h1>
-
-      {/* Identity — centered circular avatar with an accent ring; a green
-          verified badge overlaps it once the profile's been checked (the
-          reference app's signal for "this is a real, confirmed student"),
-          falling back to the edit-pencil badge until then so there's still
-          an obvious way in to finish the profile. */}
-      <Card className="flex flex-col items-center p-6 text-center">
+      {/* Identity — centered, sitting directly on the page (no card chrome),
+          matching the reference: an accent-ringed avatar with a green
+          verified badge once the profile's been checked (falling back to an
+          edit-pencil badge until then), the student's name, a
+          roll-number / programme line, then the LinkedIn link. */}
+      <div className="flex flex-col items-center pt-1 text-center">
         <div className="relative">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white shadow-nav ring-4 ring-accent-400/70">
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-700 text-3xl font-bold text-white shadow-nav ring-4 ring-accent-600">
             {initial(student?.user.fullName)}
           </div>
           {verified ? (
             <span
               aria-label="Profile verified"
-              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-success text-white"
+              className="absolute bottom-0.5 right-0.5 flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-white bg-success text-white"
             >
               <CheckGlyph />
             </span>
@@ -71,7 +70,7 @@ export default function ProfileMenuPage() {
             <Link
               href="/me/profile/edit"
               aria-label="Edit profile"
-              className="press absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 shadow-card"
+              className="press absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-white text-primary-600 shadow-card"
             >
               <PencilIcon />
             </Link>
@@ -80,14 +79,14 @@ export default function ProfileMenuPage() {
 
         {loading ? (
           <div className="mt-3">
-            <InlineSkeleton width="w-32" height="h-5" />
+            <InlineSkeleton width="w-40" height="h-6" />
           </div>
         ) : (
-          <p className="mt-3 text-lg font-extrabold text-strong">{student?.user.fullName ?? 'Student'}</p>
+          <p className="mt-3 text-2xl font-bold text-strong">{student?.user.fullName ?? 'Student'}</p>
         )}
         {student && (
-          <p className="text-xs text-subtle">
-            Roll No. {student.rollNumber} · {student.school} · Batch {student.graduationYear}
+          <p className="mt-1 text-sm text-subtle">
+            Roll No. {student.rollNumber} · {student.programme}, {student.graduationYear}
           </p>
         )}
         {student?.linkedinUrl && (
@@ -95,54 +94,43 @@ export default function ProfileMenuPage() {
             href={student.linkedinUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-xs text-primary-600 hover:underline"
+            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-600 hover:underline"
           >
             <LinkedInIcon />
             LinkedIn profile
           </a>
         )}
-        {student && (
-          <span
-            className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-              verified ? 'bg-success/15 text-success' : 'bg-tint-cream text-tint-cream-fg'
-            }`}
-          >
-            {verified ? 'Verified' : verLabel(student.verificationStatus)}
+        {student && !verified && (
+          <span className="mt-2 inline-flex items-center rounded-full bg-tint-cream px-2.5 py-0.5 text-[11px] font-medium text-tint-cream-fg">
+            {verLabel(student.verificationStatus)}
           </span>
         )}
+      </div>
 
-        {/* Profile completion ring, same visual language as Employability's readiness ring */}
-        {student && (
-          <div className="mt-5 flex w-full items-center gap-4 border-t border-border pt-5">
-            <CircularProgress
-              value={student.profileCompletion}
-              size={64}
-              strokeWidth={6}
-              gradientFrom="#F2954A"
-              gradientTo="#C2601F"
-            >
-              <span className="text-sm font-bold text-strong">{student.profileCompletion}%</span>
-            </CircularProgress>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-sm font-semibold text-strong">Profile completion</p>
-              <div className="mt-1.5 space-y-1">
-                {student.profileSteps.map((s) => (
-                  <div key={s.key} className="flex items-center justify-between text-xs">
-                    <span className="text-subtle">{s.label}</span>
-                    {s.percentage >= 100 ? (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-success text-white">
-                        <CheckGlyph />
-                      </span>
-                    ) : (
-                      <span className="text-subtle">{s.completed}/{s.total}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      {/* Profile completion — its own card: an accent ring + a single
+          plain-language summary line (reference drops the per-section
+          breakdown in favour of one sentence). */}
+      {student && (
+        <Card className="flex items-center gap-4 p-5">
+          <CircularProgress
+            value={student.profileCompletion}
+            size={68}
+            strokeWidth={7}
+            gradientFrom="#F2954A"
+            gradientTo="#C2601F"
+          >
+            <span className="text-sm font-bold text-strong">{student.profileCompletion}%</span>
+          </CircularProgress>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-base font-bold text-strong">
+              {student.profileCompletion >= 100 ? 'Profile complete' : 'Profile completion'}
+            </p>
+            <p className="mt-0.5 text-sm leading-relaxed text-subtle">
+              {sectionSummary(student.profileSteps)}
+            </p>
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
 
       {/* Actions Required — dynamic nudges: incomplete profile, stale resume,
           inactivity with matching jobs open, a pending assessment. Ordered
@@ -306,6 +294,39 @@ function Arrow() {
 function initial(name?: string): string {
   return (name?.trim()?.[0] ?? 'S').toUpperCase();
 }
+
+// Short, lowercase section names for the one-line completion summary
+// ("personal, address, academics, education & skills" in the reference).
+const SECTION_SHORT: Record<string, string> = {
+  personal: 'personal',
+  address: 'address',
+  academic: 'academics',
+  education: 'education',
+  skills: 'skills',
+};
+
+/** "5 of 5 sections done — personal, address, academics, education & skills"
+ *  when complete; lists the still-to-fill sections while it isn't. */
+function sectionSummary(steps: StepCompletion[]): React.ReactNode {
+  const total = steps.length;
+  const done = steps.filter((s) => s.percentage >= 100).length;
+  const remaining = steps.filter((s) => s.percentage < 100);
+  const names = (remaining.length > 0 ? remaining : steps).map(
+    (s) => SECTION_SHORT[s.key] ?? s.label.toLowerCase(),
+  );
+  const list =
+    names.length > 1
+      ? `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`
+      : (names[0] ?? '');
+  return (
+    <>
+      <span className="font-semibold text-strong">
+        {done} of {total}
+      </span>{' '}
+      {remaining.length > 0 ? <>sections done — still to add: {list}</> : <>sections done — {list}</>}
+    </>
+  );
+}
 function verLabel(status: string): string {
   if (status === 'SUBMITTED') return 'Under review';
   if (status === 'REJECTED') return 'Needs changes';
@@ -415,7 +436,7 @@ function LogoutIcon() {
 
 function LinkedInIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-3.5 w-3.5">
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
   );
