@@ -64,7 +64,8 @@ export default function StudentHome() {
     listMyApplications,
   );
   const { data: dashboard } = useApi<EmployabilityDashboard>('/me/training/dashboard', getMyDashboard);
-  const { data: jobFeed } = useApi<Job[]>('/student/job-feed', getJobFeed);
+  // Same cache key as the Jobs feed page so the count here and that list agree.
+  const { data: jobFeed } = useApi<Job[]>('/student/jobs', getJobFeed);
 
   if (appsLoading || !apps) return <ListSkeleton />;
 
@@ -81,9 +82,15 @@ export default function StudentHome() {
     !!student && student.verificationStatus === 'VERIFIED' && !student.registeredForPlacements;
 
   const feed = jobFeed ?? [];
-  const openForMe = feed.filter((j) => jobIsOpen(j) && !j.applied && j.eligible !== false);
-  const recommended = [...openForMe].sort((a, b) => deadlineTime(a) - deadlineTime(b)).slice(0, 2);
-  const newTodayCount = feed.filter(postedWithin24h).length;
+  // "Open" == exactly what the Jobs feed's default tab shows: not closed,
+  // not already applied to (eligible or not — ineligible ones still list there).
+  const openJobs = feed.filter((j) => jobIsOpen(j) && !j.applied);
+  const newTodayCount = openJobs.filter(postedWithin24h).length;
+  // Recommendations additionally skip roles the student isn't eligible for.
+  const recommended = [...openJobs]
+    .filter((j) => j.eligible !== false)
+    .sort((a, b) => deadlineTime(a) - deadlineTime(b))
+    .slice(0, 2);
 
   const readiness = dashboard?.readinessIndex ?? null;
   const tierNum = dashboard ? TIER_NUMBER[dashboard.tier] : null;
@@ -197,11 +204,15 @@ export default function StudentHome() {
             <StarIcon />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-strong">New jobs today</p>
+            <p className="text-sm font-bold text-strong">
+              {newTodayCount > 0 ? 'New jobs today' : 'Open roles'}
+            </p>
             <p className="mt-0.5 truncate text-xs text-subtle">
               {newTodayCount > 0
                 ? `${newTodayCount} new role${newTodayCount === 1 ? '' : 's'} posted`
-                : 'Browse all openings'}
+                : openJobs.length > 0
+                  ? `${openJobs.length} role${openJobs.length === 1 ? '' : 's'} open now`
+                  : 'No open roles right now'}
             </p>
           </div>
         </Link>
