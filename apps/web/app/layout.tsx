@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { SwrProvider } from '../lib/swr';
+import { AppSplash } from '../components/app-splash';
 import './globals.css';
 
 const inter = Inter({
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* Browser extensions (e.g. Grammarly) inject attributes on <body> before
           hydration; suppress the resulting attribute mismatch on this element. */}
       <body className="font-sans" suppressHydrationWarning>
+        <AppSplash />
         <SwrProvider>{children}</SwrProvider>
       </body>
     </html>

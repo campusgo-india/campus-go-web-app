@@ -98,3 +98,111 @@ body {
     animation: none;
   }
 }
+
+/* ── Installed-app launch screen (components/app-splash.tsx) ── */
+.app-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: linear-gradient(160deg, #2e4ca6 0%, #14245c 100%);
+  animation: splashIn 0.25s ease-out both;
+}
+.app-splash--out {
+  animation: splashOut 0.5s ease-in forwards;
+}
+@keyframes splashIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes splashOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.app-splash__art {
+  width: 116px;
+  height: 116px;
+}
+.app-splash__art svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.app-splash__cap {
+  transform-box: view-box;
+  transform-origin: 48px 40px;
+  animation: capDrop 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes capDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-38px) rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(4px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+}
+.app-splash__tassel {
+  transform-box: view-box;
+  transform-origin: 48px 33px;
+  animation: tasselSwing 1.8s ease-in-out 0.6s infinite;
+}
+@keyframes tasselSwing {
+  0%,
+  100% {
+    transform: rotate(-13deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+}
+.app-splash__ring {
+  transform-box: view-box;
+  transform-origin: 48px 45px;
+  animation: splashRing 1.8s ease-out infinite;
+}
+@keyframes splashRing {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+.app-splash__word {
+  margin: 0;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  font-size: 15px;
+  opacity: 0.9;
+  animation: riseIn 0.5s 0.25s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-splash__cap,
+  .app-splash__tassel,
+  .app-splash__ring,
+  .app-splash__word {
+    animation: none;
+  }
+  .app-splash__ring {
+    opacity: 0.25;
+  }
+}
