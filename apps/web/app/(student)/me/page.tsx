@@ -38,7 +38,12 @@ function tintForName(name: string): Tint {
   return AVATAR_TINTS[hash % AVATAR_TINTS.length]!;
 }
 
-const TIER_NUMBER: Record<EmployabilityTier, number> = { TIER_1: 1, TIER_2: 2, TIER_3: 3 };
+// Informational status tag (matches the Employability screen's badge).
+const TIER_STATUS: Record<EmployabilityTier, string> = {
+  TIER_1: 'Tier 1 Eligible',
+  TIER_2: 'Tier 2 Eligible',
+  TIER_3: 'Action Required',
+};
 const DAY_MS = 86_400_000;
 
 function jobIsOpen(j: Job): boolean {
@@ -93,7 +98,7 @@ export default function StudentHome() {
     .slice(0, 2);
 
   const readiness = dashboard?.readinessIndex ?? null;
-  const tierNum = dashboard ? TIER_NUMBER[dashboard.tier] : null;
+  const tierStatus = dashboard ? TIER_STATUS[dashboard.tier] : null;
 
   return (
     <div className="space-y-6">
@@ -123,7 +128,7 @@ export default function StudentHome() {
               </p>
               <p className="mt-1 text-2xl font-extrabold">{readiness}% Ready</p>
               <p className="mt-1 text-xs text-white/80">
-                {tierNum ? `Tier ${tierNum} eligible · ` : ''}tap to view roadmap
+                {tierStatus ? `${tierStatus} · ` : ''}tap to view roadmap
               </p>
             </div>
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">

@@ -25,10 +25,14 @@ const TIER_STEPS: { key: EmployabilityTier; label: string }[] = [
   { key: 'TIER_2', label: 'Tier 2' },
   { key: 'TIER_1', label: 'Tier 1' },
 ];
-const TIER_STATUS: Record<EmployabilityTier, string> = {
-  TIER_1: 'Tier 1 eligible',
-  TIER_2: 'Tier 2 eligible',
-  TIER_3: 'Foundation track',
+// Private, informational status tag only — never gates job eligibility (that's
+// decided per job on the API). ≥80% Tier 1, 65–79% Tier 2, <65% Tier 3.
+// Colours: Tier 1 green (top performer), Tier 2 a "growth" pill, Tier 3 amber
+// "Action Required" — deliberately not red, to avoid demotivating students.
+const TIER_BADGE: Record<EmployabilityTier, { label: string; className: string; growth?: boolean }> = {
+  TIER_1: { label: 'Tier 1 Eligible', className: 'bg-success text-white' },
+  TIER_2: { label: 'Tier 2 Eligible', className: 'bg-white text-primary-700', growth: true },
+  TIER_3: { label: 'Action Required', className: 'bg-warning text-white' },
 };
 function tierLabel(tier: EmployabilityTier): string {
   return TIER_STEPS.find((t) => t.key === tier)?.label ?? 'the next tier';
@@ -58,13 +62,15 @@ function skillBand(pct: number | null): Band {
   if (pct < 80) return 'mid';
   return 'high';
 }
+// Amber (not red) for the weakest band — same anti-demotivation rule as the
+// tier badge.
 const SKILL_TEXT: Record<Band, string> = {
-  low: 'text-danger',
+  low: 'text-warning',
   mid: 'text-accent-600',
   high: 'text-success',
 };
 const SKILL_BAR: Record<Band, string> = {
-  low: 'bg-danger',
+  low: 'bg-warning',
   mid: 'bg-accent-500',
   high: 'bg-success',
 };
@@ -76,7 +82,20 @@ function skillCaption(p: PillarBreakdown, data: EmployabilityDashboard): string 
 }
 
 // ─── Roadmap copy ──────────────────────────────────────────────────────────
-const IMPROVEMENT_TARGET_BUMP = 15;
+// Points needed on the weakest pillar's next test to lift the overall index a
+// tier; rounded to a clean number and capped so it always looks achievable.
+const PILLAR_TARGET_BUMP = 13;
+function pillarTarget(current: number): number {
+  return Math.min(95, Math.round((current + PILLAR_TARGET_BUMP) / 5) * 5);
+}
+/** "top N%" band from the private dept rank — only claimed when genuinely elite. */
+function topBatchBucket(rank: number, total: number): number | null {
+  if (total <= 0 || rank <= 0) return null;
+  const pct = (rank / total) * 100;
+  if (pct <= 10) return 10;
+  if (pct <= 25) return 25;
+  return null;
+}
 
 interface Roadmap {
   headline: string;
@@ -85,44 +104,63 @@ interface Roadmap {
 }
 
 function buildRoadmap(data: EmployabilityDashboard): Roadmap {
-  const { tier, weakestPillar } = data;
-  const target =
-    weakestPillar != null ? Math.min(100, weakestPillar.percentage + IMPROVEMENT_TARGET_BUMP) : null;
+  const { tier, weakestPillar, deptRank } = data;
+  const weakLabel = weakestPillar
+    ? (SKILL_SHORT[weakestPillar.pillar] ?? weakestPillar.label)
+    : null;
   const improvementGoal =
-    weakestPillar && target != null
-      ? { pillarLabel: weakestPillar.label, current: weakestPillar.percentage, target }
+    weakestPillar != null && weakLabel != null
+      ? {
+          pillarLabel: weakLabel,
+          current: weakestPillar.percentage,
+          target: pillarTarget(weakestPillar.percentage),
+        }
       : null;
 
   if (tier === 'TIER_1') {
+    const bucket = topBatchBucket(deptRank.rank, deptRank.total);
+    const lead = bucket ? `You are in the top ${bucket}% of your batch! ` : '';
     return {
-      headline: "You're fully prepared — eligible for every campus drive.",
+      headline:
+        `${lead}You are fully prepared and eligible for Tier 1 (Core & High Package), Tier 2, ` +
+        `and Tier 3 campus drives.`,
       improvementGoal: null,
       actions: [
-        'Focus on advanced technical and domain mock interviews.',
-        'Maintain your attendance in the advanced training tracks.',
+        'Focus on advanced technical/domain mock interviews.',
+        'Maintain your high attendance in advanced training tracks.',
         'Keep your resume and LinkedIn profile updated for premium recruiters.',
       ],
     };
   }
+
   if (tier === 'TIER_2') {
+    const gap = data.gapToNextTier ?? Math.max(1, 80 - data.readinessIndex);
     return {
-      headline: 'Well-prepared for Tier 2 & Tier 3 drives.',
+      headline:
+        `You are well-prepared for Tier 2 and Tier 3 campus drives. You are only +${gap}% away ` +
+        `from unlocking Tier 1 eligibility status.`,
       improvementGoal,
       actions: [
         'Actively participate in all upcoming Tier 2 & Tier 3 campus drives.',
-        weakestPillar
-          ? `Complete the pending ${weakestPillar.label} practice modules to boost your score.`
+        weakLabel
+          ? `Complete the pending ${weakLabel} practice module to boost your score.`
           : 'Complete pending practice modules to boost your weakest pillar.',
       ],
     };
   }
+
+  const gap = data.gapToNextTier ?? Math.max(1, 65 - data.readinessIndex);
   return {
-    headline: 'Building your foundation — mandatory training sets up early job security.',
+    headline:
+      'Your focus now is early job security — mandatory foundation training builds your ' +
+      'fundamentals fast.',
     improvementGoal,
     actions: [
-      'Enroll in the mandatory Foundation Training track for your weakest pillar.',
+      weakLabel
+        ? `Enroll in the mandatory Foundation Training track for ${weakLabel}.`
+        : 'Enroll in the mandatory Foundation Training track for your weakest pillar.',
       'Prioritise early-placement and entry-level drives to secure a foundational offer.',
-      'Milestone goal: reach 65% overall readiness to unlock Tier 2 eligibility.',
+      `Milestone goal: reach 65% overall readiness (+${gap}%) to unlock Tier 2 eligibility.`,
     ],
   };
 }
@@ -222,8 +260,11 @@ export default function MyEmployabilityPage() {
             <p className="mt-1 text-sm text-white/80">
               Dept. rank #{data.deptRank.rank} of {data.deptRank.total} · visible only to you
             </p>
-            <span className="mt-3 inline-flex items-center rounded-pill border border-white/40 px-3 py-1 text-xs font-semibold">
-              {TIER_STATUS[data.tier]}
+            <span
+              className={`mt-3 inline-flex items-center gap-1 rounded-pill px-3 py-1 text-xs font-bold ${TIER_BADGE[data.tier].className}`}
+            >
+              {TIER_BADGE[data.tier].growth && <UpIcon />}
+              {TIER_BADGE[data.tier].label}
             </span>
           </div>
         </div>
@@ -251,11 +292,9 @@ export default function MyEmployabilityPage() {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tint-accent text-tint-accent-fg">
               <CompassIcon />
             </span>
-            <div>
-              <p className="text-base font-bold text-strong">Your placement roadmap</p>
-              <p className="text-xs text-subtle">{roadmap.headline}</p>
-            </div>
+            <p className="text-base font-bold text-strong">Your placement roadmap</p>
           </div>
+          <p className="text-sm leading-relaxed text-body">{roadmap.headline}</p>
 
           <TierStepper tier={data.tier} />
 
@@ -271,7 +310,15 @@ export default function MyEmployabilityPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-tint-cream-fg">
                 {roadmap.improvementGoal.pillarLabel} focus
               </p>
-              <p className="mt-1 text-sm text-body">Score this on your next test to level up.</p>
+              <p className="mt-1 text-sm text-body">
+                Your current {roadmap.improvementGoal.pillarLabel} score is{' '}
+                {roadmap.improvementGoal.current}%. Score {roadmap.improvementGoal.target}%+ on your
+                next test to upgrade your overall status to{' '}
+                <span className="font-semibold text-strong">
+                  {data.tier === 'TIER_2' ? 'Tier 1 Eligible' : 'Tier 2 Eligible'}
+                </span>
+                .
+              </p>
               <div className="mt-3 flex items-center gap-3">
                 <div>
                   <p className="text-2xl font-extrabold text-subtle">{roadmap.improvementGoal.current}%</p>
