@@ -9,6 +9,8 @@ import {
   type Application,
 } from '../../../lib/applications';
 import { getOwnStudent, setPlacementRegistration, type Student } from '../../../lib/students';
+import { formatCtc, getJobFeed, type Job } from '../../../lib/jobs';
+import { getMyDashboard, type EmployabilityDashboard, type EmployabilityTier } from '../../../lib/training';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useApi, mutate } from '../../../lib/use-api';
 
@@ -36,43 +38,24 @@ function tintForName(name: string): Tint {
   return AVATAR_TINTS[hash % AVATAR_TINTS.length]!;
 }
 
-interface NextInterview {
-  when: Date;
-  roundName: string;
-  jobTitle: string;
-  company: string;
-  mode: string | null;
-}
+const TIER_NUMBER: Record<EmployabilityTier, number> = { TIER_1: 1, TIER_2: 2, TIER_3: 3 };
+const DAY_MS = 86_400_000;
 
-/** Earliest scheduled, still-pending interview across all applications. */
-function findNextInterview(apps: Application[]): NextInterview | null {
-  const now = Date.now();
-  const upcoming: NextInterview[] = [];
-  for (const a of apps) {
-    for (const r of a.interviews) {
-      if (!r.scheduledAt || r.result !== 'PENDING') continue;
-      const when = new Date(r.scheduledAt);
-      if (when.getTime() < now) continue;
-      upcoming.push({
-        when,
-        roundName: r.roundName,
-        jobTitle: a.job.title,
-        company: a.job.company.name,
-        mode: r.mode,
-      });
-    }
-  }
-  upcoming.sort((x, y) => x.when.getTime() - y.when.getTime());
-  return upcoming[0] ?? null;
+function jobIsOpen(j: Job): boolean {
+  if (j.status === 'CLOSED') return false;
+  if (j.applicationDeadline && new Date(j.applicationDeadline).getTime() < Date.now()) return false;
+  return true;
 }
-
-const fmtDateTime = (d: Date) =>
-  d.toLocaleString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+function deadlineTime(j: Job): number {
+  return j.applicationDeadline ? new Date(j.applicationDeadline).getTime() : Number.MAX_SAFE_INTEGER;
+}
+function postedWithin24h(j: Job): boolean {
+  const t = j.publishedAt ?? j.createdAt;
+  return t != null && Date.now() - new Date(t).getTime() < DAY_MS;
+}
+function titleCase(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
 
 export default function StudentHome() {
   const { data: student } = useApi<Student>('/student/me', getOwnStudent);
@@ -80,91 +63,79 @@ export default function StudentHome() {
     '/student/applications',
     listMyApplications,
   );
+  const { data: dashboard } = useApi<EmployabilityDashboard>('/me/training/dashboard', getMyDashboard);
+  const { data: jobFeed } = useApi<Job[]>('/student/job-feed', getJobFeed);
 
   if (appsLoading || !apps) return <ListSkeleton />;
 
-  const firstName = student?.user.fullName?.split(' ')[0] ?? 'there';
-  // Driven by the funnel `status` (APPLIED/IN_PROGRESS/SELECTED/REJECTED/
-  // WITHDRAWN), not the detailed ATS `stage` — a job with an offer already
-  // extended (stage OFFER_RELEASED/OFFER_ACCEPTED) isn't "in progress" by
-  // stage's TERMINAL list, so it double-counted here while Placement
-  // Tracker's status-based funnel correctly called it Selected. Matching the
-  // same field both places is what fixes "0 in progress but 3 selected".
-  // Still-pending applications (rounds open, no outcome yet) — used only to
-  // prioritize the "Your applications" preview list below, most-actionable
-  // first. The "Applied" stat tile means something different: every
-  // application submitted (== apps.length), same as Placement Tracker's
-  // funnel — keeping the two screens on one definition is what avoids
-  // this exact "Applied: 0 but Selected: 3" mismatch recurring.
+  // Still-pending applications, most-actionable first — drives the "Continue
+  // application" card and the "Your applications" preview list.
   const active = apps.filter((a) => a.status === 'APPLIED' || a.status === 'IN_PROGRESS');
-  const offers = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
-  // Same formula as Placement Tracker's "Interviews scheduled" tile — used
-  // here instead of a second "Applied" tile, which would just duplicate the
-  // "Applications" count above it now that Applied means the funnel total.
-  const interviewsScheduled = apps.reduce(
-    (n, a) => n + a.interviews.filter((r) => r.result === 'PENDING' && r.scheduledAt).length,
-    0,
-  );
-  const nextInterview = findNextInterview(apps);
+  const continueApp = active[0] ?? null;
+
   const completion = student?.profileCompletion ?? 0;
-  const incompleteSteps = student?.profileSteps?.filter((s) => s.percentage < 100) ?? [];
-  const nextStepLabel = incompleteSteps[0]?.label;
+  const nextStepLabel = student?.profileSteps?.find((s) => s.percentage < 100)?.label;
   const showProfileNudge =
     !!student && (completion < 100 || student.verificationStatus !== 'VERIFIED');
   const showRegisterNudge =
     !!student && student.verificationStatus === 'VERIFIED' && !student.registeredForPlacements;
 
+  const feed = jobFeed ?? [];
+  const openForMe = feed.filter((j) => jobIsOpen(j) && !j.applied && j.eligible !== false);
+  const recommended = [...openForMe].sort((a, b) => deadlineTime(a) - deadlineTime(b)).slice(0, 2);
+  const newTodayCount = feed.filter(postedWithin24h).length;
+
+  const readiness = dashboard?.readinessIndex ?? null;
+  const tierNum = dashboard ? TIER_NUMBER[dashboard.tier] : null;
+
   return (
     <div className="space-y-6">
-      {/* Slim greeting pill — the college name/bell already live in the brand
-          header above this page, so this is just the personal "you're
-          signed in" touch, not a second header row. */}
-      <div className="animate-rise flex h-11 items-center rounded-pill bg-gradient-brand px-5 text-sm font-semibold text-white shadow-nav">
-        Welcome back, {firstName}
-      </div>
+      {/* Search — a tap-through to the jobs feed styled as a search field */}
+      <Link
+        href="/me/jobs"
+        className="press flex h-12 items-center gap-2.5 rounded-pill bg-white px-4 text-sm text-subtle shadow-card"
+      >
+        <SearchIcon />
+        Search companies, roles…
+      </Link>
 
-      {/* Offers-accepted congrats — only when there's something to celebrate */}
-      {offers.length > 0 && (
+      {/* My readiness hero — big number + tap-through to the roadmap */}
+      {readiness != null && (
         <Link
-          href="/me/applications"
-          className="press flex items-center gap-3 rounded-2xl bg-tint-mint p-4 text-tint-mint-fg"
+          href="/me/training"
+          className="press relative block overflow-hidden rounded-card bg-gradient-brand p-5 text-white shadow-nav"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-lg">
-            🎉
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold">
-              {offers.length} {offers.length === 1 ? 'offer' : 'offers'} accepted!
-            </p>
-            <p className="text-xs opacity-90">You&apos;re ahead of most of your batch — nice work.</p>
+          <div
+            className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%)' }}
+          />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                My readiness
+              </p>
+              <p className="mt-1 text-2xl font-extrabold">{readiness}% Ready</p>
+              <p className="mt-1 text-xs text-white/80">
+                {tierNum ? `Tier ${tierNum} eligible · ` : ''}tap to view roadmap
+              </p>
+            </div>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
+              <ChevronRightIcon />
+            </span>
           </div>
-          <ChevronRightIcon />
         </Link>
       )}
 
-      {/* Stat row — icon-in-circle + big number + label, no card chrome */}
-      <div className="flex items-center justify-around rounded-2xl bg-white p-4 shadow-card">
-        <StatCol icon={<DocIcon />} value={apps.length} label="Applications" />
-        <div className="h-10 w-px bg-border" />
-        <StatCol icon={<CalendarIcon />} value={interviewsScheduled} label="Interviews" />
-        <div className="h-10 w-px bg-border" />
-        <StatCol icon={<CheckIcon />} value={offers.length} label="Selected" />
+      {/* Quick launch — four circular shortcuts */}
+      <div className="flex items-start justify-between px-1">
+        <QuickIcon href="/me/jobs" tint="cream" icon={<BriefcaseIcon />} label="Jobs" />
+        <QuickIcon href="/me/training" tint="mint" icon={<TrendUpIcon />} label="Employability" />
+        <QuickIcon href="/me/placement" tint="lavender" icon={<FunnelIcon />} label="Tracker" />
+        <QuickIcon href="/me/placement-policy" tint="cream" icon={<DocIcon />} label="Policy" />
       </div>
 
-      {/* Quick launch — white cards with a small pastel icon square on top and
-          eyebrow/title below, back in a 2-column grid. The icon now sits
-          above the text instead of beside it, so a long title like
-          "Employability" has the card's full width to wrap into — no more
-          icon/text collision. */}
-      <div className="grid grid-cols-2 gap-3">
-        <FeatureCard href="/me/jobs" tint="cream" icon={<BriefcaseIcon />} eyebrow="Discover" title="Browse jobs" />
-        <FeatureCard href="/me/training" tint="mint" icon={<ChartIcon />} eyebrow="Track" title="Employability" />
-        <FeatureCard href="/me/placement" tint="lavender" icon={<TrackIcon />} eyebrow="Follow" title="Tracker" />
-        <FeatureCard href="/me/placement-policy" tint="cream" icon={<DocIcon />} eyebrow="Review" title="Policy" />
-      </div>
-
-      {/* Profile / verification nudge */}
-      {showProfileNudge && (
+      {/* Profile / verification nudge — only while something's outstanding */}
+      {showProfileNudge && student && (
         <Link href="/me/profile/edit" className="block">
           <Card className="press space-y-3 p-5">
             <div className="flex items-center gap-3">
@@ -173,11 +144,11 @@ export default function StudentHome() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-strong">
-                  {student!.verificationStatus === 'VERIFIED'
+                  {student.verificationStatus === 'VERIFIED'
                     ? 'Complete your profile'
-                    : student!.verificationStatus === 'SUBMITTED'
+                    : student.verificationStatus === 'SUBMITTED'
                       ? 'Profile submitted — awaiting verification'
-                      : student!.verificationStatus === 'REJECTED'
+                      : student.verificationStatus === 'REJECTED'
                         ? 'Profile needs changes'
                         : 'Get your profile verified'}
                 </p>
@@ -185,13 +156,10 @@ export default function StudentHome() {
               <span className="shrink-0 text-xs font-semibold text-tint-cream-fg">{completion}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-pill bg-app">
-              <div
-                className="h-full rounded-pill bg-gradient-accent"
-                style={{ width: `${completion}%` }}
-              />
+              <div className="h-full rounded-pill bg-gradient-accent" style={{ width: `${completion}%` }} />
             </div>
             <p className="text-xs text-subtle">
-              {student!.verificationStatus === 'VERIFIED'
+              {student.verificationStatus === 'VERIFIED'
                 ? nextStepLabel
                   ? `Next up: ${nextStepLabel}`
                   : 'A complete profile makes you eligible for more roles.'
@@ -201,60 +169,62 @@ export default function StudentHome() {
         </Link>
       )}
 
-      {/* Placement cycle opt-in — separate from profile verification */}
       {showRegisterNudge && <RegisterForPlacementsCard />}
 
-      {/* Next interview hero */}
-      {nextInterview ? (
-        <div className="relative overflow-hidden rounded-card bg-gradient-brand p-5 text-white shadow-nav">
-          <div
-            className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 70%)' }}
-          />
-          <div className="relative">
-            <p className="text-xs/relaxed opacity-90">
-              Next interview · {fmtDateTime(nextInterview.when)}
-            </p>
-            <h2 className="mt-1 text-xl font-semibold">
-              {nextInterview.jobTitle} — {nextInterview.roundName}
-            </h2>
-            <p className="mt-3 text-sm opacity-90">
-              {nextInterview.company}
-              {nextInterview.mode ? ` · ${nextInterview.mode}` : ''}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 rounded-card bg-white p-5 shadow-card">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg">
-            <CalendarIcon />
+      {/* Continue application · New jobs today */}
+      <div className="grid grid-cols-2 gap-3">
+        {continueApp && (
+          <Link
+            href="/me/applications"
+            className="press flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card"
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-tint-cream text-tint-cream-fg">
+              <BriefcaseIcon />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-strong">Continue application</p>
+              <p className="mt-0.5 truncate text-xs text-subtle">{continueApp.job.title}</p>
+            </div>
+          </Link>
+        )}
+        <Link
+          href="/me/jobs"
+          className={`press flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ${
+            continueApp ? '' : 'col-span-2'
+          }`}
+        >
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-tint-mint text-tint-mint-fg">
+            <StarIcon />
           </span>
-          <div>
-            <p className="text-sm font-semibold text-strong">No interviews scheduled</p>
-            <p className="mt-1 text-xs text-subtle">
-              Keep applying — scheduled rounds will show up here.
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-strong">New jobs today</p>
+            <p className="mt-0.5 truncate text-xs text-subtle">
+              {newTodayCount > 0
+                ? `${newTodayCount} new role${newTodayCount === 1 ? '' : 's'} posted`
+                : 'Browse all openings'}
             </p>
           </div>
-        </div>
+        </Link>
+      </div>
+
+      {/* Recommended for you */}
+      {recommended.length > 0 && (
+        <section className="space-y-3">
+          <SectionHead title="Recommended for you" href="/me/jobs" />
+          <div className="grid grid-cols-2 gap-3">
+            {recommended.map((j, i) => (
+              <RecommendedJobCard key={j.id} job={j} accent={i === 0 ? 'brand' : 'accent'} />
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Active applications */}
+      {/* Your applications */}
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-semibold text-strong">
-            <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
-            Your applications
-          </h3>
-          {apps.length > 0 && (
-            <Link href="/me/applications" className="text-sm text-primary-600">
-              See all
-            </Link>
-          )}
-        </div>
-
+        <SectionHead title="Your applications" href={apps.length > 0 ? '/me/applications' : undefined} />
         {apps.length === 0 ? (
           <Card className="space-y-2 p-6 text-center">
-            <p className="text-sm text-subtle">You haven't applied to any jobs yet.</p>
+            <p className="text-sm text-subtle">You haven&apos;t applied to any jobs yet.</p>
             <Link href="/me/jobs" className="text-sm font-medium text-primary-600">
               Browse jobs →
             </Link>
@@ -264,27 +234,25 @@ export default function StudentHome() {
             const companyTint = tintForName(a.job.company.name);
             return (
               <Link key={a.id} href="/me/applications" className="block">
-                <Card className="p-4 transition hover:shadow-nav">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${TINT_BG[companyTint]} ${TINT_FG[companyTint]}`}
-                      >
-                        {a.job.company.name.charAt(0).toUpperCase()}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-strong">{a.job.title}</p>
-                        <p className="truncate text-xs text-subtle">{a.job.company.name}</p>
-                      </div>
-                    </div>
-                    <Badge
-                      tint={applicationStatusBadge(a.status).tint}
-                      size="sm"
-                      className="shrink-0 uppercase tracking-wide"
+                <Card className="flex items-center justify-between gap-3 p-4 transition hover:shadow-nav">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${TINT_BG[companyTint]} ${TINT_FG[companyTint]}`}
                     >
-                      {applicationStatusBadge(a.status).label}
-                    </Badge>
+                      {a.job.company.name.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-strong">{a.job.title}</p>
+                      <p className="truncate text-xs text-subtle">{a.job.company.name}</p>
+                    </div>
                   </div>
+                  <Badge
+                    tint={applicationStatusBadge(a.status).tint}
+                    size="sm"
+                    className="shrink-0 uppercase tracking-wide"
+                  >
+                    {applicationStatusBadge(a.status).label}
+                  </Badge>
                 </Card>
               </Link>
             );
@@ -292,6 +260,83 @@ export default function StudentHome() {
         )}
       </section>
     </div>
+  );
+}
+
+function SectionHead({ title, href }: { title: string; href?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <h3 className="flex items-center gap-2 text-lg font-semibold text-strong">
+        <span className="h-4 w-1.5 rounded-full bg-gradient-brand" />
+        {title}
+      </h3>
+      {href && (
+        <Link href={href} className="text-sm font-semibold text-accent-600">
+          See all
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function QuickIcon({
+  href,
+  tint,
+  icon,
+  label,
+}: {
+  href: string;
+  tint: Tint;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <Link href={href} className="press flex w-16 flex-col items-center gap-1.5 text-center">
+      <span className={`flex h-14 w-14 items-center justify-center rounded-full ${TINT_BG[tint]} ${TINT_FG[tint]}`}>
+        {icon}
+      </span>
+      <span className="text-[11px] font-medium text-body">{label}</span>
+    </Link>
+  );
+}
+
+function RecommendedJobCard({ job, accent }: { job: Job; accent: 'brand' | 'accent' }) {
+  const daysLeft = job.applicationDeadline
+    ? Math.ceil((new Date(job.applicationDeadline).getTime() - Date.now()) / DAY_MS)
+    : null;
+  const badge =
+    daysLeft != null && daysLeft >= 0 && daysLeft <= 7
+      ? `Closes in ${daysLeft}d`
+      : postedWithin24h(job)
+        ? 'New'
+        : null;
+  const company = job.company?.name ?? job.companyName ?? 'Company';
+  const ctc = formatCtc(job.ctcMin, job.ctcMax);
+  const payLine = [ctc !== 'Not disclosed' ? ctc : null, job.workMode ? titleCase(job.workMode) : job.location]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <Link
+      href={`/me/jobs/${job.id}`}
+      className="press flex flex-col overflow-hidden rounded-2xl bg-white shadow-card"
+    >
+      <div className={`relative p-3 ${accent === 'brand' ? 'bg-gradient-brand' : 'bg-gradient-accent'}`}>
+        {badge && (
+          <span className="absolute right-2 top-2 rounded-pill bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-strong">
+            {badge}
+          </span>
+        )}
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-sm font-bold text-strong">
+          {company.charAt(0).toUpperCase()}
+        </span>
+      </div>
+      <div className="min-w-0 p-3">
+        <p className="truncate text-sm font-bold text-strong">{job.title}</p>
+        <p className="truncate text-xs text-subtle">{company}</p>
+        {payLine && <p className="mt-1 truncate text-[11px] text-subtle">{payLine}</p>}
+      </div>
+    </Link>
   );
 }
 
@@ -316,7 +361,7 @@ function RegisterForPlacementsCard() {
     <Card className="space-y-3 border border-primary-200 bg-primary-50 p-5">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-primary-600">
-          <TrackIcon />
+          <FunnelIcon />
         </span>
         <div>
           <p className="text-sm font-semibold text-strong">Register for placements</p>
@@ -335,54 +380,6 @@ function RegisterForPlacementsCard() {
   );
 }
 
-/** Icon-in-neutral-circle above a big number, label below — no card tint,
- * matches the reference app's Profile stat row exactly. */
-function StatCol({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-app text-subtle">
-        {icon}
-      </span>
-      <p className="text-xl font-bold text-strong">{value}</p>
-      <p className="text-[11px] font-medium text-subtle">{label}</p>
-    </div>
-  );
-}
-
-/** White quick-launch card — small pastel icon square on top, eyebrow +
- * bold title below. Icon-over-text (not icon-beside-text) so a long title
- * always has the full card width to wrap into. */
-function FeatureCard({
-  href,
-  tint,
-  icon,
-  eyebrow,
-  title,
-  className = '',
-}: {
-  href: string;
-  tint: Tint;
-  icon: React.ReactNode;
-  eyebrow: string;
-  title: string;
-  className?: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`press flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-card ${className}`}
-    >
-      <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${TINT_BG[tint]} ${TINT_FG[tint]}`}>
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-subtle">{eyebrow}</p>
-        <p className="mt-0.5 break-words text-sm font-extrabold text-strong">{title}</p>
-      </div>
-    </Link>
-  );
-}
-
 const iconProps = {
   viewBox: '0 0 24 24',
   fill: 'none',
@@ -391,18 +388,28 @@ const iconProps = {
   className: 'h-5 w-5',
 } as const;
 
-function ChartIcon() {
+function SearchIcon() {
   return (
     <svg {...iconProps}>
-      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
     </svg>
   );
 }
 
-function TrackIcon() {
+function TrendUpIcon() {
   return (
     <svg {...iconProps}>
-      <path d="M3 5h18M6 12h12M10 19h4" strokeLinecap="round" />
+      <path d="M3 17l6-6 4 4 8-8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 7h6v6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FunnelIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -416,23 +423,6 @@ function DocIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg {...iconProps}>
-      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg {...iconProps}>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function BriefcaseIcon() {
   return (
     <svg {...iconProps}>
@@ -442,10 +432,13 @@ function BriefcaseIcon() {
   );
 }
 
-function ChevronRightIcon() {
+function StarIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4 shrink-0">
-      <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg {...iconProps}>
+      <path
+        d="m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 21.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -455,6 +448,14 @@ function UserIcon() {
     <svg {...iconProps}>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M4.5 20c0-3.6 3.4-6.5 7.5-6.5s7.5 2.9 7.5 6.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4 shrink-0">
+      <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
