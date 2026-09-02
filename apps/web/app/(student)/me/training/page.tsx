@@ -37,9 +37,11 @@ const TIER_BADGE: Record<EmployabilityTier, { label: string; className: string; 
 function tierLabel(tier: EmployabilityTier): string {
   return TIER_STEPS.find((t) => t.key === tier)?.label ?? 'the next tier';
 }
+/** The tier one step *up* from the current one — TIER_STEPS runs worst→best,
+ *  so that's the next index, not the previous. Null at the top (Tier 1). */
 function nextTierLabel(tier: EmployabilityTier): string | null {
   const idx = TIER_STEPS.findIndex((t) => t.key === tier);
-  return idx > 0 ? TIER_STEPS[idx - 1]!.label : null;
+  return idx >= 0 && idx < TIER_STEPS.length - 1 ? TIER_STEPS[idx + 1]!.label : null;
 }
 
 // ─── Skill breakdown styling ───────────────────────────────────────────────
@@ -301,7 +303,7 @@ export default function MyEmployabilityPage() {
           {unlockLabel && data.gapToNextTier != null && (
             <div className="flex items-center justify-center gap-2 rounded-xl bg-tint-cream px-4 py-3 text-sm font-semibold text-tint-cream-fg">
               <UpIcon />
-              +{data.gapToNextTier}% readiness to unlock {unlockLabel}
+              Just {data.gapToNextTier}% more to reach {unlockLabel}
             </div>
           )}
 
