@@ -4,7 +4,15 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Card } from '@campusgo/ui';
-import { applyToJob, formatCtc, formatLpa, getJob, type Job } from '../../../../../lib/jobs';
+import {
+  applyToJob,
+  formatCtc,
+  formatLpa,
+  getJob,
+  jobLifecycle,
+  jobLifecycleTint,
+  type Job,
+} from '../../../../../lib/jobs';
 import {
   applicationStatusBadge,
   listMyApplications,
@@ -116,6 +124,16 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold leading-tight text-strong">{job.title}</h1>
           <p className="text-sm text-subtle">{company}</p>
+          <span className="mt-1.5 inline-flex">
+            {(() => {
+              const lc = jobLifecycle(job);
+              return (
+                <Badge tint={jobLifecycleTint(lc)} size="sm">
+                  {lc}
+                </Badge>
+              );
+            })()}
+          </span>
         </div>
         {applied && st && (
           <Badge tint={st.tint} size="sm">

@@ -22,7 +22,9 @@ export class CreateRoundDto {
   @IsOptional() @IsString() description?: string;
   @EmptyToUndefined() @IsOptional() @IsString() venue?: string;
   @EmptyToUndefined() @IsOptional() @IsString() reportingInstructions?: string;
-  @EmptyToUndefined() @IsOptional() @IsDateString() scheduledAt?: string;
+  // Every round carries a schedule — students need to know when to show up,
+  // and the date feeds the Placement Dashboard's Active Drives.
+  @IsDateString() scheduledAt!: string;
 }
 
 export class UpdateRoundDto {

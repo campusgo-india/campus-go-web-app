@@ -699,7 +699,7 @@ export class JobsService {
 
     const publishedJobs = await this.prisma.job.findMany({
       where: { status: 'PUBLISHED', ...this.visibleToCollege(student.collegeId) },
-      include: { company: true },
+      include: { company: true, _count: { select: { applications: true, rounds: true } } },
       orderBy: { publishedAt: 'desc' },
     });
 
@@ -707,7 +707,7 @@ export class JobsService {
     // archived postings under the "Closed" category.
     const closedJobs = await this.prisma.job.findMany({
       where: { status: 'CLOSED', ...this.visibleToCollege(student.collegeId) },
-      include: { company: true },
+      include: { company: true, _count: { select: { applications: true, rounds: true } } },
       orderBy: { closedAt: 'desc' },
     });
 
@@ -730,6 +730,14 @@ export class JobsService {
     });
     const appliedMap = new Map(myApps.map((a) => [a.jobId, a.stage]));
 
+    // Selected-per-job → drives the "Completed" lifecycle label on the student feed.
+    const selectedByJob = await this.prisma.application.groupBy({
+      by: ['jobId'],
+      where: { jobId: { in: jobs.map((j) => j.id) }, status: 'SELECTED' },
+      _count: { _all: true },
+    });
+    const selectedCountById = new Map(selectedByJob.map((s) => [s.jobId, s._count._all]));
+
     // Only surface jobs that match the student's hard criteria (school, graduation
     // year). Jobs the student has already applied to are always shown so they can
     // track their applications even if a criteria changes later.
@@ -740,7 +748,7 @@ export class JobsService {
     return visibleJobs.map((j) => {
       const { eligible, reasons } = checkApplyEligibility(me, toEligibilityJob(j));
       return {
-        ...this.publicJob(j),
+        ...this.publicJob(j, { selectedCount: selectedCountById.get(j.id) ?? 0 }),
         eligible,
         eligibilityReasons: reasons,
         applied: appliedMap.has(j.id),
@@ -779,7 +787,7 @@ export class JobsService {
     const student = await this.studentForUser(userId);
     const jobRow = await this.prisma.job.findFirst({
       where: { id: jobId, ...this.visibleToCollege(student.collegeId) },
-      include: { company: true, _count: { select: { rounds: true } } },
+      include: { company: true, _count: { select: { rounds: true, applications: true } } },
     });
     if (!jobRow) throw new NotFoundException('Job not found');
     const { _count, ...job } = jobRow;
@@ -787,6 +795,10 @@ export class JobsService {
     const app = await this.prisma.application.findUnique({
       where: { jobId_studentId: { jobId, studentId: student.id } },
       select: { stage: true },
+    });
+
+    const selectedCount = await this.prisma.application.count({
+      where: { jobId, status: 'SELECTED' },
     });
 
     // Students can view published jobs, or closed jobs they applied to.
@@ -801,7 +813,7 @@ export class JobsService {
     );
 
     return {
-      ...this.publicJob(job),
+      ...this.publicJob({ ...job, _count }, { selectedCount }),
       eligible,
       eligibilityReasons: reasons,
       applied: !!app,

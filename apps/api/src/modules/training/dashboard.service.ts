@@ -40,6 +40,10 @@ export interface PillarScoreRow {
   marksObtained: number;
   pillar: TrainingPillar;
   maxMarks: number;
+  // 'PRE' (baseline) or 'POST' (after training). Optional so older callers
+  // still compile; when present, POST scores define a pillar's readiness and
+  // its PRE scores are ignored (readiness = where you are *now*).
+  phase?: 'PRE' | 'POST';
 }
 
 interface ScoredPillar {
@@ -55,9 +59,17 @@ interface ScoredPillar {
  * no scores yet is excluded from the average rather than counted as 0.
  */
 export function computeReadiness(rows: PillarScoreRow[]) {
+  // If a pillar has any POST score, its readiness is the POST average alone —
+  // PRE is a baseline, not "where you are now". Pillars with only PRE scores
+  // fall back to those.
+  const pillarsWithPost = new Set(
+    rows.filter((r) => r.phase === 'POST' && r.maxMarks > 0).map((r) => r.pillar),
+  );
+
   const byPillar = new Map<TrainingPillar, number[]>();
   for (const r of rows) {
     if (r.maxMarks <= 0) continue;
+    if (pillarsWithPost.has(r.pillar) && r.phase !== 'POST') continue;
     const pct = (r.marksObtained / r.maxMarks) * 100;
     const list = byPillar.get(r.pillar) ?? [];
     list.push(pct);
@@ -194,6 +206,7 @@ export class TrainingDashboardService {
         marksObtained: Number(s.marksObtained),
         pillar: s.assessment.pillar,
         maxMarks: s.assessment.maxMarks,
+        phase: s.assessment.phase,
       });
       scoresByStudent.set(s.studentId, list);
     }
@@ -307,13 +320,14 @@ export class TrainingDashboardService {
 
     const scores = await this.prisma.assessmentScore.findMany({
       where: { studentId },
-      include: { assessment: { select: { pillar: true, maxMarks: true } } },
+      include: { assessment: { select: { pillar: true, maxMarks: true, phase: true } } },
     });
     const { pillars, readinessIndex, scoredPillars } = computeReadiness(
       scores.map((s) => ({
         marksObtained: Number(s.marksObtained),
         pillar: s.assessment.pillar,
         maxMarks: s.assessment.maxMarks,
+        phase: s.assessment.phase,
       })),
     );
 
@@ -335,7 +349,11 @@ export class TrainingDashboardService {
     const cohortIds = cohort.map((c) => c.id);
     const cohortScores = await this.prisma.assessmentScore.findMany({
       where: { studentId: { in: cohortIds } },
-      select: { studentId: true, marksObtained: true, assessment: { select: { pillar: true, maxMarks: true } } },
+      select: {
+        studentId: true,
+        marksObtained: true,
+        assessment: { select: { pillar: true, maxMarks: true, phase: true } },
+      },
     });
     const scoresByStudent = new Map<string, typeof cohortScores>();
     for (const s of cohortScores) {
@@ -351,6 +369,7 @@ export class TrainingDashboardService {
             marksObtained: Number(s.marksObtained),
             pillar: s.assessment.pillar,
             maxMarks: s.assessment.maxMarks,
+            phase: s.assessment.phase,
           })),
         ).readinessIndex,
       }))

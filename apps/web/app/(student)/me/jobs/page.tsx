@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge, Card } from '@campusgo/ui';
-import { applyToJob, getJobFeed, type Job } from '../../../../lib/jobs';
+import { applyToJob, getJobFeed, jobLifecycle, jobLifecycleTint, type Job } from '../../../../lib/jobs';
 import { mutate } from '../../../../lib/use-api';
 import { PdfModal } from '../../../../components/pdf-modal';
 import { JobCard } from '../../../../components/job-card';
@@ -217,13 +217,15 @@ export default function StudentJobsPage() {
                 job={j}
                 delay={i * 60}
                 onOpen={() => router.push(`/me/jobs/${j.id}`)}
-                topRight={
-                  j.applied ? (
-                    <Badge tint="mint">{j.myStage ?? 'Applied'}</Badge>
-                  ) : closed ? (
-                    <Badge tint="lavender">Closed</Badge>
-                  ) : undefined
-                }
+                topRight={(() => {
+                  const lc = jobLifecycle(j);
+                  return (
+                    <span className="flex flex-wrap justify-end gap-1">
+                      <Badge tint={jobLifecycleTint(lc)}>{lc}</Badge>
+                      {j.applied && <Badge tint="mint">{j.myStage ?? 'Applied'}</Badge>}
+                    </span>
+                  );
+                })()}
                 footer={
                   j.applied ? (
                     <button

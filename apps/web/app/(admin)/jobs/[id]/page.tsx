@@ -271,6 +271,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-app/40 px-6 py-4">
           <div className="flex flex-wrap gap-6">
             <Stat label="Applicants" value={String(job.applicationCount ?? 0)} />
+            {!isPlatform && (
+              <Stat
+                label="Eligible"
+                value={eligible == null ? '…' : String(eligible.length)}
+                onClick={() => {
+                  setShowEligible(true);
+                  document
+                    .getElementById('eligible-students')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              />
+            )}
             <Stat
               label="Deadline"
               value={
@@ -328,7 +340,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </Card>
 
           {!isPlatform && (
-            <Card className="space-y-3 p-5">
+            <Card id="eligible-students" className="scroll-mt-4 space-y-3 p-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-strong">
                   Eligible students
@@ -504,12 +516,30 @@ function EmployerFeedbackCard({ jobId }: { jobId: string }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
+function Stat({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
       <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">{label}</p>
-      <p className="text-base font-semibold text-strong">{value}</p>
-    </div>
+      <p className={`text-base font-semibold ${onClick ? 'text-primary-600' : 'text-strong'}`}>
+        {value}
+        {onClick && <span className="ml-0.5 text-xs">→</span>}
+      </p>
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className="text-left hover:opacity-80">
+      {body}
+    </button>
+  ) : (
+    <div>{body}</div>
   );
 }
 

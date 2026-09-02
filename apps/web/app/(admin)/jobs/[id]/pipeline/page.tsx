@@ -1044,9 +1044,7 @@ function AddRoundForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1">
-          <span className="text-xs font-medium text-subtle">
-            Date &amp; time {nextLabel === 'Round 1' ? '*' : '(optional)'}
-          </span>
+          <span className="text-xs font-medium text-subtle">Date &amp; time *</span>
           <input
             type="datetime-local"
             className={cls}
@@ -1101,7 +1099,7 @@ function AddRoundForm({
             })
           }
           loading={busy}
-          disabled={nextLabel === 'Round 1' && !when}
+          disabled={!when}
         >
           Add round
         </Button>

@@ -146,37 +146,65 @@ export class ApplicationsService {
     return apps.map((a) => this.publicApplication(a));
   }
 
-  // A selected student attaches their own offer letter (and the CTC on it) —
-  // the officer selects the candidate first, then the student uploads the
-  // letter they received. One-time upload: the student can't replace it once
-  // it's on file (the officer still can, from the pipeline). A later call may
-  // add/correct the CTC.
+  // A student attaches their own offer letter (and the CTC on it). Most offers
+  // reach the student's inbox before the officer records them, so uploading
+  // the letter *is* the offer: if the application isn't already SELECTED, this
+  // marks it SELECTED / stage OFFER_ACCEPTED (with a history entry) so it
+  // shows up in every "Offers" / placement count — the same end state as an
+  // officer placing the student, minus the "job filled, auto-reject everyone
+  // else" cascade and the college "you're selected" email.
+  //
+  // One-time upload: the student can't replace the letter once it's on file
+  // (the officer still can, from the pipeline). A later call may add/correct
+  // the CTC.
   async setOwnOfferLetter(
     userId: string,
     applicationId: string,
     offerLetterUrl?: string,
     offerCtc?: number,
   ) {
-    if (offerLetterUrl == null && offerCtc == null) {
-      throw new BadRequestException('Provide an offer letter, a CTC, or both.');
-    }
     const student = await this.studentForUser(userId);
     const app = await this.prisma.application.findFirst({
       where: { id: applicationId, studentId: student.id },
     });
     if (!app) throw new NotFoundException('Application not found');
-    if (app.status !== 'SELECTED') {
-      throw new BadRequestException('Only a selected application can have an offer letter attached.');
+    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
+      throw new BadRequestException('This application is closed — an offer letter can’t be attached.');
     }
     if (offerLetterUrl != null && app.offerLetterUrl != null) {
       throw new BadRequestException('An offer letter is already on file and can’t be replaced.');
     }
+    // Empty call is allowed only to confirm a letter that's already on file
+    // but hasn't been recorded as an offer yet.
+    const confirmingExisting = app.offerLetterUrl != null && app.status !== 'SELECTED';
+    if (offerLetterUrl == null && offerCtc == null && !confirmingExisting) {
+      throw new BadRequestException('Provide an offer letter, a CTC, or both.');
+    }
+
+    // Any offer letter on the application (new or already uploaded) that isn't
+    // yet recorded as a placement → record it now.
+    const recordsOffer =
+      app.status !== 'SELECTED' && (offerLetterUrl != null || app.offerLetterUrl != null);
 
     return this.prisma.application.update({
       where: { id: applicationId },
       data: {
         ...(offerLetterUrl != null ? { offerLetterUrl } : {}),
         ...(offerCtc != null ? { offerCtc: new Prisma.Decimal(offerCtc) } : {}),
+        ...(recordsOffer
+          ? {
+              status: 'SELECTED',
+              stage: 'OFFER_ACCEPTED',
+              stageHistory: {
+                create: {
+                  fromStage: app.stage,
+                  toStage: 'OFFER_ACCEPTED',
+                  changedById: userId,
+                  note: 'Offer letter uploaded by student',
+                },
+              },
+            }
+          : {}),
       },
     });
   }

@@ -123,6 +123,32 @@ export default function MyApplicationsPage() {
                 </div>
               )}
 
+              {/* Offer already in hand before the officer recorded it? Uploading
+                  the letter here logs the offer. One-time — no replace after. */}
+              {a.status === 'IN_PROGRESS' && !a.offerLetterUrl && (
+                <div className="space-y-1.5 rounded-md border border-border bg-app/40 px-3 py-2">
+                  <p className="text-xs text-subtle">
+                    Got your offer letter from the company? Upload it here to log the offer — it
+                    can&apos;t be changed once submitted.
+                  </p>
+                  <OfferLetterUpload
+                    applicationId={a.id}
+                    hasLetter={false}
+                    currentCtc={a.offerCtc}
+                    onDone={() => mutateApps()}
+                  />
+                </div>
+              )}
+
+              {/* Letter uploaded earlier but the offer isn't recorded yet. */}
+              {a.status === 'IN_PROGRESS' && a.offerLetterUrl && (
+                <ConfirmOfferRow
+                  applicationId={a.id}
+                  offerLetterUrl={a.offerLetterUrl}
+                  onDone={() => mutateApps()}
+                />
+              )}
+
               {canWithdraw && (
                 <div className="flex justify-end">
                   <button
@@ -137,6 +163,53 @@ export default function MyApplicationsPage() {
           );
         })
       )}
+    </div>
+  );
+}
+
+/** For an application where the student uploaded a letter earlier but the
+ *  offer was never recorded — one tap logs it. */
+function ConfirmOfferRow({
+  applicationId,
+  offerLetterUrl,
+  onDone,
+}: {
+  applicationId: string;
+  offerLetterUrl: string;
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md bg-warning/10 px-3 py-2">
+      <span className="text-sm font-medium text-warning">Offer letter uploaded — confirm your offer to log it.</span>
+      <a
+        href={offerLetterUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm font-medium text-primary-600 hover:underline"
+      >
+        View letter
+      </a>
+      <button
+        onClick={async () => {
+          setBusy(true);
+          setError(null);
+          try {
+            await setOwnOfferLetter(applicationId);
+            onDone();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not confirm');
+          } finally {
+            setBusy(false);
+          }
+        }}
+        disabled={busy}
+        className="rounded-full bg-strong px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+      >
+        {busy ? 'Confirming…' : 'Confirm offer'}
+      </button>
+      {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );
 }
