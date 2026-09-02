@@ -116,14 +116,26 @@ export default function MyApplicationsPage() {
                   )}
                   <OfferLetterUpload
                     applicationId={a.id}
-                    hasOne={!!a.offerLetterUrl}
+                    hasLetter={!!a.offerLetterUrl}
                     currentCtc={a.offerCtc}
-                    onUploaded={(patch) => {
-                      mutateApps(
-                        (apps ?? []).map((x) => (x.id === a.id ? { ...x, ...patch } : x)) as Application[],
-                        false,
-                      );
-                    }}
+                    onDone={() => mutateApps()}
+                  />
+                </div>
+              )}
+
+              {/* Got the offer letter before the officer recorded it? Uploading
+                  it here logs the offer (it can't be swapped out afterwards). */}
+              {a.status === 'IN_PROGRESS' && !a.offerLetterUrl && (
+                <div className="space-y-1.5 rounded-md border border-border bg-app/40 px-3 py-2">
+                  <p className="text-xs text-subtle">
+                    Received your offer letter from the company? Upload it here — this records your
+                    offer and can&apos;t be changed once submitted.
+                  </p>
+                  <OfferLetterUpload
+                    applicationId={a.id}
+                    hasLetter={false}
+                    currentCtc={a.offerCtc}
+                    onDone={() => mutateApps()}
                   />
                 </div>
               )}
@@ -146,20 +158,20 @@ export default function MyApplicationsPage() {
   );
 }
 
-/** Lets a selected student attach their own offer letter PDF and/or enter the
- * CTC on it — most offers land in the student's inbox first, not the
- * officer's, and this also gives the student a way to correct a CTC the
- * officer mistyped. */
+/** Lets a student attach their own offer letter PDF and/or enter the CTC on
+ * it — most offers land in the student's inbox first, not the officer's.
+ * The offer letter is a one-time upload (no replace); the CTC can still be
+ * added or corrected afterwards. */
 function OfferLetterUpload({
   applicationId,
-  hasOne,
+  hasLetter,
   currentCtc,
-  onUploaded,
+  onDone,
 }: {
   applicationId: string;
-  hasOne: boolean;
+  hasLetter: boolean;
   currentCtc: number | null;
-  onUploaded: (patch: { offerLetterUrl?: string; offerCtc?: number }) => void;
+  onDone: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [ctc, setCtc] = useState(currentCtc != null ? String(currentCtc) : '');
@@ -180,7 +192,7 @@ function OfferLetterUpload({
       const { url } = await uploadOfferLetter(file);
       const parsedCtc = ctc.trim() ? Number(ctc) : undefined;
       await setOwnOfferLetter(applicationId, url, parsedCtc);
-      onUploaded({ offerLetterUrl: url, offerCtc: parsedCtc });
+      onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not upload offer letter');
     } finally {
@@ -195,7 +207,7 @@ function OfferLetterUpload({
     setError(null);
     try {
       await setOwnOfferLetter(applicationId, undefined, parsedCtc);
-      onUploaded({ offerCtc: parsedCtc });
+      onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save CTC');
     } finally {
@@ -220,14 +232,25 @@ function OfferLetterUpload({
       >
         Save CTC
       </button>
-      <input ref={fileRef} type="file" accept="application/pdf" onChange={onFile} className="hidden" />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={busy}
-        className="text-sm font-medium text-primary-600 hover:underline disabled:opacity-50"
-      >
-        {busy ? 'Uploading…' : hasOne ? 'Replace offer letter' : 'Upload offer letter'}
-      </button>
+      {/* One-time upload — once a letter is on file there's no replace control. */}
+      {!hasLetter && (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf"
+            onChange={onFile}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={busy}
+            className="text-sm font-medium text-primary-600 hover:underline disabled:opacity-50"
+          >
+            {busy ? 'Uploading…' : 'Upload offer letter'}
+          </button>
+        </>
+      )}
       {error && <span className="text-xs text-danger">{error}</span>}
     </div>
   );

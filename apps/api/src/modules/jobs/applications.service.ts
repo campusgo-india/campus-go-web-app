@@ -146,10 +146,18 @@ export class ApplicationsService {
     return apps.map((a) => this.publicApplication(a));
   }
 
-  // A selected student can attach their own offer letter (and the CTC on it)
-  // — in most cases the student receives the offer directly from the
-  // recruiter before the officer does. offerCtc is optional here since the
-  // officer may have already entered it correctly.
+  // A student can attach their own offer letter (and the CTC on it) — in most
+  // cases the offer lands in the student's inbox before it reaches the
+  // officer. Uploading the letter is a self-declared offer: if the officer
+  // hasn't already marked the application SELECTED, this advances it to the
+  // offer stage so it shows up in every "Offers" count (Placement Dashboard,
+  // Analytics, reports, the offer-limit policy) — exactly as an officer
+  // placing the student would. Unlike the officer flow it does NOT auto-reject
+  // the job's other applicants or email a college "selected" notice — it's the
+  // student's own record-keeping, not a college decision.
+  //
+  // The offer letter can't be replaced once set (the officer can, from the
+  // pipeline); a later call may still add/correct the CTC.
   async setOwnOfferLetter(
     userId: string,
     applicationId: string,
@@ -164,14 +172,33 @@ export class ApplicationsService {
       where: { id: applicationId, studentId: student.id },
     });
     if (!app) throw new NotFoundException('Application not found');
-    if (app.status !== 'SELECTED') {
-      throw new BadRequestException('Only a selected application can have an offer letter attached.');
+    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
+      throw new BadRequestException('This application is closed — an offer letter can’t be attached.');
     }
+
+    const declaresOffer = offerLetterUrl != null && app.status !== 'SELECTED';
+
     return this.prisma.application.update({
       where: { id: applicationId },
       data: {
         ...(offerLetterUrl != null ? { offerLetterUrl } : {}),
         ...(offerCtc != null ? { offerCtc: new Prisma.Decimal(offerCtc) } : {}),
+        ...(declaresOffer
+          ? {
+              status: 'SELECTED',
+              // Canonical "this is an offer / placement" state — same pair the
+              // officer place() flow sets, which analytics/reports read.
+              stage: 'OFFER_ACCEPTED',
+              stageHistory: {
+                create: {
+                  fromStage: app.stage,
+                  toStage: 'OFFER_ACCEPTED',
+                  changedById: userId,
+                  note: 'Offer letter uploaded by student',
+                },
+              },
+            }
+          : {}),
       },
     });
   }
