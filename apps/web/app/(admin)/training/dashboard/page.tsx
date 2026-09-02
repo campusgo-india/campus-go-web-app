@@ -67,8 +67,12 @@ export default function TrainingDashboardPage() {
         <StatTile
           gradient="violet"
           label="Placement ready"
-          value={readiness.tierCounts.TIER_1.toLocaleString('en-IN')}
-          hint={tierTotal ? `of ${tierTotal} assessed` : 'no scores yet'}
+          value={readiness.placementReadyCount.toLocaleString('en-IN')}
+          hint={
+            readiness.assessedCount
+              ? `≥70% · of ${readiness.assessedCount} assessed`
+              : 'no scores yet'
+          }
         />
         <StatTile
           gradient="primary"

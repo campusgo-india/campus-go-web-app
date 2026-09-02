@@ -240,6 +240,8 @@ export interface OfficerTrainingDashboard {
     average: number;
     assessedCount: number;
     notYetAssessedCount: number;
+    // Students at >= 70% readiness — a slightly wider bar than Tier 1 (>= 80%).
+    placementReadyCount: number;
     tierCounts: Record<EmployabilityTier, number>;
   };
   pillars: Array<{ pillar: TrainingPillar; label: string; prePct: number | null; postPct: number | null }>;

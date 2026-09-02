@@ -25,6 +25,10 @@ export type EmployabilityTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
 // via its own criteria.
 const TIER_1_MIN = 80;
 const TIER_2_MIN = 65;
+// The officer dashboard's "Placement ready" headcount uses a slightly wider
+// bar than Tier 1 — a student at 70%+ is considered drive-ready even if
+// they're still an (informational) Tier 2.
+const PLACEMENT_READY_MIN = 70;
 
 function tierFor(readinessIndex: number): EmployabilityTier {
   if (readinessIndex >= TIER_1_MIN) return 'TIER_1';
@@ -196,12 +200,14 @@ export class TrainingDashboardService {
     const tierCounts: Record<EmployabilityTier, number> = { TIER_1: 0, TIER_2: 0, TIER_3: 0 };
     let readinessSum = 0;
     let assessedCount = 0;
+    let placementReadyCount = 0;
     for (const id of studentIds) {
       const rows = scoresByStudent.get(id);
       if (!rows || rows.length === 0) continue;
       const { readinessIndex, scoredPillars } = computeReadiness(rows);
       if (scoredPillars.length === 0) continue;
       tierCounts[tierFor(readinessIndex)]++;
+      if (readinessIndex >= PLACEMENT_READY_MIN) placementReadyCount++;
       readinessSum += readinessIndex;
       assessedCount++;
     }
@@ -209,6 +215,7 @@ export class TrainingDashboardService {
       average: assessedCount ? Math.round(readinessSum / assessedCount) : 0,
       assessedCount,
       notYetAssessedCount: studentIds.length - assessedCount,
+      placementReadyCount,
       tierCounts,
     };
 
