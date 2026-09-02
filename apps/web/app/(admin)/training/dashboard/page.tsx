@@ -15,7 +15,7 @@ import {
 const TIER_LABEL: Record<EmployabilityTier, string> = {
   TIER_1: 'Placement Ready',
   TIER_2: 'On Track',
-  TIER_3: 'Needs Focus',
+  TIER_3: 'Building Up',
 };
 
 const TIER_TINT: Record<EmployabilityTier, 'mint' | 'lavender' | 'rose'> = {

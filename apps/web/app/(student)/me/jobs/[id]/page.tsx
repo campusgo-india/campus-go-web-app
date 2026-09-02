@@ -244,9 +244,9 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
 
       {notEligible && !applied && (
         <div className="rounded-md bg-tint-cream/50 px-3 py-2 text-xs text-tint-cream-fg">
-          <span className="font-medium">Tap Apply to complete required details.</span>{' '}
+          <span className="font-medium">Tap Apply to fill in the details this role needs.</span>{' '}
           {(job.eligibilityReasons ?? []).filter((r) => r !== 'Profile not verified').join(' · ') ||
-            "You don't meet the criteria."}
+            'A couple of criteria aren’t a match yet.'}
         </div>
       )}
 

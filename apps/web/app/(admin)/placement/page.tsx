@@ -408,12 +408,12 @@ function DrivesTable({ rows }: { rows: ActiveDrive[] }) {
 // ─────────────── Students requiring attention ───────────────
 
 const ATTENTION_ITEMS: { key: keyof AttentionCounts; label: string }[] = [
-  { key: 'withoutResume', label: "Students without resume" },
-  { key: 'incompleteProfile', label: "Students who haven't completed profile" },
-  { key: 'eligibleNotApplying', label: 'Students eligible but not applying' },
-  { key: 'noParticipation', label: 'Students with no placement participation' },
-  { key: 'withoutInternship', label: 'Students without internship' },
-  { key: 'pendingDocuments', label: 'Students with pending documents' },
+  { key: 'withoutResume', label: 'Resume not uploaded yet' },
+  { key: 'incompleteProfile', label: 'Profile still in progress' },
+  { key: 'eligibleNotApplying', label: 'Eligible — not applying yet' },
+  { key: 'noParticipation', label: 'Yet to join a drive' },
+  { key: 'withoutInternship', label: 'No internship on record yet' },
+  { key: 'pendingDocuments', label: 'Documents pending' },
 ];
 
 function AttentionGrid({ counts }: { counts: AttentionCounts }) {

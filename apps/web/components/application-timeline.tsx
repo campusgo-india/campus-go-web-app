@@ -51,11 +51,15 @@ function buildSteps(app: Application): Step[] {
   if (app.status === 'SELECTED')
     steps.push({ label: 'Selected', sub: 'You got the offer 🎉', state: 'done' });
   else if (app.status === 'WITHDRAWN')
-    steps.push({ label: 'Withdrawn', sub: 'You withdrew', state: 'rejected' });
+    steps.push({ label: 'Withdrawn', sub: 'You stepped away from this one', state: 'rejected' });
   else if (app.status === 'REJECTED') {
     if (!someRejected)
-      steps.push({ label: 'Not selected', sub: 'Better luck next time', state: 'rejected' });
-  } else steps.push({ label: 'Result', sub: 'Pending decision', state: 'upcoming' });
+      steps.push({
+        label: 'Not this time',
+        sub: 'This one didn’t land — the next drive is already on the way',
+        state: 'rejected',
+      });
+  } else steps.push({ label: 'Result', sub: 'Decision on the way', state: 'upcoming' });
 
   return steps;
 }

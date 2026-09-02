@@ -28,11 +28,11 @@ const TIER_STEPS: { key: EmployabilityTier; label: string }[] = [
 // Private, informational status tag only — never gates job eligibility (that's
 // decided per job on the API). ≥80% Tier 1, 65–79% Tier 2, <65% Tier 3.
 // Colours: Tier 1 green (top performer), Tier 2 a "growth" pill, Tier 3 amber
-// "Action Required" — deliberately not red, to avoid demotivating students.
+// "Building momentum" — forward-looking, never an alarm-red "you failed".
 const TIER_BADGE: Record<EmployabilityTier, { label: string; className: string; growth?: boolean }> = {
   TIER_1: { label: 'Tier 1 Eligible', className: 'bg-success text-white' },
   TIER_2: { label: 'Tier 2 Eligible', className: 'bg-white text-primary-700', growth: true },
-  TIER_3: { label: 'Action Required', className: 'bg-warning text-white' },
+  TIER_3: { label: 'Building momentum', className: 'bg-warning text-white', growth: true },
 };
 function tierLabel(tier: EmployabilityTier): string {
   return TIER_STEPS.find((t) => t.key === tier)?.label ?? 'the next tier';
@@ -77,10 +77,11 @@ const SKILL_BAR: Record<Band, string> = {
   high: 'bg-success',
 };
 function skillCaption(p: PillarBreakdown, data: EmployabilityDashboard): string {
-  if (p.percentage == null) return 'Take an assessment to see this';
-  if (data.weakestPillar?.pillar === p.pillar) return 'Needs work — your next practice test focus';
-  if (p.percentage >= 80) return 'Strong — keep it up';
-  return `On track for ${tierLabel(data.tier)}`;
+  if (p.percentage == null) return 'Take an assessment to light this up';
+  if (data.weakestPillar?.pillar === p.pillar)
+    return 'Your biggest opportunity — put your next practice test here';
+  if (p.percentage >= 80) return 'Strong — keep the momentum going';
+  return `Building nicely — on track for ${tierLabel(data.tier)}`;
 }
 
 // ─── Roadmap copy ──────────────────────────────────────────────────────────
@@ -154,15 +155,15 @@ function buildRoadmap(data: EmployabilityDashboard): Roadmap {
   const gap = data.gapToNextTier ?? Math.max(1, 65 - data.readinessIndex);
   return {
     headline:
-      'Your focus now is early job security — mandatory foundation training builds your ' +
-      'fundamentals fast.',
+      'You’re building your foundation fast — the Foundation Training track is your quickest ' +
+      'route to a first offer.',
     improvementGoal,
     actions: [
       weakLabel
-        ? `Enroll in the mandatory Foundation Training track for ${weakLabel}.`
-        : 'Enroll in the mandatory Foundation Training track for your weakest pillar.',
-      'Prioritise early-placement and entry-level drives to secure a foundational offer.',
-      `Milestone goal: reach 65% overall readiness (+${gap}%) to unlock Tier 2 eligibility.`,
+        ? `Jump into the Foundation Training track for ${weakLabel}.`
+        : 'Jump into the Foundation Training track for your focus pillar.',
+      'Go all-in on early-placement and entry-level drives — a first offer builds real momentum.',
+      `Next milestone: hit 65% overall readiness (+${gap}%) to unlock Tier 2.`,
     ],
   };
 }
@@ -413,7 +414,9 @@ export default function MyEmployabilityPage() {
           </div>
 
           {schedule.length === 0 ? (
-            <p className="py-4 text-center text-sm text-subtle">No upcoming tests or drives.</p>
+            <p className="py-4 text-center text-sm text-subtle">
+              Nothing scheduled yet — new tests and drives will show up here as they open.
+            </p>
           ) : (
             <div className="space-y-3">
               {schedule.map((it) => (

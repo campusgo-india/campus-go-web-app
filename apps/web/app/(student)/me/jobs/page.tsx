@@ -44,11 +44,11 @@ function matchesCategory(job: Job, category: Category): boolean {
 function emptyMessage(category: Category): string {
   switch (category) {
     case 'APPLIED':
-      return "You haven't applied to any jobs yet.";
+      return 'Your applications will show up here — pick a role and make your first move.';
     case 'CLOSED':
-      return 'No closed jobs to show.';
+      return 'Nothing wrapped up yet — plenty still in play.';
     default:
-      return 'No open jobs right now. Check back soon.';
+      return 'No open roles right now — new drives land here often, so keep checking back.';
   }
 }
 

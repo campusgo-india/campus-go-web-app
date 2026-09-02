@@ -221,13 +221,18 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
               ))}
 
               {hardBlockers.length > 0 && (
-                <div className="rounded-md bg-danger/10 p-3 text-sm text-danger">
-                  <p className="font-medium">You don&apos;t meet some eligibility criteria:</p>
+                <div className="rounded-md bg-warning/10 p-3 text-sm text-warning">
+                  <p className="font-medium">
+                    This role asks for a bit more than your profile shows right now:
+                  </p>
                   <ul className="mt-1 list-disc space-y-0.5 pl-4">
                     {hardBlockers.map((r) => (
                       <li key={r}>{r}</li>
                     ))}
                   </ul>
+                  <p className="mt-2 text-warning/90">
+                    Plenty of other drives are open to you — and this can change as your scores grow.
+                  </p>
                 </div>
               )}
 

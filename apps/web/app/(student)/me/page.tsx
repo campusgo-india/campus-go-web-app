@@ -42,7 +42,7 @@ function tintForName(name: string): Tint {
 const TIER_STATUS: Record<EmployabilityTier, string> = {
   TIER_1: 'Tier 1 Eligible',
   TIER_2: 'Tier 2 Eligible',
-  TIER_3: 'Action Required',
+  TIER_3: 'Building momentum',
 };
 const DAY_MS = 86_400_000;
 
@@ -240,9 +240,11 @@ export default function StudentHome() {
         <SectionHead title="Your applications" href={apps.length > 0 ? '/me/applications' : undefined} />
         {apps.length === 0 ? (
           <Card className="space-y-2 p-6 text-center">
-            <p className="text-sm text-subtle">You haven&apos;t applied to any jobs yet.</p>
+            <p className="text-sm text-subtle">
+              This is where your applications will track. Ready to make the first one count?
+            </p>
             <Link href="/me/jobs" className="text-sm font-medium text-primary-600">
-              Browse jobs →
+              Browse roles →
             </Link>
           </Card>
         ) : (

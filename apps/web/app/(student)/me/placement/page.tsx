@@ -70,8 +70,8 @@ export default function MyPlacementDashboardPage() {
     },
     {
       key: 'rejected',
-      label: 'Rejected',
-      description: 'This application did not proceed further.',
+      label: 'Not this time',
+      description: 'These didn’t move ahead — every round is still useful practice for the next one.',
       count: rejected.length,
       Icon: IconXCircle,
       fill: 'bg-tint-rose-fg',
