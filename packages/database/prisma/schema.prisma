@@ -656,14 +656,10 @@ model Application {
   rejectedAt      DateTime?        @map("rejected_at")
   rejectionReason String?          @map("rejection_reason")
   offerCtc        Decimal?         @db.Decimal(12, 2) @map("offer_ctc")
-  // Optional offer letter (Vercel Blob URL) uploaded when a student is selected.
+  // Optional offer letter (Vercel Blob URL). The officer selects the candidate
+  // first; the student then uploads the letter on that SELECTED application.
+  // One-time upload — the student can't replace it once set.
   offerLetterUrl  String?          @map("offer_letter_url")
-  // Set when a student self-uploads their offer letter before the officer has
-  // recorded the placement. While non-null the offer is "awaiting verification"
-  // — it does NOT count as SELECTED / placed. An officer approving it clears
-  // this (and marks the application SELECTED); rejecting it clears this and the
-  // letter so the student can re-upload.
-  offerSelfReportedAt DateTime?    @map("offer_self_reported_at")
   notes           String?
   // Answers to the job's custom application questions: { [fieldId]: value }.
   formResponses   Json?            @map("form_responses")

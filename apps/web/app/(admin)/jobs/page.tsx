@@ -4,21 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, cn } from '@campusgo/ui';
-import { listJobs, publishManyJobs, formatCtc, formatLpa, type Job } from '../../../lib/jobs';
 import {
-  listOffersAwaitingVerification,
-  verifySelfReportedOffer,
-  type SelfReportedOffer,
-} from '../../../lib/applications';
+  listJobs,
+  publishManyJobs,
+  formatCtc,
+  jobLifecycle,
+  jobLifecycleTint,
+  type Job,
+} from '../../../lib/jobs';
 import { JobCard } from '../../../components/job-card';
 import { ListSkeleton } from '../../../components/page-skeleton';
 import { useSession } from '../../../lib/session';
-
-const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
-  DRAFT: 'cream',
-  PUBLISHED: 'mint',
-  CLOSED: 'lavender',
-};
 
 type ViewMode = 'tile' | 'list';
 
@@ -206,8 +202,6 @@ export default function JobsPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
-      {user?.role !== 'MANAGEMENT' && <OffersToVerify />}
-
       {/* Tip for officers */}
       {!loading && !readOnly && draftIds.length > 0 && (
         <div className="rounded-xl bg-app p-3 text-xs text-body">
@@ -253,7 +247,7 @@ export default function JobsPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         {j.isPlatform && <Badge tint="lavender">Platform</Badge>}
-                        <Badge tint={STATUS_TINT[j.status] ?? 'primary'}>{j.status}</Badge>
+                        {(() => { const lc = jobLifecycle(j); return <Badge tint={jobLifecycleTint(lc)}>{lc}</Badge>; })()}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-body">{formatCtc(j.ctcMin, j.ctcMax)}</td>
@@ -309,7 +303,7 @@ export default function JobsPage() {
                 topRight={
                   <div className="flex items-center gap-1.5">
                     {j.isPlatform && <Badge tint="lavender">Platform</Badge>}
-                    <Badge tint={STATUS_TINT[j.status] ?? 'primary'}>{j.status}</Badge>
+                    {(() => { const lc = jobLifecycle(j); return <Badge tint={jobLifecycleTint(lc)}>{lc}</Badge>; })()}
                   </div>
                 }
                 footer={
@@ -347,90 +341,5 @@ export default function JobsPage() {
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * Student-uploaded offer letters waiting on an officer's verification. Hidden
- * entirely when the queue is empty. Approving marks the student SELECTED
- * (it then counts as a placement); rejecting clears the letter so the
- * student can upload a corrected one.
- */
-function OffersToVerify() {
-  const [rows, setRows] = useState<SelfReportedOffer[] | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    listOffersAwaitingVerification()
-      .then(setRows)
-      .catch(() => setRows([]));
-  }, []);
-
-  async function resolve(id: string, approve: boolean) {
-    setBusyId(id);
-    setError(null);
-    try {
-      await verifySelfReportedOffer(id, approve);
-      setRows((prev) => (prev ?? []).filter((r) => r.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not update the offer');
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  if (!rows || rows.length === 0) return null;
-
-  return (
-    <Card className="space-y-3 border border-warning/40 bg-warning/5 p-4">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-warning/20 text-xs font-bold text-warning">
-          {rows.length}
-        </span>
-        <h2 className="text-sm font-semibold text-strong">Offer letters awaiting verification</h2>
-      </div>
-      <p className="text-xs text-subtle">
-        Uploaded by students. Approving marks the student as selected/placed for that job.
-      </p>
-      {error && <p className="text-xs text-danger">{error}</p>}
-      <div className="divide-y divide-border/70">
-        {rows.map((r) => (
-          <div key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-strong">
-                {r.student.fullName} <span className="text-subtle">· {r.student.rollNumber}</span>
-              </p>
-              <p className="truncate text-xs text-subtle">
-                {r.job.title} · {r.job.company}
-                {r.offerCtc != null ? ` · ${formatLpa(r.offerCtc)}` : ''}
-              </p>
-            </div>
-            {r.offerLetterUrl && (
-              <a
-                href={r.offerLetterUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs font-medium text-primary-600 hover:underline"
-              >
-                View letter
-              </a>
-            )}
-            <div className="flex items-center gap-2">
-              <Button size="sm" onClick={() => resolve(r.id, true)} disabled={busyId === r.id}>
-                {busyId === r.id ? '…' : 'Approve'}
-              </Button>
-              <button
-                onClick={() => resolve(r.id, false)}
-                disabled={busyId === r.id}
-                className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
   );
 }

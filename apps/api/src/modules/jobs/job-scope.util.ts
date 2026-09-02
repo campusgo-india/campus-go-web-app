@@ -29,23 +29,25 @@ export type RecruitmentProgress =
 
 /**
  * A clearer, at-a-glance stage than the raw Job.status (DRAFT/PUBLISHED/
- * CLOSED) — layers in how far the round funnel has actually progressed, so
- * "closed to new applicants" and "fully wrapped up" don't look the same.
- * Published: still taking applications, no rounds started yet (creating
- * Round 1 auto-closes the job — see RoundsService.createRound).
- * Closed for applications: not accepting new applicants, but no round has
- * been decided yet (Round 1 may be scheduled/open).
- * In progress: at least one round decided, at least one still open/undecided.
- * Completed: every round created for the job has been decided.
+ * CLOSED) — layers in how far recruitment has actually progressed:
+ *  - Published: live, still taking applications
+ *  - Closed for applications: officer closed it, or the deadline passed
+ *  - In progress: the officer has started the round funnel (created ≥1 round)
+ *  - Completed: a candidate has been selected for an offer
+ * "Completed" is not a lock — an officer can still select more candidates
+ * afterwards (RoundsService.place allows it).
  */
 export function computeRecruitmentProgress(
   jobStatus: string,
   rounds: { status: string }[],
+  opts: { hasPlacement: boolean; applicationDeadline?: Date | null } = { hasPlacement: false },
 ): RecruitmentProgress {
   if (jobStatus === 'DRAFT') return 'DRAFT';
-  if (rounds.length > 0 && rounds.every((r) => r.status === 'DECIDED')) return 'COMPLETED';
-  if (rounds.some((r) => r.status === 'DECIDED')) return 'IN_PROGRESS';
-  if (jobStatus === 'CLOSED') return 'CLOSED_FOR_APPLICATIONS';
+  if (opts.hasPlacement) return 'COMPLETED';
+  if (rounds.length > 0) return 'IN_PROGRESS';
+  const deadlinePassed =
+    opts.applicationDeadline != null && opts.applicationDeadline.getTime() < Date.now();
+  if (jobStatus === 'CLOSED' || deadlinePassed) return 'CLOSED_FOR_APPLICATIONS';
   return 'PUBLISHED';
 }
 

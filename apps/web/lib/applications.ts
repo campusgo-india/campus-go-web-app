@@ -43,9 +43,6 @@ export interface Application {
   rejectionReason: string | null;
   offerCtc: number | null;
   offerLetterUrl: string | null;
-  // True while a student-uploaded offer letter is still awaiting officer
-  // verification — the application is NOT counted as an offer/placement yet.
-  offerAwaitingVerification: boolean;
   rounds: ApplicationRoundStep[];
   notes: string | null;
   job: {
@@ -81,6 +78,7 @@ export function applicationStatusBadge(status: string): {
 export interface PipelineEntry {
   id: string;
   stage: string;
+  status: string;
   appliedAt: string;
   offerCtc: number | null;
   student: {
@@ -114,11 +112,9 @@ export function withdrawApplication(id: string): Promise<{ id: string }> {
   return api(`/me/applications/${id}/withdraw`, { method: 'POST' });
 }
 
-// Attach the student's own offer letter (and CTC) — most offer letters land
-// in the student's inbox first, not the officer's. On an application the
-// officer hasn't placed yet, this creates a self-reported offer that stays
-// "awaiting verification" until an officer approves it. The letter is a
-// one-time upload (no replace); the CTC can still be corrected.
+// Attach the student's own offer letter (and CTC) to a SELECTED application —
+// the officer selects the candidate first, then the student uploads the
+// letter they received. One-time upload: no replace once it's on file.
 export function setOwnOfferLetter(
   id: string,
   offerLetterUrl?: string,
@@ -131,29 +127,6 @@ export function setOwnOfferLetter(
 }
 
 // ─── Placement Officer ───
-
-export interface SelfReportedOffer {
-  id: string;
-  submittedAt: string;
-  offerLetterUrl: string | null;
-  offerCtc: number | null;
-  job: { id: string; title: string; company: string };
-  student: { id: string; rollNumber: string; fullName: string; programme: string };
-}
-
-/** Student-uploaded offer letters awaiting the officer's verification. */
-export function listOffersAwaitingVerification(): Promise<SelfReportedOffer[]> {
-  return api<SelfReportedOffer[]>(`/jobs/offers/awaiting-verification`);
-}
-
-/** Approve (→ marks the student SELECTED) or reject (→ clears the letter) a
- *  self-reported offer. */
-export function verifySelfReportedOffer(id: string, approve: boolean): Promise<Application> {
-  return api(`/jobs/applications/${id}/verify-offer`, {
-    method: 'POST',
-    body: JSON.stringify({ approve }),
-  });
-}
 export function getPipeline(jobId: string): Promise<PipelineEntry[]> {
   return api<PipelineEntry[]>(`/jobs/${jobId}/applications`);
 }

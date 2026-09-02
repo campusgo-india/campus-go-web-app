@@ -12,6 +12,8 @@ import {
   getEligibleStudents,
   getJob,
   publishJob,
+  jobLifecycle,
+  jobLifecycleTint,
   type ApplicantExportFormat,
   type EligibleStudent,
   type Job,
@@ -24,18 +26,13 @@ import {
   type EmployerFeedback,
 } from '../../../../lib/feedback';
 
-const STATUS_TINT: Record<string, 'lavender' | 'mint' | 'cream' | 'primary'> = {
-  DRAFT: 'cream',
-  PUBLISHED: 'mint',
-  CLOSED: 'lavender',
-};
-
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const confirm = useConfirm();
   const [job, setJob] = useState<Job | null>(null);
   const [eligible, setEligible] = useState<EligibleStudent[] | null>(null);
+  const [showEligible, setShowEligible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
@@ -56,6 +53,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     load();
+    // Precompute the eligible-student list so the count shows straight away.
+    getEligibleStudents(id)
+      .then(setEligible)
+      .catch(() => setEligible([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -83,10 +84,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     } finally {
       setBusy(false);
     }
-  }
-
-  async function loadEligible() {
-    setEligible(await getEligibleStudents(id));
   }
 
   async function openPdf() {
@@ -251,7 +248,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-semibold text-strong">{job.title}</h1>
               {isPlatform && <Badge tint="lavender">Platform</Badge>}
-              <Badge tint={STATUS_TINT[job.status] ?? 'primary'}>{job.status}</Badge>
+              {(() => {
+                const lc = jobLifecycle(job);
+                return <Badge tint={jobLifecycleTint(lc)}>{lc}</Badge>;
+              })()}
             </div>
             <p className="mt-0.5 text-sm font-medium text-body">{company}</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -330,32 +330,51 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           {!isPlatform && (
             <Card className="space-y-3 p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-strong">Eligible students</h2>
-                <Button size="sm" variant="ghost" onClick={loadEligible}>
-                  Preview
-                </Button>
+                <h2 className="text-sm font-semibold text-strong">
+                  Eligible students
+                  {eligible != null && (
+                    <span className="ml-1.5 rounded-full bg-primary-50 px-2 py-0.5 text-xs font-semibold text-primary-700">
+                      {eligible.length}
+                    </span>
+                  )}
+                </h2>
+                {eligible != null && eligible.length > 0 && (
+                  <button
+                    onClick={() => setShowEligible((v) => !v)}
+                    className="text-xs font-medium text-primary-600 hover:underline"
+                  >
+                    {showEligible ? 'Hide list' : 'Show list'}
+                  </button>
+                )}
               </div>
               {eligible == null ? (
-                <p className="text-xs text-subtle">
-                  Click preview to compute who matches this criteria.
-                </p>
+                <p className="text-xs text-subtle">Computing who matches this criteria…</p>
               ) : eligible.length === 0 ? (
                 <p className="text-xs text-subtle">
                   No verified students currently match this criteria.
                 </p>
-              ) : (
-                <div className="space-y-1">
+              ) : showEligible ? (
+                <div className="divide-y divide-border">
                   {eligible.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between text-sm">
+                    <Link
+                      key={s.id}
+                      href={`/students/${s.id}`}
+                      className="flex items-center justify-between py-1.5 text-sm transition hover:text-primary-600"
+                    >
                       <span className="text-strong">
                         {s.fullName} <span className="text-subtle">· {s.rollNumber}</span>
                       </span>
                       <span className="text-xs text-subtle">
                         {s.programme} · {s.cgpa != null ? `${s.cgpa}%` : '—'}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
+              ) : (
+                <p className="text-xs text-subtle">
+                  {eligible.length} verified student{eligible.length === 1 ? '' : 's'} match this
+                  job&apos;s criteria. Tap “Show list” to see them.
+                </p>
               )}
             </Card>
           )}

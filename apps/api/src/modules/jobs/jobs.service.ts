@@ -196,7 +196,12 @@ export class JobsService {
         include: {
           company: true,
           createdBy: { select: { id: true, fullName: true } },
-          _count: { select: { applications: { where: { collegeId } } } },
+          _count: {
+            select: {
+              applications: { where: { collegeId } },
+              rounds: { where: { collegeId } },
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
@@ -229,11 +234,19 @@ export class JobsService {
       include: {
         company: true,
         createdBy: { select: { id: true, fullName: true } },
-        _count: { select: { applications: { where: { collegeId } } } },
+        _count: {
+          select: {
+            applications: { where: { collegeId } },
+            rounds: { where: { collegeId } },
+          },
+        },
       },
     });
     if (!job) throw new NotFoundException('Job not found');
-    return this.publicJob(job);
+    const selectedCount = await this.prisma.application.count({
+      where: { jobId: id, collegeId, status: 'SELECTED' },
+    });
+    return this.publicJob(job, { selectedCount });
   }
 
   async update(collegeId: string, id: string, dto: UpdateJobDto, viewer?: Viewer) {
@@ -908,7 +921,7 @@ export class JobsService {
     company?: { id: string; name: string; logoUrl: string | null; industry: string | null } | null;
     createdById?: string;
     createdBy?: { id: string; fullName: string } | null;
-    _count?: { applications: number };
+    _count?: { applications: number; rounds?: number };
   }, extra?: { selectedCount?: number }) {
     const isPlatform = j.scope === 'PLATFORM';
     return {
@@ -961,6 +974,9 @@ export class JobsService {
       createdBy: j.createdBy ?? undefined,
       applicationCount: j._count?.applications,
       selectedCount: extra?.selectedCount,
+      // Rounds created for this job (this college's, for a shared platform job)
+      // — drives the "In progress" lifecycle label on the officer views.
+      roundCount: j._count?.rounds ?? 0,
     };
   }
 }

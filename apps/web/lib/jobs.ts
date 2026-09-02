@@ -116,6 +116,9 @@ export interface Job {
   // Only populated on the list endpoint — how many of this college's
   // applicants have been placed on this job.
   selectedCount?: number;
+  // Officer views: interview rounds created for this job (this college's, on a
+  // shared platform job). Drives the "In progress" lifecycle label.
+  roundCount?: number;
   // student feed annotations
   applied?: boolean;
   myStage?: string | null;
@@ -170,6 +173,43 @@ export function formatCtc(min: number | null | undefined, max: number | null | u
 export function formatLpa(value: number | null | undefined): string {
   if (value == null || value <= 0) return '—';
   return `₹${lpa(value)} LPA`;
+}
+
+export type JobLifecycle =
+  | 'Draft'
+  | 'Published'
+  | 'Closed for applications'
+  | 'In progress'
+  | 'Completed';
+
+/**
+ * Officer-facing lifecycle label, derived from the raw status + activity:
+ *  Draft → Published → Closed for applications → In progress → Completed.
+ *  - Published: live, still accepting applications
+ *  - Closed for applications: officer closed it, or the deadline passed
+ *  - In progress: at least one interview round has been created
+ *  - Completed: a candidate has been selected for an offer
+ * (Needs `roundCount`/`selectedCount` — only present on the officer endpoints.)
+ */
+export function jobLifecycle(job: Job): JobLifecycle {
+  if (job.status === 'DRAFT') return 'Draft';
+  if ((job.selectedCount ?? 0) > 0) return 'Completed';
+  if ((job.roundCount ?? 0) > 0) return 'In progress';
+  const deadlinePassed =
+    job.applicationDeadline != null && new Date(job.applicationDeadline).getTime() < Date.now();
+  if (job.status === 'CLOSED' || deadlinePassed) return 'Closed for applications';
+  return 'Published';
+}
+
+const JOB_LIFECYCLE_TINT: Record<JobLifecycle, 'cream' | 'mint' | 'lavender' | 'primary' | 'rose'> = {
+  Draft: 'cream',
+  Published: 'mint',
+  'Closed for applications': 'lavender',
+  'In progress': 'primary',
+  Completed: 'rose',
+};
+export function jobLifecycleTint(l: JobLifecycle) {
+  return JOB_LIFECYCLE_TINT[l];
 }
 
 export interface EligibleStudent {

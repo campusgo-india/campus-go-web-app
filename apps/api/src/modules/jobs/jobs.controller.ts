@@ -25,7 +25,7 @@ import { AuditService } from '../../common/audit.module';
 import { JobsService } from './jobs.service';
 import { ApplicationsService } from './applications.service';
 import { ApplyDto, BulkPublishDto, CreateJobDto, ListJobsQuery, UpdateJobDto } from './dto';
-import { BulkAddApplicantsDto, VerifyOfferDto } from './application-dto';
+import { BulkAddApplicantsDto } from './application-dto';
 import { toCsv, toXlsx } from '../reports/report-serializers';
 
 const EXPORT_CONTENT_TYPE: Record<'csv' | 'xlsx', string> = {
@@ -316,34 +316,5 @@ export class JobsController {
   @Roles(UserRole.STUDENT)
   async apply(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: ApplyDto) {
     return { data: await this.jobs.apply(user.sub, id, dto.formResponses) };
-  }
-
-  // ── Student-uploaded offer letters awaiting officer verification ──
-  @Get('offers/awaiting-verification')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
-  async offersAwaitingVerification(@CurrentUser() user: JwtPayload) {
-    return {
-      data: await this.applications.listSelfReportedOffers(this.collegeId(user), {
-        role: user.role,
-        userId: user.sub,
-      }),
-    };
-  }
-
-  @Post('applications/:id/verify-offer')
-  @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.PLACEMENT_COORDINATOR)
-  async verifyOffer(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-    @Body() dto: VerifyOfferDto,
-  ) {
-    return {
-      data: await this.applications.verifySelfReportedOffer(
-        this.collegeId(user),
-        id,
-        dto.approve,
-        user.sub,
-      ),
-    };
   }
 }

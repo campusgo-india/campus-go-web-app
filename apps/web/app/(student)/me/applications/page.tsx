@@ -123,48 +123,6 @@ export default function MyApplicationsPage() {
                 </div>
               )}
 
-              {/* Self-uploaded offer letter, waiting on the placement team. */}
-              {a.offerAwaitingVerification && (
-                <div className="flex flex-wrap items-center gap-3 rounded-md bg-warning/10 px-3 py-2">
-                  <span className="text-sm font-medium text-warning">
-                    Offer letter submitted — awaiting verification from your placement team.
-                  </span>
-                  {a.offerLetterUrl && (
-                    <a
-                      href={a.offerLetterUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm font-medium text-primary-600 hover:underline"
-                    >
-                      View offer letter
-                    </a>
-                  )}
-                  <OfferLetterUpload
-                    applicationId={a.id}
-                    hasLetter
-                    currentCtc={a.offerCtc}
-                    onDone={() => mutateApps()}
-                  />
-                </div>
-              )}
-
-              {/* Got the offer letter before the officer recorded it? Uploading
-                  it here submits it for verification (one-time, no replace). */}
-              {a.status === 'IN_PROGRESS' && !a.offerLetterUrl && !a.offerAwaitingVerification && (
-                <div className="space-y-1.5 rounded-md border border-border bg-app/40 px-3 py-2">
-                  <p className="text-xs text-subtle">
-                    Received your offer letter from the company? Upload it here — your placement team
-                    verifies it, and it can&apos;t be changed once submitted.
-                  </p>
-                  <OfferLetterUpload
-                    applicationId={a.id}
-                    hasLetter={false}
-                    currentCtc={a.offerCtc}
-                    onDone={() => mutateApps()}
-                  />
-                </div>
-              )}
-
               {canWithdraw && (
                 <div className="flex justify-end">
                   <button

@@ -240,7 +240,10 @@ export class RoundsService {
       inProgress: apps.filter((a) => a.status === 'IN_PROGRESS').length,
       selectedCount: apps.filter((a) => a.status === 'SELECTED').length,
       rejectedCount: apps.filter((a) => a.status === 'REJECTED').length,
-      recruitmentProgress: computeRecruitmentProgress(job.status, rounds),
+      recruitmentProgress: computeRecruitmentProgress(job.status, rounds, {
+        hasPlacement: apps.some((a) => a.status === 'SELECTED'),
+        applicationDeadline: job.applicationDeadline,
+      }),
       rounds: rounds.map((r) => ({
         id: r.id,
         seq: r.seq,
@@ -307,7 +310,10 @@ export class RoundsService {
       inProgress: appsRaw.filter((a) => a.status === 'IN_PROGRESS').length,
       selectedCount: appsRaw.filter((a) => a.status === 'SELECTED').length,
       rejectedCount: appsRaw.filter((a) => a.status === 'REJECTED').length,
-      recruitmentProgress: computeRecruitmentProgress(job.status, roundsRaw),
+      recruitmentProgress: computeRecruitmentProgress(job.status, roundsRaw, {
+        hasPlacement: appsRaw.some((a) => a.status === 'SELECTED'),
+        applicationDeadline: job.applicationDeadline,
+      }),
       rounds: roundsRaw.map((r) => ({
         id: r.id,
         seq: r.seq,
@@ -727,9 +733,13 @@ export class RoundsService {
       include: { student: { select: { userId: true } } },
     });
     if (!app) throw new NotFoundException('Application not found');
-    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
-      throw new BadRequestException('This applicant is no longer in the running.');
+    if (app.status === 'WITHDRAWN') {
+      throw new BadRequestException('This applicant withdrew from the process.');
     }
+    // A REJECTED applicant is allowed through — an officer selecting someone
+    // who was auto-rejected when an earlier candidate was placed (the company
+    // decided to take them too) is a valid "select after completion" action.
+    // Reinstate them by clearing the rejection.
 
     await this.prisma.application.update({
       where: { id: applicationId },
@@ -737,6 +747,8 @@ export class RoundsService {
         status: 'SELECTED',
         // Legacy bridge so analytics/reports keep counting placements.
         stage: 'OFFER_ACCEPTED',
+        rejectedAt: null,
+        rejectionReason: null,
         ...(dto.offerCtc != null ? { offerCtc: new Prisma.Decimal(dto.offerCtc) } : {}),
         ...(dto.offerLetterUrl !== undefined ? { offerLetterUrl: dto.offerLetterUrl || null } : {}),
       },
@@ -1167,15 +1179,19 @@ export class RoundsService {
       include: { student: { select: { userId: true } } },
     });
     if (!app) throw new NotFoundException('Application not found');
-    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
-      throw new BadRequestException('This applicant is no longer in the running.');
+    if (app.status === 'WITHDRAWN') {
+      throw new BadRequestException('This applicant withdrew from the process.');
     }
+    // REJECTED is allowed — reinstates an auto-rejected applicant the company
+    // later decided to take (see place()).
 
     await this.prisma.application.update({
       where: { id: applicationId },
       data: {
         status: 'SELECTED',
         stage: 'OFFER_ACCEPTED',
+        rejectedAt: null,
+        rejectionReason: null,
         ...(dto.offerCtc != null ? { offerCtc: new Prisma.Decimal(dto.offerCtc) } : {}),
         ...(dto.offerLetterUrl !== undefined ? { offerLetterUrl: dto.offerLetterUrl || null } : {}),
       },

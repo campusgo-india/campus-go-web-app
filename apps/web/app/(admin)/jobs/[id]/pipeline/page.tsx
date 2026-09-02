@@ -14,6 +14,7 @@ import {
   type BulkAddApplicantsResult,
   type Job,
 } from '../../../../../lib/jobs';
+import { getPipeline, type PipelineEntry } from '../../../../../lib/applications';
 import {
   createRound,
   decideRound,
@@ -382,33 +383,36 @@ export default function FunnelPage({ params }: { params: Promise<{ id: string }>
           onReject={reject}
         />
       ) : tab === 'selected' ? (
-        <PeopleList
-          people={funnel.placed}
-          empty="No one selected yet."
-          action={(s) => (
-            <div className="flex items-center gap-3">
-              {s.offerCtc != null && (
-                <span className="text-sm font-medium text-strong">{formatLpa(s.offerCtc)}</span>
-              )}
-              {s.offerLetterUrl && (
-                <a
-                  href={s.offerLetterUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-medium text-primary-600 hover:underline"
-                >
-                  Offer letter
-                </a>
-              )}
-              {!readOnly && (
-                <Button size="sm" variant="ghost" onClick={() => setPlacing(s)}>
-                  {s.offerLetterUrl || s.offerCtc != null ? 'Edit' : 'Add offer letter'}
-                </Button>
-              )}
-              <Badge tint="mint">Selected</Badge>
-            </div>
-          )}
-        />
+        <div className="space-y-4">
+          <PeopleList
+            people={funnel.placed}
+            empty="No one selected yet."
+            action={(s) => (
+              <div className="flex items-center gap-3">
+                {s.offerCtc != null && (
+                  <span className="text-sm font-medium text-strong">{formatLpa(s.offerCtc)}</span>
+                )}
+                {s.offerLetterUrl && (
+                  <a
+                    href={s.offerLetterUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-primary-600 hover:underline"
+                  >
+                    Offer letter
+                  </a>
+                )}
+                {!readOnly && (
+                  <Button size="sm" variant="ghost" onClick={() => setPlacing(s)}>
+                    {s.offerLetterUrl || s.offerCtc != null ? 'Edit' : 'Add offer letter'}
+                  </Button>
+                )}
+                <Badge tint="mint">Selected</Badge>
+              </div>
+            )}
+          />
+          {!readOnly && <SelectMoreCandidates jobId={id} onPlaced={() => load()} />}
+        </div>
       ) : (
         <PeopleList people={funnel.pool} empty="No new applicants." />
       )}
@@ -870,6 +874,93 @@ function PeopleList({
         </Card>
       ))}
     </div>
+  );
+}
+
+/**
+ * "Select another candidate" — after a job is completed a company sometimes
+ * asks to take one more student who was auto-rejected when the first was
+ * placed. Lists every applicant who isn't already selected or withdrawn
+ * (rejected ones included) and lets the officer place them directly.
+ */
+function SelectMoreCandidates({ jobId, onPlaced }: { jobId: string; onPlaced: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<PipelineEntry[] | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || rows) return;
+    getPipeline(jobId)
+      .then((all) =>
+        setRows(all.filter((a) => a.status !== 'SELECTED' && a.status !== 'WITHDRAWN')),
+      )
+      .catch(() => setRows([]));
+  }, [open, rows, jobId]);
+
+  async function place(entry: PipelineEntry) {
+    setBusyId(entry.id);
+    setError(null);
+    try {
+      await placeApplicant(jobId, entry.id, {});
+      setRows((prev) => (prev ?? []).filter((r) => r.id !== entry.id));
+      onPlaced();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not select this candidate');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="rounded-pill border border-dashed border-primary-300 px-4 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-50"
+      >
+        + Select another candidate
+      </button>
+    );
+  }
+
+  return (
+    <Card className="space-y-3 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-strong">Select another candidate</p>
+        <button
+          onClick={() => setOpen(false)}
+          className="text-xs font-medium text-subtle hover:text-body"
+        >
+          Close
+        </button>
+      </div>
+      <p className="text-xs text-subtle">
+        Anyone not already selected — including applicants auto-rejected when an earlier candidate
+        was placed. Placing them here reinstates and marks them selected.
+      </p>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      {rows == null ? (
+        <p className="text-xs text-subtle">Loading applicants…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-xs text-subtle">No other applicants to select.</p>
+      ) : (
+        <div className="divide-y divide-border">
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+              <span className="min-w-0 truncate text-strong">
+                {r.student.fullName} <span className="text-subtle">· {r.student.rollNumber}</span>
+                <span className="ml-1 text-xs text-subtle">
+                  ({r.status === 'REJECTED' ? 'rejected' : r.status.toLowerCase().replace('_', ' ')})
+                </span>
+              </span>
+              <Button size="sm" onClick={() => place(r)} disabled={busyId === r.id}>
+                {busyId === r.id ? '…' : 'Select / place'}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
 

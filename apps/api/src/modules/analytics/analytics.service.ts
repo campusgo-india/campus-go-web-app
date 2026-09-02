@@ -432,14 +432,7 @@ export class AnalyticsService {
       }),
       this.prisma.application.findMany({
         where: { collegeId },
-        select: {
-          studentId: true,
-          status: true,
-          stage: true,
-          offerCtc: true,
-          offerLetterUrl: true,
-          offerSelfReportedAt: true,
-        },
+        select: { studentId: true, status: true, stage: true, offerCtc: true, offerLetterUrl: true },
       }),
       this.prisma.applicationRound.findMany({
         where: { application: { collegeId } },
@@ -525,16 +518,7 @@ export class AnalyticsService {
       ) {
         bucket.selected++;
       }
-      // A student-uploaded offer letter still awaiting officer verification
-      // (offerSelfReportedAt set) is not a confirmed offer yet.
-      if (
-        myApps.some(
-          (a) =>
-            a.offerSelfReportedAt == null && (a.offerCtc != null || a.offerLetterUrl != null),
-        )
-      ) {
-        bucket.offered++;
-      }
+      if (myApps.some((a) => a.offerCtc != null || a.offerLetterUrl != null)) bucket.offered++;
       if (myApps.some((a) => a.stage === 'JOINED')) bucket.joined++;
     }
 

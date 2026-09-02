@@ -2,7 +2,6 @@ import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
-  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -48,8 +47,4 @@ export class BulkAddApplicantsDto {
   @ArrayNotEmpty()
   @IsString({ each: true })
   rollNumbers!: string[];
-}
-
-export class VerifyOfferDto {
-  @IsBoolean() approve!: boolean;
 }

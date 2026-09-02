@@ -146,14 +146,11 @@ export class ApplicationsService {
     return apps.map((a) => this.publicApplication(a));
   }
 
-  // A student can attach their own offer letter (and the CTC on it) — in most
-  // cases the offer lands in the student's inbox before it reaches the officer.
-  // When the officer hasn't recorded the placement yet, the upload is a
-  // *self-reported* offer: the letter is stored and `offerSelfReportedAt` is
-  // stamped, but the application stays where it is — it does NOT become
-  // SELECTED / count as placed / hit the offer-limit rule until an officer
-  // verifies it (verifySelfReportedOffer). The student can't replace the
-  // letter once set; a later call may still add/correct the CTC.
+  // A selected student attaches their own offer letter (and the CTC on it) —
+  // the officer selects the candidate first, then the student uploads the
+  // letter they received. One-time upload: the student can't replace it once
+  // it's on file (the officer still can, from the pipeline). A later call may
+  // add/correct the CTC.
   async setOwnOfferLetter(
     userId: string,
     applicationId: string,
@@ -168,150 +165,20 @@ export class ApplicationsService {
       where: { id: applicationId, studentId: student.id },
     });
     if (!app) throw new NotFoundException('Application not found');
-    if (app.status === 'REJECTED' || app.status === 'WITHDRAWN') {
-      throw new BadRequestException('This application is closed — an offer letter can’t be attached.');
+    if (app.status !== 'SELECTED') {
+      throw new BadRequestException('Only a selected application can have an offer letter attached.');
     }
     if (offerLetterUrl != null && app.offerLetterUrl != null) {
       throw new BadRequestException('An offer letter is already on file and can’t be replaced.');
     }
-
-    // A new letter on an application the officer hasn't placed yet → awaiting
-    // verification. If the student is already SELECTED, it's just the letter
-    // for a confirmed placement — no flag.
-    const selfReported = offerLetterUrl != null && app.status !== 'SELECTED';
 
     return this.prisma.application.update({
       where: { id: applicationId },
       data: {
         ...(offerLetterUrl != null ? { offerLetterUrl } : {}),
         ...(offerCtc != null ? { offerCtc: new Prisma.Decimal(offerCtc) } : {}),
-        ...(selfReported
-          ? {
-              offerSelfReportedAt: new Date(),
-              stageHistory: {
-                create: {
-                  fromStage: app.stage,
-                  toStage: app.stage,
-                  changedById: userId,
-                  note: 'Offer letter uploaded by student — awaiting officer verification',
-                },
-              },
-            }
-          : {}),
       },
     });
-  }
-
-  // Officer resolves a student's self-reported offer. Approve → the canonical
-  // placed state (status SELECTED + stage OFFER_ACCEPTED), same as place(),
-  // minus place()'s "job is filled, auto-reject everyone else" cascade — the
-  // officer can run a normal placement afterwards if the job really is closed
-  // out. Reject → clears the pending flag and the letter so the student can
-  // upload a corrected one.
-  async verifySelfReportedOffer(
-    collegeId: string,
-    applicationId: string,
-    approve: boolean,
-    officerUserId: string,
-  ) {
-    const app = await this.prisma.application.findFirst({
-      where: { id: applicationId, collegeId },
-      include: { student: { select: { userId: true } }, job: { select: { title: true } } },
-    });
-    if (!app) throw new NotFoundException('Application not found');
-    if (app.offerSelfReportedAt == null) {
-      throw new BadRequestException('This application has no offer awaiting verification.');
-    }
-
-    const updated = await this.prisma.application.update({
-      where: { id: applicationId },
-      data: approve
-        ? {
-            status: 'SELECTED',
-            stage: 'OFFER_ACCEPTED',
-            offerSelfReportedAt: null,
-            stageHistory: {
-              create: {
-                fromStage: app.stage,
-                toStage: 'OFFER_ACCEPTED',
-                changedById: officerUserId,
-                note: 'Self-reported offer verified by officer',
-              },
-            },
-          }
-        : {
-            offerSelfReportedAt: null,
-            offerLetterUrl: null,
-            stageHistory: {
-              create: {
-                fromStage: app.stage,
-                toStage: app.stage,
-                changedById: officerUserId,
-                note: 'Self-reported offer rejected by officer',
-              },
-            },
-          },
-    });
-
-    await this.notifications.notify({
-      userId: app.student.userId,
-      collegeId,
-      type: 'APPLICATION_STAGE_CHANGED',
-      title: approve
-        ? `Offer verified — ${app.job.title}`
-        : `Offer letter needs another look — ${app.job.title}`,
-      body: approve
-        ? 'Your placement team confirmed the offer letter you uploaded.'
-        : 'Your placement team couldn’t verify the offer letter you uploaded. You can upload it again.',
-      link: '/me/applications',
-    });
-
-    return updated;
-  }
-
-  /** Every application whose student uploaded an offer letter that's still
-   *  awaiting an officer's verification — college-wide, programme-scoped for
-   *  a Placement Coordinator. */
-  async listSelfReportedOffers(collegeId: string, viewer?: Viewer) {
-    const restriction = await this.programmeRestriction(viewer);
-    const apps = await this.prisma.application.findMany({
-      where: {
-        collegeId,
-        offerSelfReportedAt: { not: null },
-        ...(restriction ? { student: { programme: { in: restriction } } } : {}),
-      },
-      orderBy: { offerSelfReportedAt: 'asc' },
-      include: {
-        job: {
-          select: { id: true, title: true, companyName: true, company: { select: { name: true } } },
-        },
-        student: {
-          select: {
-            id: true,
-            rollNumber: true,
-            programme: true,
-            user: { select: { fullName: true } },
-          },
-        },
-      },
-    });
-    return apps.map((a) => ({
-      id: a.id,
-      submittedAt: a.offerSelfReportedAt,
-      offerLetterUrl: a.offerLetterUrl,
-      offerCtc: a.offerCtc != null ? Number(a.offerCtc) : null,
-      job: {
-        id: a.job.id,
-        title: a.job.title,
-        company: a.job.company?.name ?? a.job.companyName ?? 'Company',
-      },
-      student: {
-        id: a.student.id,
-        rollNumber: a.student.rollNumber,
-        fullName: a.student.user.fullName,
-        programme: a.student.programme,
-      },
-    }));
   }
 
   async withdraw(userId: string, applicationId: string) {
@@ -366,6 +233,7 @@ export class ApplicationsService {
     return apps.map((a) => ({
       id: a.id,
       stage: a.stage,
+      status: a.status,
       appliedAt: a.appliedAt,
       offerCtc: a.offerCtc != null ? Number(a.offerCtc) : null,
       student: {
@@ -907,7 +775,6 @@ export class ApplicationsService {
       rejectionReason: string | null;
       offerCtc: Prisma.Decimal | null;
       offerLetterUrl?: string | null;
-      offerSelfReportedAt?: Date | null;
       notes: string | null;
       formResponses?: Prisma.JsonValue;
       rounds?: Array<{
@@ -960,9 +827,6 @@ export class ApplicationsService {
       rejectionReason: a.rejectionReason,
       offerCtc: a.offerCtc != null ? Number(a.offerCtc) : null,
       offerLetterUrl: a.offerLetterUrl ?? null,
-      // Non-null while a student's uploaded offer letter is awaiting officer
-      // verification (not yet counted as a placement).
-      offerAwaitingVerification: a.offerSelfReportedAt != null,
       notes: a.notes,
       // Round-by-round progress for the student's tracking timeline.
       rounds: (a.rounds ?? []).map((r) => ({

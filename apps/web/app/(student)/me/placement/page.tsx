@@ -37,11 +37,7 @@ export default function MyPlacementDashboardPage() {
   // Selected/Rejected, which looked broken even though it was accurate; as
   // the funnel's starting bucket, Applied should always be >= every stage
   // below it.
-  // A self-uploaded offer still awaiting officer verification isn't a
-  // placement yet, even if the student typed a CTC alongside it.
-  const selected = apps.filter(
-    (a) => !a.offerAwaitingVerification && (a.status === 'SELECTED' || a.offerCtc != null),
-  );
+  const selected = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
   const rejected = apps.filter((a) => a.status === 'REJECTED');
   const withdrawn = apps.filter((a) => a.status === 'WITHDRAWN');
   const interviewsScheduled = apps.reduce(
