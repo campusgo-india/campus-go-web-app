@@ -3,7 +3,9 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
@@ -106,12 +108,37 @@ const STATUS_FOR_STAGE: Record<ApplicationStage, ApplicationOutcome> = {
 };
 
 @Injectable()
-export class ApplicationsService {
+export class ApplicationsService implements OnModuleInit {
+  private readonly logger = new Logger(ApplicationsService.name);
+
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
   ) {}
+
+  // One-time reconciliation: an offer letter is only ever put on an application
+  // by the officer placing the student (→ SELECTED) or by the student
+  // uploading their own. An earlier build let the student upload without
+  // recording the offer, leaving rows with a letter but a non-final status —
+  // those are real offers and must count. Idempotent; matches nothing once
+  // healed.
+  async onModuleInit() {
+    try {
+      const { count } = await this.prisma.application.updateMany({
+        where: {
+          offerLetterUrl: { not: null },
+          status: { notIn: ['SELECTED', 'REJECTED', 'WITHDRAWN'] },
+        },
+        data: { status: 'SELECTED', stage: 'OFFER_ACCEPTED' },
+      });
+      if (count > 0) {
+        this.logger.log(`Reconciled ${count} application(s) with an offer letter to SELECTED.`);
+      }
+    } catch (err) {
+      this.logger.warn(`Offer-letter reconciliation skipped: ${(err as Error).message}`);
+    }
+  }
 
   private webOrigin(): string {
     return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
