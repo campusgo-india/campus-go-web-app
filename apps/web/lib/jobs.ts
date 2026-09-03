@@ -217,8 +217,11 @@ export interface EligibleStudent {
   rollNumber: string;
   fullName: string;
   email: string;
+  phone: string | null;
   programme: string;
   cgpa: number | null;
+  /** Has this student already applied to the job? */
+  applied: boolean;
 }
 
 // ─── Placement Officer ───

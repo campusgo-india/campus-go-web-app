@@ -446,14 +446,21 @@ export class JobsService {
     if (!job) throw new NotFoundException('Job not found');
     assertOwnJob(job, viewer);
 
-    const students = await this.prisma.student.findMany({
-      where: {
-        collegeId,
-        isActive: true,
-        verificationStatus: 'VERIFIED',
-      },
-      include: { user: true, resume: { select: { id: true } } },
-    });
+    const [students, applied] = await Promise.all([
+      this.prisma.student.findMany({
+        where: {
+          collegeId,
+          isActive: true,
+          verificationStatus: 'VERIFIED',
+        },
+        include: { user: true, resume: { select: { id: true } } },
+      }),
+      this.prisma.application.findMany({
+        where: { jobId, collegeId },
+        select: { studentId: true },
+      }),
+    ]);
+    const appliedIds = new Set(applied.map((a) => a.studentId));
 
     const placedStudentIds = await this.placedStudentIds(collegeId);
     const criteria = toEligibilityJob(job);
@@ -467,8 +474,12 @@ export class JobsService {
         rollNumber: s.rollNumber,
         fullName: s.user.fullName,
         email: s.user.email,
+        phone: s.user.phone ?? null,
         programme: s.programme,
         cgpa: s.cgpa != null ? Number(s.cgpa) : null,
+        // Whether this student has applied to this job — lets the officer
+        // focus on eligible students who haven't applied yet.
+        applied: appliedIds.has(s.id),
       }));
   }
 
