@@ -7,11 +7,11 @@ import {
   BrowserFrame,
   BuildingIcon,
   GRADIENT_BG,
-  HeroDashboard,
   JOURNEY_STEPS,
-  PhoneMockup,
+  PhoneShot,
   Section,
   SectionHeading,
+  Shot,
   STAKEHOLDERS,
   TargetIcon,
   TINT_BG,
@@ -130,7 +130,10 @@ export default function HomePage() {
           <div className="w-full flex-shrink-0 lg:w-[560px]">
             <div className="rounded-[20px] bg-gradient-to-br from-primary-50 to-tint-accent p-3 shadow-nav">
               <BrowserFrame>
-                <HeroDashboard />
+                <Shot
+                  src="/screenshots/officer-dashboard.png"
+                  alt="CampusGO placement dashboard — placement progress by track, offers trend and top recruiting companies"
+                />
               </BrowserFrame>
             </div>
           </div>
@@ -156,11 +159,17 @@ export default function HomePage() {
         <div className="mt-11 flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:gap-6">
           <div className="w-full lg:flex-1">
             <BrowserFrame>
-              <HeroDashboard />
+              <Shot
+                src="/screenshots/officer-dashboard.png"
+                alt="Placement officer dashboard — KPI cards, placement progress by programme and drive trend"
+              />
             </BrowserFrame>
           </div>
-          <div className="w-[200px] flex-shrink-0">
-            <PhoneMockup />
+          <div className="flex w-[210px] flex-shrink-0 justify-center">
+            <PhoneShot
+              src="/screenshots/student-employability.png"
+              alt="Student app — employability readiness score, tier and placement roadmap"
+            />
           </div>
         </div>
         <div className="mt-14 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-2">

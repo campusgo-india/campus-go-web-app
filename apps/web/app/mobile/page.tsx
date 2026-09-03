@@ -5,11 +5,10 @@ import {
   BellIcon,
   BrowserFrame,
   CheckIcon,
-  HeroDashboard,
-  PhoneFrame,
   PhoneIcon,
-  PhoneMockup,
+  PhoneShot,
   Section,
+  Shot,
   STUDENT_FEATURES,
   TINT_BG,
   TINT_FG,
@@ -21,12 +20,6 @@ export const metadata: Metadata = {
     'A focused app for students — readiness, opportunities, applications and offer updates in their pocket — and an on-the-go view for placement teams. Installs like an app; nothing to update.',
   alternates: { canonical: '/mobile' },
 };
-
-const STUDENT_SHOTS = [
-  { label: 'Home — readiness at a glance', node: <PhoneMockup /> },
-  { label: 'Employability — pillars & roadmap', node: <PhoneMockup /> },
-  { label: 'Applications — stage by stage', node: <PhoneMockup /> },
-];
 
 export default function MobilePage() {
   return (
@@ -68,7 +61,10 @@ export default function MobilePage() {
             </div>
           </div>
           <div className="flex w-full justify-center lg:w-auto">
-            <PhoneMockup />
+            <PhoneShot
+              src="/screenshots/student-employability.png"
+              alt="CampusGO student app — overall employability readiness, tier eligibility and placement roadmap"
+            />
           </div>
         </div>
       </section>
@@ -84,29 +80,29 @@ export default function MobilePage() {
           </p>
         </div>
 
-        <div className="mt-11 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {STUDENT_FEATURES.map((f) => (
-            <div key={f.title} className="flex gap-3 rounded-card bg-card p-5 shadow-card">
-              <div className={`mt-0.5 flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-md ${TINT_BG[f.tint]}`}>
-                <span className={TINT_FG[f.tint]}>
-                  <CheckIcon />
-                </span>
+        <div className="mt-11 flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center">
+          <div className="flex flex-shrink-0 flex-col items-center">
+            <PhoneShot
+              src="/screenshots/student-employability.png"
+              alt="Student employability screen — readiness score, department rank, tier badge and roadmap with recommended actions"
+            />
+            <p className="mt-3 text-xs text-subtle">Employability — readiness, tier &amp; roadmap.</p>
+          </div>
+          <div className="grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-2">
+            {STUDENT_FEATURES.map((f) => (
+              <div key={f.title} className="flex gap-3 rounded-card bg-card p-5 shadow-card">
+                <div className={`mt-0.5 flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-md ${TINT_BG[f.tint]}`}>
+                  <span className={TINT_FG[f.tint]}>
+                    <CheckIcon />
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-strong">{f.title}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-subtle">{f.body}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-strong">{f.title}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-subtle">{f.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-12 flex flex-wrap justify-center gap-8">
-          {STUDENT_SHOTS.map((s) => (
-            <div key={s.label} className="flex flex-col items-center">
-              {s.node}
-              <p className="mt-3 text-xs text-subtle">{s.label}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </Section>
 
@@ -140,23 +136,14 @@ export default function MobilePage() {
           </div>
           <div className="w-full flex-1">
             <BrowserFrame>
-              <HeroDashboard />
+              <Shot
+                src="/screenshots/officer-dashboard.png"
+                alt="Placement officer dashboard — total students, placed students, offers extended, placement progress by track and drive trend"
+              />
             </BrowserFrame>
-            <div className="mt-6 flex justify-center gap-6">
-              <PhoneFrame>
-                <div className="flex h-[108px] flex-col justify-end bg-gradient-brand px-4 pb-4">
-                  <span className="text-[11px] text-white/80">Placement Progress</span>
-                  <span className="text-base font-bold text-white">6 selected · 8 offered</span>
-                </div>
-                <div className="space-y-2 p-3.5">
-                  {['Aptitude — 42 cleared', 'Technical — 18 cleared', 'HR — 9 cleared'].map((r) => (
-                    <div key={r} className="rounded-md bg-card p-3 text-xs font-medium text-body shadow-card">
-                      {r}
-                    </div>
-                  ))}
-                </div>
-              </PhoneFrame>
-            </div>
+            <p className="mt-2 text-xs text-subtle">
+              The full placement dashboard — the same view scales down to the phone.
+            </p>
           </div>
         </div>
       </Section>

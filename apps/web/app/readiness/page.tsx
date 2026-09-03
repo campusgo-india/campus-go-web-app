@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
-  BrowserFrame,
-  HeroDashboard,
   InterviewScene,
+  PhoneShot,
   READINESS_PILLARS,
   Section,
   TINT_BG,
@@ -83,12 +82,15 @@ export default function ReadinessPage() {
               See the training reports →
             </Link>
           </div>
-          <div className="w-full max-w-md lg:w-[420px] lg:flex-shrink-0">
-            <BrowserFrame>
-              <HeroDashboard />
-            </BrowserFrame>
-            <p className="mt-2 text-xs text-subtle">Training dashboard — readiness distribution across the cohort.</p>
-            <div className="mt-5 overflow-hidden rounded-card bg-card p-4 shadow-card">
+          <div className="flex w-full max-w-md flex-col items-center lg:w-[420px] lg:flex-shrink-0">
+            <PhoneShot
+              src="/screenshots/student-employability.png"
+              alt="Student employability view — overall readiness score, tier eligibility and a personalised placement roadmap"
+            />
+            <p className="mt-3 text-xs text-subtle">
+              The student&rsquo;s employability view — readiness score, tier and roadmap, private to them.
+            </p>
+            <div className="mt-6 w-full overflow-hidden rounded-card bg-card p-4 shadow-card">
               <InterviewScene />
             </div>
             <p className="mt-2 text-xs text-subtle">Mock interviews and assessments feed the readiness score.</p>

@@ -4,9 +4,9 @@ import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   ADVANTAGE_FLOW,
   BrowserFrame,
-  HeroDashboard,
   REPORT_CATEGORIES,
   Section,
+  Shot,
   TINT_BG,
   TINT_FG,
 } from '../../components/site-sections';
@@ -57,7 +57,10 @@ export default function ReportsPage() {
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="w-full max-w-md lg:w-[440px] lg:flex-shrink-0">
             <BrowserFrame>
-              <HeroDashboard />
+              <Shot
+                src="/screenshots/officer-dashboard.png"
+                alt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
+              />
             </BrowserFrame>
             <p className="mt-2 text-xs text-subtle">Analytics — placement funnel and package stats, UG / PG.</p>
           </div>

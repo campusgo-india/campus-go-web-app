@@ -12,10 +12,10 @@ import {
   HierarchyDiagram,
   InterviewScene,
   MailIcon,
-  HeroDashboard,
   RECRUITMENT_TOPICS,
   Section,
   SectionHeading,
+  Shot,
   TINT_BG,
   TINT_FG,
   TINTS,
@@ -50,6 +50,21 @@ export default function PlatformPage() {
         </div>
       </section>
 
+      {/* CHALLENGES vs SOLUTION */}
+      <Section alt>
+        <SectionHeading
+          eyebrow="Why teams switch"
+          title="From Placement Complexity to Placement Clarity"
+          subtitle="The scattered spreadsheets, chased approvals and missed updates — replaced by one connected system."
+        />
+        <div className="mx-auto mt-9 max-w-4xl overflow-hidden rounded-card border border-border shadow-card">
+          <Shot
+            src="/screenshots/challenges-solution.png"
+            alt="The challenges colleges face — spreadsheet chaos, time-consuming processes, poor visibility, communication gaps — versus the CampusGO solution: a centralised dashboard with placement overview, progress and recruiting companies"
+          />
+        </div>
+      </Section>
+
       {/* CORE FEATURES */}
       <Section>
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
@@ -82,7 +97,10 @@ export default function PlatformPage() {
             </div>
             <div className="mt-7">
               <BrowserFrame>
-                <HeroDashboard />
+                <Shot
+                  src="/screenshots/officer-dashboard.png"
+                  alt="Placement Dashboard — progress stage by stage, per programme"
+                />
               </BrowserFrame>
               <p className="mt-2 text-xs text-subtle">
                 Placement Dashboard — progress stage by stage, per programme.
