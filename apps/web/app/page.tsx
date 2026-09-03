@@ -6,7 +6,7 @@ import {
   BoltIcon,
   BuildingIcon,
   GRADIENT_BG,
-  HeroGraphic,
+  HeroScene,
   JOURNEY_STEPS,
   Section,
   SectionHeading,
@@ -126,7 +126,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="w-full max-w-md flex-shrink-0 lg:w-[420px]">
-            <HeroGraphic />
+            <HeroScene />
           </div>
         </div>
       </section>

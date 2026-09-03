@@ -4,6 +4,7 @@ import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   BrowserFrame,
   DashboardMockup,
+  InterviewScene,
   READINESS_PILLARS,
   Section,
   TINT_BG,
@@ -87,6 +88,10 @@ export default function ReadinessPage() {
               <DashboardMockup />
             </BrowserFrame>
             <p className="mt-2 text-xs text-subtle">Training dashboard — readiness distribution across the cohort.</p>
+            <div className="mt-5 overflow-hidden rounded-card bg-card p-4 shadow-card">
+              <InterviewScene />
+            </div>
+            <p className="mt-2 text-xs text-subtle">Mock interviews and assessments feed the readiness score.</p>
           </div>
         </div>
       </Section>

@@ -7,8 +7,10 @@ import {
   CORE_FEATURES,
   EXTENDED_TOPICS,
   FunnelPill,
+  GraduationScene,
   HandshakeIcon,
   HierarchyDiagram,
+  InterviewScene,
   MailIcon,
   OfficerDesktopMockup,
   RECRUITMENT_TOPICS,
@@ -87,16 +89,21 @@ export default function PlatformPage() {
               </p>
             </div>
           </div>
-          <div className="grid flex-1 grid-cols-1 gap-6 sm:grid-cols-2">
-            {RECRUITMENT_TOPICS.map((t) => (
-              <div key={t.title}>
-                <p className="text-sm font-bold text-strong">{t.title}</p>
-                <p
-                  className="mt-1.5 text-sm leading-relaxed text-subtle"
-                  dangerouslySetInnerHTML={{ __html: t.body }}
-                />
-              </div>
-            ))}
+          <div className="flex-1">
+            <div className="mb-8 overflow-hidden rounded-card bg-card p-4 shadow-card">
+              <InterviewScene />
+            </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {RECRUITMENT_TOPICS.map((t) => (
+                <div key={t.title}>
+                  <p className="text-sm font-bold text-strong">{t.title}</p>
+                  <p
+                    className="mt-1.5 text-sm leading-relaxed text-subtle"
+                    dangerouslySetInnerHTML={{ __html: t.body }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </Section>
@@ -150,6 +157,9 @@ export default function PlatformPage() {
               <AlumniYear year="Year 3" body="Another batch joins — the network keeps growing." tint="cream" />
             </div>
             <p className="mt-4 text-sm font-bold text-strong">Your data grows. It doesn&rsquo;t reset.</p>
+            <div className="mt-6 overflow-hidden rounded-card bg-card p-4 shadow-card">
+              <GraduationScene />
+            </div>
           </div>
         </div>
       </Section>

@@ -303,6 +303,166 @@ export function HeroGraphic() {
   );
 }
 
+/* ── Flat illustrations: a graduate, and the campus → career path ── */
+
+const FIG = {
+  skin: '#F1B98E',
+  gown: '#3B6EF5',
+  gownDark: '#2E4CA6',
+  cap: '#14245C',
+  tassel: '#E28040',
+};
+
+function Graduate({ x = 0, y = 0, scale = 1, gown = FIG.gown }: { x?: number; y?: number; scale?: number; gown?: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      {/* gown / body */}
+      <path d="M18 92c0-24 12-40 32-40s32 16 32 40v6H18z" fill={gown} />
+      <path d="M50 52c-12 0-21 6-26 16l26 10 26-10c-5-10-14-16-26-16z" fill={FIG.gownDark} />
+      {/* head */}
+      <circle cx="50" cy="34" r="15" fill={FIG.skin} />
+      {/* mortarboard */}
+      <rect x="41" y="18" width="18" height="9" rx="2" fill={FIG.cap} />
+      <path d="M50 6 78 17 50 28 22 17z" fill={FIG.cap} />
+      <circle cx="50" cy="17" r="3" fill={FIG.cap} />
+      <path d="M50 17v12" stroke={FIG.tassel} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="50" cy="31" r="3" fill={FIG.tassel} />
+      {/* diploma */}
+      <rect x="70" y="70" width="26" height="9" rx="4" fill="#FFF4E0" stroke={FIG.tassel} strokeWidth="1.5" transform="rotate(18 83 74)" />
+    </g>
+  );
+}
+
+/** Home hero — a graduate, a dotted path through milestones, ending at a career badge. */
+export function HeroScene() {
+  return (
+    <svg viewBox="0 0 460 430" fill="none" className="w-full">
+      <defs>
+        <linearGradient id="hs-blob" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#EDF0FE" />
+          <stop offset="1" stopColor="#FDEEE3" />
+        </linearGradient>
+        <linearGradient id="hs-badge" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#5B8DEF" />
+          <stop offset="1" stopColor="#1F3F94" />
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="230" cy="240" rx="210" ry="170" fill="url(#hs-blob)" />
+
+      {/* dotted journey path */}
+      <path
+        d="M120 300 C 170 300, 190 210, 250 200 S 340 150, 372 96"
+        stroke="#B9C6F5"
+        strokeWidth="3"
+        strokeDasharray="2 10"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {[
+        [186, 250, '#7C8BFF'],
+        [258, 196, '#F78CA0'],
+        [318, 150, '#E28040'],
+      ].map(([cx, cy, c], i) => (
+        <circle key={i} cx={cx as number} cy={cy as number} r="7" fill={c as string} />
+      ))}
+
+      {/* graduate */}
+      <Graduate x={70} y={188} scale={1.9} />
+
+      {/* career badge */}
+      <g transform="translate(330 40)">
+        <rect width="92" height="92" rx="24" fill="url(#hs-badge)" />
+        <rect x="26" y="34" width="40" height="30" rx="5" fill="#fff" />
+        <path d="M36 34v-5a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v5" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <rect x="26" y="46" width="40" height="4" fill="#5B8DEF" />
+      </g>
+
+      {/* confetti */}
+      <circle cx="96" cy="150" r="4" fill="#F78CA0" />
+      <rect x="410" y="150" width="8" height="8" rx="2" fill="#7C8BFF" transform="rotate(20 414 154)" />
+      <circle cx="250" cy="70" r="3" fill="#E28040" />
+    </svg>
+  );
+}
+
+/** Graduation moment — for alumni / outcomes sections. */
+export function GraduationScene() {
+  return (
+    <svg viewBox="0 0 420 260" fill="none" className="w-full">
+      <defs>
+        <linearGradient id="gs-blob" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#E7F6EF" />
+          <stop offset="1" stopColor="#EDF0FE" />
+        </linearGradient>
+      </defs>
+      <path d="M20 210c60-60 320-60 380 0v40H20z" fill="url(#gs-blob)" />
+      <Graduate x={110} y={40} scale={1.7} gown="#3B6EF5" />
+      <Graduate x={210} y={58} scale={1.5} gown="#7C8BFF" />
+      {/* thrown cap */}
+      <g transform="translate(300 40) rotate(-20)">
+        <rect x="-9" y="-4" width="18" height="9" rx="2" fill={FIG.cap} />
+        <path d="M0 -16 28 -5 0 6 -28 -5z" fill={FIG.cap} />
+        <path d="M0 -5v14" stroke={FIG.tassel} strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+      {/* confetti */}
+      {[
+        [60, 60, '#F78CA0'],
+        [370, 70, '#E28040'],
+        [90, 150, '#7C8BFF'],
+        [340, 150, '#1F9D6B'],
+        [200, 30, '#5B8DEF'],
+      ].map(([cx, cy, c], i) => (
+        <circle key={i} cx={cx as number} cy={cy as number} r="4" fill={c as string} />
+      ))}
+    </svg>
+  );
+}
+
+/** An interview / assessment scene — two figures across a desk. */
+export function InterviewScene() {
+  return (
+    <svg viewBox="0 0 420 260" fill="none" className="w-full">
+      <defs>
+        <linearGradient id="is-blob" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#EDF0FE" />
+          <stop offset="1" stopColor="#FEECEC" />
+        </linearGradient>
+      </defs>
+      <ellipse cx="210" cy="140" rx="200" ry="120" fill="url(#is-blob)" />
+
+      {/* candidate (left) */}
+      <g transform="translate(70 90)">
+        <path d="M6 90c0-26 12-42 30-42s30 16 30 42z" fill="#7C8BFF" />
+        <circle cx="36" cy="34" r="15" fill={FIG.skin} />
+        <path d="M22 26c0-9 7-15 14-15s14 6 14 13c-6 1-10 4-14 4s-9-1-14-2z" fill="#14245C" />
+      </g>
+
+      {/* interviewer (right) */}
+      <g transform="translate(284 92)">
+        <path d="M6 88c0-24 11-40 28-40s28 16 28 40z" fill="#3B6EF5" />
+        <circle cx="34" cy="34" r="14" fill={FIG.skin} />
+        <path d="M21 30c1-10 7-16 13-16s12 5 13 14c-9 2-18 3-26 2z" fill="#2E4CA6" />
+        {/* clipboard */}
+        <rect x="-6" y="52" width="26" height="34" rx="3" fill="#FFF4E0" stroke="#E28040" strokeWidth="1.5" />
+        <path d="M0 60h16M0 68h16M0 76h10" stroke="#E28040" strokeWidth="2" strokeLinecap="round" />
+      </g>
+
+      {/* desk */}
+      <rect x="120" y="176" width="180" height="14" rx="4" fill="#14245C" />
+      <rect x="150" y="150" width="54" height="30" rx="4" fill="#fff" stroke="#E6E9F0" />
+      <rect x="150" y="150" width="54" height="30" rx="4" fill="none" stroke="#5B8DEF" strokeWidth="2" />
+
+      {/* speech bubble with a check */}
+      <g transform="translate(196 66)">
+        <rect width="52" height="38" rx="10" fill="#fff" stroke="#E6E9F0" />
+        <path d="M18 38l6 9 5-9z" fill="#fff" stroke="#E6E9F0" />
+        <path d="M16 20l7 7 13-14" stroke="#1F9D6B" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    </svg>
+  );
+}
+
 export function DashboardMockup() {
   return (
     <svg viewBox="0 0 420 280" fill="none" className="w-full">
