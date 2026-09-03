@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge, Card } from '@campusgo/ui';
 import { applyToJob, getJobFeed, jobLifecycle, jobLifecycleTint, type Job } from '../../../../lib/jobs';
+import { applicationStatusBadge } from '../../../../lib/applications';
 import { mutate } from '../../../../lib/use-api';
 import { PdfModal } from '../../../../components/pdf-modal';
 import { JobCard } from '../../../../components/job-card';
@@ -219,10 +220,11 @@ export default function StudentJobsPage() {
                 onOpen={() => router.push(`/me/jobs/${j.id}`)}
                 topRight={(() => {
                   const lc = jobLifecycle(j);
+                  const mine = j.applied ? applicationStatusBadge(j.myStatus ?? 'APPLIED') : null;
                   return (
                     <span className="flex flex-wrap justify-end gap-1">
                       <Badge tint={jobLifecycleTint(lc)}>{lc}</Badge>
-                      {j.applied && <Badge tint="mint">{j.myStage ?? 'Applied'}</Badge>}
+                      {mine && <Badge tint={mine.tint}>{mine.label}</Badge>}
                     </span>
                   );
                 })()}

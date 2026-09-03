@@ -766,9 +766,9 @@ export class JobsService {
 
     const myApps = await this.prisma.application.findMany({
       where: { studentId: student.id, jobId: { in: jobs.map((j) => j.id) } },
-      select: { jobId: true, stage: true },
+      select: { jobId: true, stage: true, status: true },
     });
-    const appliedMap = new Map(myApps.map((a) => [a.jobId, a.stage]));
+    const appliedMap = new Map(myApps.map((a) => [a.jobId, a]));
 
     // Selected-per-job → drives the "Completed" lifecycle label on the student feed.
     const selectedByJob = await this.prisma.application.groupBy({
@@ -792,7 +792,8 @@ export class JobsService {
         eligible,
         eligibilityReasons: reasons,
         applied: appliedMap.has(j.id),
-        myStage: appliedMap.get(j.id) ?? null,
+        myStage: appliedMap.get(j.id)?.stage ?? null,
+        myStatus: appliedMap.get(j.id)?.status ?? null,
       };
     });
   }
@@ -834,7 +835,7 @@ export class JobsService {
 
     const app = await this.prisma.application.findUnique({
       where: { jobId_studentId: { jobId, studentId: student.id } },
-      select: { stage: true },
+      select: { stage: true, status: true },
     });
 
     const selectedCount = await this.prisma.application.count({
@@ -858,6 +859,7 @@ export class JobsService {
       eligibilityReasons: reasons,
       applied: !!app,
       myStage: app?.stage ?? null,
+      myStatus: app?.status ?? null,
       totalRounds: _count.rounds,
     };
   }

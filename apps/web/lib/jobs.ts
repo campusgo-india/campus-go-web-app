@@ -123,7 +123,12 @@ export interface Job {
   roundCount?: number;
   // student feed annotations
   applied?: boolean;
+  // Raw ATS stage of the student's own application (APPLIED, ROUND_1, …).
   myStage?: string | null;
+  // Rounds-funnel status of the student's own application
+  // (APPLIED | IN_PROGRESS | SELECTED | REJECTED | WITHDRAWN) — use this for
+  // the student-facing badge so it reads the same as My Applications / Home.
+  myStatus?: string | null;
   eligible?: boolean;
   eligibilityReasons?: string[];
   // Only populated on the student job-detail endpoint — total rounds defined for this job.
