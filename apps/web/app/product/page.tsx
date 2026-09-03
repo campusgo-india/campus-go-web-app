@@ -59,8 +59,8 @@ export default function PlatformPage() {
         />
         <div className="mx-auto mt-9 max-w-4xl overflow-hidden rounded-card border border-border shadow-card">
           <Shot
-            src="/screenshots/challenges-solution.png"
-            alt="The challenges colleges face — spreadsheet chaos, time-consuming processes, poor visibility, communication gaps — versus the CampusGO solution: a centralised dashboard with placement overview, progress and recruiting companies"
+            src="/screenshots/complexity-to-clarity.png"
+            alt="The pain points colleges struggle with — spreadsheet chaos, time-consuming processes, poor student visibility, communication gaps, limited insights — versus the CampusGO solution: a centralised data hub, automated workflows, 360° student tracking, dashboards and reports"
           />
         </div>
       </Section>
