@@ -24,3 +24,8 @@ signing-key-info.txt
 # Bubblewrap-managed JDK / Android SDK (only if it lands here)
 /jdk/
 /android_sdk/
+
+gradle.properties
+manifest-checksum.txt
+CampusGO-*.apk
+CampusGO-*.aab

@@ -1,5 +1,16 @@
 # CampusGO Android app (TWA)
 
+> **Build status (2026-09-03):** a signed `CampusGO-1.0.0.apk` + `.aab` were
+> built locally (versionCode 1, targetSdk 36, package `com.campusgoindia.student`,
+> logo splash removed). The original signing key was lost, so a **new** key was
+> generated — keystore + password are in `~/CampusGO-android-signing/`
+> (`signing-key-info.txt`). Its SHA-256
+> `D3:1E:CF:0E:72:C7:23:62:DF:FC:EE:02:B0:E1:4D:C2:60:F6:31:CE:AE:49:9C:64:63:ED:1B:32:B8:18:13:1B`
+> has been added to `assetlinks.json`. **Save that keystore before doing
+> anything else** — without it there are no updates. The APK still needs the
+> domain pointed at Vercel (below) before it works end-to-end.
+
+
 The Android app is a **Trusted Web Activity (TWA)** — a thin native wrapper,
 built with [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap), that
 opens `https://campusgoindia.com` full-screen with no browser chrome. There is
