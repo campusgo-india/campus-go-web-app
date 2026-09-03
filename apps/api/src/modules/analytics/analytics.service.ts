@@ -432,7 +432,7 @@ export class AnalyticsService {
       }),
       this.prisma.application.findMany({
         where: { collegeId },
-        select: { studentId: true, status: true, stage: true, offerCtc: true, offerLetterUrl: true },
+        select: { studentId: true, status: true, stage: true },
       }),
       this.prisma.applicationRound.findMany({
         where: { application: { collegeId } },
@@ -511,23 +511,14 @@ export class AnalyticsService {
       if (maxSeqReached >= 3 || myApps.some((a) => (ROUND_3_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
         bucket.round3++;
       }
+      // Selecting a candidate IS extending the offer — the two are the same
+      // event, so Selected and Offered always match. (An uploaded offer-letter
+      // PDF is just tracking; it doesn't create an offer.)
       const isSelected = myApps.some(
         (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
       );
-      if (isSelected) bucket.selected++;
-      // "Offered" is a superset of "Selected" — selecting a candidate *is*
-      // extending an offer. It also picks up an offer released but not yet
-      // accepted (stage OFFER_RELEASED) or a letter/CTC on file. So Offered is
-      // never less than Selected.
-      if (
-        isSelected ||
-        myApps.some(
-          (a) =>
-            a.offerCtc != null ||
-            a.offerLetterUrl != null ||
-            (OFFER_STAGES as readonly string[]).includes(a.stage),
-        )
-      ) {
+      if (isSelected) {
+        bucket.selected++;
         bucket.offered++;
       }
       if (myApps.some((a) => a.stage === 'JOINED')) bucket.joined++;

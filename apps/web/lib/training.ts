@@ -240,8 +240,11 @@ export interface OfficerTrainingDashboard {
     average: number;
     assessedCount: number;
     notYetAssessedCount: number;
-    // Students at >= 70% readiness — a slightly wider bar than Tier 1 (>= 80%).
+    // Students at >= 70% readiness — same value as bands.ready.
     placementReadyCount: number;
+    // "Readiness distribution" — a partition of assessed students aligned to
+    // the "Placement ready" >= 70% bar (ready >= 70, onTrack 50–69, building < 50).
+    bands: { ready: number; onTrack: number; building: number };
     tierCounts: Record<EmployabilityTier, number>;
   };
   pillars: Array<{ pillar: TrainingPillar; label: string; prePct: number | null; postPct: number | null }>;

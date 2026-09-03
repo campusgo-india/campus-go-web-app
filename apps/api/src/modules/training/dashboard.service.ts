@@ -213,14 +213,19 @@ export class TrainingDashboardService {
     const tierCounts: Record<EmployabilityTier, number> = { TIER_1: 0, TIER_2: 0, TIER_3: 0 };
     let readinessSum = 0;
     let assessedCount = 0;
-    let placementReadyCount = 0;
+    // "Readiness distribution" bands — a partition aligned to the same ≥70%
+    // bar as the "Placement ready" headcount, so the two never disagree.
+    const ONTRACK_MIN = 50;
+    const bands = { ready: 0, onTrack: 0, building: 0 };
     for (const id of studentIds) {
       const rows = scoresByStudent.get(id);
       if (!rows || rows.length === 0) continue;
       const { readinessIndex, scoredPillars } = computeReadiness(rows);
       if (scoredPillars.length === 0) continue;
       tierCounts[tierFor(readinessIndex)]++;
-      if (readinessIndex >= PLACEMENT_READY_MIN) placementReadyCount++;
+      if (readinessIndex >= PLACEMENT_READY_MIN) bands.ready++;
+      else if (readinessIndex >= ONTRACK_MIN) bands.onTrack++;
+      else bands.building++;
       readinessSum += readinessIndex;
       assessedCount++;
     }
@@ -228,7 +233,8 @@ export class TrainingDashboardService {
       average: assessedCount ? Math.round(readinessSum / assessedCount) : 0,
       assessedCount,
       notYetAssessedCount: studentIds.length - assessedCount,
-      placementReadyCount,
+      placementReadyCount: bands.ready,
+      bands,
       tierCounts,
     };
 

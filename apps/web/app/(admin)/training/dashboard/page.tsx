@@ -8,21 +8,16 @@ import { useApi } from '../../../../lib/use-api';
 import {
   getOfficerTrainingDashboard,
   PILLAR_LABEL,
-  type EmployabilityTier,
   type OfficerTrainingDashboard,
 } from '../../../../lib/training';
 
-const TIER_LABEL: Record<EmployabilityTier, string> = {
-  TIER_1: 'Placement Ready',
-  TIER_2: 'On Track',
-  TIER_3: 'Building Up',
-};
-
-const TIER_TINT: Record<EmployabilityTier, 'mint' | 'lavender' | 'rose'> = {
-  TIER_1: 'mint',
-  TIER_2: 'lavender',
-  TIER_3: 'rose',
-};
+// The "Readiness distribution" bands — aligned to the "Placement ready" ≥70%
+// headcount so the two never disagree.
+const BANDS = [
+  { key: 'ready', label: 'Placement Ready', hint: '≥70%', tint: 'mint', fill: 'bg-tint-mint-fg' },
+  { key: 'onTrack', label: 'On Track', hint: '50–69%', tint: 'lavender', fill: 'bg-tint-lavender-fg' },
+  { key: 'building', label: 'Building Up', hint: '<50%', tint: 'rose', fill: 'bg-tint-rose-fg' },
+] as const;
 
 /**
  * Cohort-wide training analytics for the placement team — pre vs post-test
@@ -38,7 +33,8 @@ export default function TrainingDashboardPage() {
   if (!data) return <PageSkeleton />;
 
   const { readiness, pillars, overallAttendancePct, sessions, assessments, studentCount } = data;
-  const tierTotal = readiness.tierCounts.TIER_1 + readiness.tierCounts.TIER_2 + readiness.tierCounts.TIER_3;
+  const { bands } = readiness;
+  const bandTotal = bands.ready + bands.onTrack + bands.building;
 
   return (
     <div className="space-y-8">
@@ -86,29 +82,27 @@ export default function TrainingDashboardPage() {
         title="Readiness distribution"
         subtitle="Every scored student, bucketed by their overall readiness index"
       >
-        {tierTotal === 0 ? (
+        {bandTotal === 0 ? (
           <p className="text-sm text-subtle">No assessment scores recorded yet.</p>
         ) : (
           <div className="space-y-3">
-            {(['TIER_1', 'TIER_2', 'TIER_3'] as EmployabilityTier[]).map((tier) => (
-              <ProgressBar
-                key={tier}
-                value={(readiness.tierCounts[tier] / tierTotal) * 100}
-                label={
-                  <span className="flex items-center gap-2">
-                    <Badge tint={TIER_TINT[tier]}>{TIER_LABEL[tier]}</Badge>
-                  </span>
-                }
-                caption={`${readiness.tierCounts[tier]} students`}
-                fillClassName={
-                  tier === 'TIER_1'
-                    ? 'bg-tint-mint-fg'
-                    : tier === 'TIER_2'
-                      ? 'bg-tint-lavender-fg'
-                      : 'bg-tint-rose-fg'
-                }
-              />
-            ))}
+            {BANDS.map((b) => {
+              const count = bands[b.key];
+              return (
+                <ProgressBar
+                  key={b.key}
+                  value={(count / bandTotal) * 100}
+                  label={
+                    <span className="flex items-center gap-2">
+                      <Badge tint={b.tint}>{b.label}</Badge>
+                      <span className="text-xs text-subtle">{b.hint}</span>
+                    </span>
+                  }
+                  caption={`${count} student${count === 1 ? '' : 's'}`}
+                  fillClassName={b.fill}
+                />
+              );
+            })}
           </div>
         )}
       </SectionCard>
