@@ -10,7 +10,9 @@ import {
   formatCtc,
   jobLifecycle,
   jobLifecycleTint,
+  JOB_LIFECYCLES,
   type Job,
+  type JobLifecycle,
 } from '../../../lib/jobs';
 import { JobCard } from '../../../components/job-card';
 import { ListSkeleton } from '../../../components/page-skeleton';
@@ -38,7 +40,9 @@ export default function JobsPage() {
   const { user } = useSession();
   const readOnly = user?.role === 'PLACEMENT_COORDINATOR' || user?.role === 'MANAGEMENT';
   const [items, setItems] = useState<Job[]>([]);
-  const [status, setStatus] = useState('');
+  // Lifecycle filter (Draft / Published / Closed / In progress / Completed).
+  // In progress / Completed are computed client-side, so filtering is too.
+  const [lifecycle, setLifecycle] = useState<JobLifecycle | ''>('');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [view, setViewState] = useState<ViewMode>(initialView);
@@ -69,19 +73,25 @@ export default function JobsPage() {
       setLoading(true);
       setError(null);
       try {
-        setItems(await listJobs(status, debouncedSearch));
+        // No status param — the lifecycle filter is applied client-side below.
+        setItems(await listJobs('', debouncedSearch, '', 500));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load jobs');
       } finally {
         setLoading(false);
       }
     })();
-  }, [status, debouncedSearch]);
+  }, [debouncedSearch]);
+
+  const visibleItems = useMemo(
+    () => (lifecycle ? items.filter((j) => jobLifecycle(j) === lifecycle) : items),
+    [items, lifecycle],
+  );
 
   // Clear selection when switching tabs so stale ids don't persist.
   useEffect(() => {
     setSelected(new Set());
-  }, [status]);
+  }, [lifecycle]);
 
   const draftIds = useMemo(
     () => items.filter((j) => j.status === 'DRAFT' && !j.isPlatform).map((j) => j.id),
@@ -118,7 +128,7 @@ export default function JobsPage() {
     try {
       const { count } = await publishManyJobs(ids);
       setSelected(new Set());
-      setItems(await listJobs(status));
+      setItems(await listJobs('', debouncedSearch, '', 500));
       // eslint-disable-next-line no-alert
       alert(`${count} job${count === 1 ? '' : 's'} published successfully`);
     } catch (err) {
@@ -135,7 +145,10 @@ export default function JobsPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-strong">Jobs</h1>
-          <p className="text-sm text-subtle">{items.length} postings</p>
+          <p className="text-sm text-subtle">
+            {visibleItems.length} posting{visibleItems.length === 1 ? '' : 's'}
+            {lifecycle ? ` · ${lifecycle}` : ''}
+          </p>
         </div>
         {!readOnly && (
           <Link href="/jobs/quick">
@@ -170,13 +183,13 @@ export default function JobsPage() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2">
-          {['', 'DRAFT', 'PUBLISHED', 'CLOSED'].map((s) => (
+        <div className="flex flex-wrap gap-2">
+          {(['', ...JOB_LIFECYCLES] as const).map((s) => (
             <button
               key={s || 'ALL'}
-              onClick={() => setStatus(s)}
+              onClick={() => setLifecycle(s)}
               className={`rounded-pill px-4 py-1.5 text-sm font-medium ${
-                status === s
+                lifecycle === s
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-body hover:bg-primary-50'
               }`}
@@ -216,9 +229,13 @@ export default function JobsPage() {
 
       {loading ? (
         <ListSkeleton />
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <Card className="p-8 text-center text-sm text-subtle">
-          {search ? 'No jobs match your search.' : 'No jobs yet. Post one to get started.'}
+          {search
+            ? 'No jobs match your search.'
+            : lifecycle
+              ? `No ${lifecycle} jobs.`
+              : 'No jobs yet. Post one to get started.'}
         </Card>
       ) : view === 'list' ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-white">
@@ -236,7 +253,7 @@ export default function JobsPage() {
               </tr>
             </thead>
             <tbody>
-              {items.map((j) => {
+              {visibleItems.map((j) => {
                 const company = j.companyName ?? j.company?.name ?? 'Company';
                 return (
                   <tr
@@ -295,7 +312,7 @@ export default function JobsPage() {
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((j, i) => {
+          {visibleItems.map((j, i) => {
             const applicants = j.applicationCount ?? 0;
             const isDraft = j.status === 'DRAFT' && !j.isPlatform;
             return (
@@ -346,7 +363,7 @@ export default function JobsPage() {
       )}
 
       {/* Floating select-all bar for drafts */}
-      {!readOnly && status !== 'PUBLISHED' && status !== 'CLOSED' && draftIds.length > 0 && (
+      {!readOnly && (lifecycle === '' || lifecycle === 'Draft') && draftIds.length > 0 && (
         <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-card">
           <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-body">
             <input

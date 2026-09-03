@@ -177,18 +177,22 @@ export function formatLpa(value: number | null | undefined): string {
   return `₹${lpa(value)} LPA`;
 }
 
-export type JobLifecycle =
-  | 'Draft'
-  | 'Published'
-  | 'Closed for applications'
-  | 'In progress'
-  | 'Completed';
+export type JobLifecycle = 'Draft' | 'Published' | 'Closed' | 'In progress' | 'Completed';
+
+/** Every lifecycle value except Draft — the filter options on the Jobs list. */
+export const JOB_LIFECYCLES: JobLifecycle[] = [
+  'Draft',
+  'Published',
+  'Closed',
+  'In progress',
+  'Completed',
+];
 
 /**
  * Officer-facing lifecycle label, derived from the raw status + activity:
- *  Draft → Published → Closed for applications → In progress → Completed.
+ *  Draft → Published → Closed → In progress → Completed.
  *  - Published: live, still accepting applications
- *  - Closed for applications: officer closed it, or the deadline passed
+ *  - Closed: officer closed it, or the application deadline passed
  *  - In progress: at least one interview round has been created
  *  - Completed: a candidate has been selected for an offer
  * (Needs `roundCount`/`selectedCount` — only present on the officer endpoints.)
@@ -199,14 +203,14 @@ export function jobLifecycle(job: Job): JobLifecycle {
   if ((job.roundCount ?? 0) > 0) return 'In progress';
   const deadlinePassed =
     job.applicationDeadline != null && new Date(job.applicationDeadline).getTime() < Date.now();
-  if (job.status === 'CLOSED' || deadlinePassed) return 'Closed for applications';
+  if (job.status === 'CLOSED' || deadlinePassed) return 'Closed';
   return 'Published';
 }
 
 const JOB_LIFECYCLE_TINT: Record<JobLifecycle, 'cream' | 'mint' | 'lavender' | 'primary' | 'rose'> = {
   Draft: 'cream',
   Published: 'mint',
-  'Closed for applications': 'lavender',
+  Closed: 'lavender',
   'In progress': 'primary',
   Completed: 'rose',
 };
@@ -231,11 +235,13 @@ export async function listJobs(
   status = '',
   search = '',
   createdById = '',
+  limit = 0,
 ): Promise<Job[]> {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
   if (search) params.set('search', search);
   if (createdById) params.set('createdById', createdById);
+  if (limit) params.set('limit', String(limit));
   const qs = params.toString();
   const { data } = await apiList<Job[]>(`/jobs${qs ? `?${qs}` : ''}`);
   return data;
