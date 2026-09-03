@@ -5,6 +5,7 @@ import {
   PhoneShot,
   READINESS_PILLARS,
   Section,
+  STUDENT_SHOTS,
   TINT_BG,
   TINT_FG,
 } from '../../components/site-sections';
@@ -82,12 +83,17 @@ export default function ReadinessPage() {
             </Link>
           </div>
           <div className="flex w-full max-w-md flex-col items-center lg:w-[420px] lg:flex-shrink-0">
-            <PhoneShot
-              src="/screenshots/student-employability.png"
-              alt="Student employability view — overall readiness score, tier eligibility and a personalised placement roadmap"
-            />
+            <div className="flex items-end justify-center gap-4">
+              <div className="w-[180px]">
+                <PhoneShot src={STUDENT_SHOTS.employability.src} alt={STUDENT_SHOTS.employability.alt} />
+              </div>
+              <div className="hidden w-[160px] pb-6 sm:block">
+                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} />
+              </div>
+            </div>
             <p className="mt-3 text-xs text-subtle">
-              The student&rsquo;s employability view — readiness score, tier and roadmap, private to them.
+              The student&rsquo;s employability view and placement tracker — readiness, tier and
+              progress, private to them.
             </p>
           </div>
         </div>

@@ -13,6 +13,7 @@ import {
   SectionHeading,
   Shot,
   STAKEHOLDERS,
+  STUDENT_SHOTS,
   TargetIcon,
   TINT_BG,
   TINT_FG,
@@ -165,11 +166,13 @@ export default function HomePage() {
               />
             </BrowserFrame>
           </div>
-          <div className="flex w-[210px] flex-shrink-0 justify-center">
-            <PhoneShot
-              src="/screenshots/student-employability.png"
-              alt="Student app — employability readiness score, tier and placement roadmap"
-            />
+          <div className="flex flex-shrink-0 justify-center gap-4">
+            <div className="hidden w-[170px] translate-y-4 sm:block">
+              <PhoneShot src={STUDENT_SHOTS.home.src} alt={STUDENT_SHOTS.home.alt} />
+            </div>
+            <div className="w-[190px]">
+              <PhoneShot src={STUDENT_SHOTS.applications.src} alt={STUDENT_SHOTS.applications.alt} />
+            </div>
           </div>
         </div>
         <div className="mt-14 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-2">

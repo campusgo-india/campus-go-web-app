@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
+import { PhoneCarousel } from '../../components/phone-carousel';
 import {
   BellIcon,
   BrowserFrame,
@@ -10,6 +11,8 @@ import {
   Section,
   Shot,
   STUDENT_FEATURES,
+  STUDENT_SHOTS,
+  STUDENT_SHOT_LIST,
   TINT_BG,
   TINT_FG,
 } from '../../components/site-sections';
@@ -20,39 +23,6 @@ export const metadata: Metadata = {
     'A focused app for students — readiness, opportunities, applications and offer updates in their pocket — and an on-the-go view for placement teams. Installs like an app; nothing to update.',
   alternates: { canonical: '/mobile' },
 };
-
-const STUDENT_SHOTS: { src: string; alt: string; caption: string }[] = [
-  {
-    src: '/screenshots/student-home.png',
-    alt: 'Student app home — readiness banner, quick actions and a live list of applications',
-    caption: 'Home — readiness & applications at a glance',
-  },
-  {
-    src: '/screenshots/student-employability.png',
-    alt: 'My Employability — 79% ready, department rank, tier badge and a placement roadmap',
-    caption: 'Employability — readiness, tier & roadmap',
-  },
-  {
-    src: '/screenshots/student-jobs.png',
-    alt: 'Jobs list — Open / Applied / Closed tabs with per-job lifecycle and application status',
-    caption: 'Jobs — filtered by where each one stands',
-  },
-  {
-    src: '/screenshots/student-applications.png',
-    alt: 'Application timeline — every round, cleared or not, and the offer when selected',
-    caption: 'Applications — round-by-round timeline',
-  },
-  {
-    src: '/screenshots/student-tracker.png',
-    alt: 'Placement Tracker — applications, interviews, selections and an application funnel',
-    caption: 'Tracker — the season in one view',
-  },
-  {
-    src: '/screenshots/student-notifications.png',
-    alt: 'Notifications — new jobs, scheduled rounds, results and offer updates',
-    caption: 'Notifications — the moment things happen',
-  },
-];
 
 export default function MobilePage() {
   return (
@@ -94,10 +64,7 @@ export default function MobilePage() {
             </div>
           </div>
           <div className="flex w-full justify-center lg:w-auto">
-            <PhoneShot
-              src="/screenshots/student-employability.png"
-              alt="CampusGO student app — overall employability readiness, tier eligibility and placement roadmap"
-            />
+            <PhoneShot src={STUDENT_SHOTS.employability.src} alt={STUDENT_SHOTS.employability.alt} />
           </div>
         </div>
       </section>
@@ -129,13 +96,8 @@ export default function MobilePage() {
           ))}
         </div>
 
-        <div className="mt-12 flex snap-x gap-6 overflow-x-auto pb-4 lg:flex-wrap lg:justify-center lg:overflow-visible">
-          {STUDENT_SHOTS.map((s) => (
-            <figure key={s.src} className="flex w-[210px] flex-shrink-0 snap-center flex-col items-center">
-              <PhoneShot src={s.src} alt={s.alt} />
-              <figcaption className="mt-3 text-center text-xs text-subtle">{s.caption}</figcaption>
-            </figure>
-          ))}
+        <div className="mt-12">
+          <PhoneCarousel shots={STUDENT_SHOT_LIST} />
         </div>
       </Section>
 

@@ -4,9 +4,11 @@ import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   ADVANTAGE_FLOW,
   BrowserFrame,
+  PhoneShot,
   REPORT_CATEGORIES,
   Section,
   Shot,
+  STUDENT_SHOTS,
   TINT_BG,
   TINT_FG,
 } from '../../components/site-sections';
@@ -56,13 +58,22 @@ export default function ReportsPage() {
       <Section alt>
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="w-full max-w-md lg:w-[440px] lg:flex-shrink-0">
-            <BrowserFrame>
-              <Shot
-                src="/screenshots/officer-dashboard.png"
-                alt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
-              />
-            </BrowserFrame>
-            <p className="mt-2 text-xs text-subtle">Analytics — placement funnel and package stats, UG / PG.</p>
+            <div className="flex items-end gap-4">
+              <div className="min-w-0 flex-1">
+                <BrowserFrame>
+                  <Shot
+                    src="/screenshots/officer-dashboard.png"
+                    alt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
+                  />
+                </BrowserFrame>
+              </div>
+              <div className="hidden w-[130px] flex-shrink-0 sm:block">
+                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-subtle">
+              The same activity, aggregated for the institution and mirrored back to each student.
+            </p>
           </div>
           <div className="w-full lg:flex-1">
             <h2 className="text-2xl font-extrabold tracking-tight text-strong">

@@ -122,6 +122,54 @@ export const STUDENT_FEATURES: { title: string; body: string; tint: Tint }[] = [
   { title: 'Profile', body: 'Maintain the information required for placement participation.', tint: 'lavender' },
 ];
 
+/** Real student-app captures (in apps/web/public/screenshots/). Pick individual
+ *  entries for a lone PhoneShot, or pass STUDENT_SHOT_LIST to <PhoneCarousel>. */
+export interface PhoneShotData {
+  src: string;
+  alt: string;
+  caption: string;
+}
+export const STUDENT_SHOTS = {
+  home: {
+    src: '/screenshots/student-home.png',
+    alt: 'Student app home — readiness banner, quick actions and a live list of applications',
+    caption: 'Home — readiness & applications at a glance',
+  },
+  employability: {
+    src: '/screenshots/student-employability.png',
+    alt: 'My Employability — readiness score, department rank, tier badge and a placement roadmap',
+    caption: 'Employability — readiness, tier & roadmap',
+  },
+  jobs: {
+    src: '/screenshots/student-jobs.png',
+    alt: 'Jobs list — Open / Applied / Closed tabs with per-job lifecycle and application status',
+    caption: 'Jobs — filtered by where each one stands',
+  },
+  applications: {
+    src: '/screenshots/student-applications.png',
+    alt: 'Application timeline — every round, cleared or not, and the offer when selected',
+    caption: 'Applications — round-by-round timeline',
+  },
+  tracker: {
+    src: '/screenshots/student-tracker.png',
+    alt: 'Placement Tracker — applications, interviews, selections and an application funnel',
+    caption: 'Tracker — the season in one view',
+  },
+  notifications: {
+    src: '/screenshots/student-notifications.png',
+    alt: 'Notifications — new jobs, scheduled rounds, results and offer updates',
+    caption: 'Notifications — the moment things happen',
+  },
+} satisfies Record<string, PhoneShotData>;
+export const STUDENT_SHOT_LIST: PhoneShotData[] = [
+  STUDENT_SHOTS.home,
+  STUDENT_SHOTS.employability,
+  STUDENT_SHOTS.jobs,
+  STUDENT_SHOTS.applications,
+  STUDENT_SHOTS.tracker,
+  STUDENT_SHOTS.notifications,
+];
+
 export const EXTENDED_TOPICS: { title: string; eyebrow: string; body: string }[] = [
   { title: 'Companies & Recruiters', eyebrow: 'Build a stronger recruiter ecosystem', body: 'Maintain a structured record of company profiles, recruiter contacts, job opportunities, recruitment history, selections and engagement — turning every interaction into institutional knowledge.' },
   { title: 'Placement Communication', eyebrow: 'Reach the right students at the right time', body: 'No more manually maintained mailing lists. CampusGo identifies relevant students and sends individual notifications — new jobs, interview schedules, deadlines, shortlists and placement updates.' },

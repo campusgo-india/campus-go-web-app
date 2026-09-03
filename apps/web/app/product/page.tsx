@@ -10,10 +10,12 @@ import {
   HandshakeIcon,
   HierarchyDiagram,
   MailIcon,
+  PhoneShot,
   RECRUITMENT_TOPICS,
   Section,
   SectionHeading,
   Shot,
+  STUDENT_SHOTS,
   TINT_BG,
   TINT_FG,
   TINTS,
@@ -116,6 +118,19 @@ export default function PlatformPage() {
                   />
                 </div>
               ))}
+            </div>
+            <div className="mt-9 flex items-start gap-5 rounded-card bg-card p-5 shadow-card">
+              <div className="w-[150px] flex-shrink-0">
+                <PhoneShot src={STUDENT_SHOTS.jobs.src} alt={STUDENT_SHOTS.jobs.alt} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-strong">The same drive, from the student side</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-subtle">
+                  Students see each opportunity with the same lifecycle the officer set —
+                  open, applied, closed — and their own stage in every round. One record,
+                  two views.
+                </p>
+              </div>
             </div>
           </div>
         </div>
