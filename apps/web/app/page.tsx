@@ -9,7 +9,6 @@ import {
   GRADIENT_BG,
   HeroDashboard,
   JOURNEY_STEPS,
-  OfficerDesktopMockup,
   PhoneMockup,
   Section,
   SectionHeading,
@@ -154,11 +153,13 @@ export default function HomePage() {
           title="One Screen for the Whole Drive"
           subtitle="Placement teams run recruitment from a single dashboard — progress stage by stage, per programme. Students get the same data, focused, on their phone."
         />
-        <div className="relative mt-11">
-          <BrowserFrame>
-            <OfficerDesktopMockup />
-          </BrowserFrame>
-          <div className="pointer-events-none absolute -bottom-8 right-2 hidden w-[190px] sm:block">
+        <div className="mt-11 flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:gap-6">
+          <div className="w-full lg:flex-1">
+            <BrowserFrame>
+              <HeroDashboard />
+            </BrowserFrame>
+          </div>
+          <div className="w-[200px] flex-shrink-0">
             <PhoneMockup />
           </div>
         </div>

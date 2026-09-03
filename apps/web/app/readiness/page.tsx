@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   BrowserFrame,
-  DashboardMockup,
+  HeroDashboard,
   InterviewScene,
   READINESS_PILLARS,
   Section,
@@ -85,7 +85,7 @@ export default function ReadinessPage() {
           </div>
           <div className="w-full max-w-md lg:w-[420px] lg:flex-shrink-0">
             <BrowserFrame>
-              <DashboardMockup />
+              <HeroDashboard />
             </BrowserFrame>
             <p className="mt-2 text-xs text-subtle">Training dashboard — readiness distribution across the cohort.</p>
             <div className="mt-5 overflow-hidden rounded-card bg-card p-4 shadow-card">

@@ -5,7 +5,7 @@ import {
   BellIcon,
   BrowserFrame,
   CheckIcon,
-  OfficerDesktopMockup,
+  HeroDashboard,
   PhoneFrame,
   PhoneIcon,
   PhoneMockup,
@@ -140,7 +140,7 @@ export default function MobilePage() {
           </div>
           <div className="w-full flex-1">
             <BrowserFrame>
-              <OfficerDesktopMockup />
+              <HeroDashboard />
             </BrowserFrame>
             <div className="mt-6 flex justify-center gap-6">
               <PhoneFrame>

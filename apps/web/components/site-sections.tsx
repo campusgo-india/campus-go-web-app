@@ -266,40 +266,24 @@ export function BrowserFrame({ children }: { children: ReactNode }) {
   );
 }
 
+/** A realistic phone device: thick dark bezel, rounded corners, a notch and
+ *  side buttons. Children fill the screen. */
 export function PhoneFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="w-full max-w-[260px] rounded-[32px] bg-strong p-2.5 shadow-2xl">
-      <div className="overflow-hidden rounded-3xl bg-app">{children}</div>
+    <div className="relative w-full max-w-[248px]">
+      {/* side buttons */}
+      <span className="absolute -left-[3px] top-[92px] h-8 w-[3px] rounded-l bg-strong/80" />
+      <span className="absolute -left-[3px] top-[138px] h-12 w-[3px] rounded-l bg-strong/80" />
+      <span className="absolute -right-[3px] top-[116px] h-16 w-[3px] rounded-r bg-strong/80" />
+      {/* body */}
+      <div className="rounded-[42px] bg-strong p-[9px] shadow-2xl ring-1 ring-black/10">
+        <div className="relative overflow-hidden rounded-[34px] bg-app">
+          {/* notch */}
+          <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-[22px] w-[110px] -translate-x-1/2 rounded-b-2xl bg-strong" />
+          {children}
+        </div>
+      </div>
     </div>
-  );
-}
-
-export function HeroGraphic() {
-  return (
-    <svg viewBox="0 0 420 460" fill="none" className="w-full">
-      <defs>
-        <linearGradient id="hg1" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#7CC0FF" />
-          <stop offset="1" stopColor="#5B8DEF" />
-        </linearGradient>
-        <linearGradient id="hg2" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#A9B6FF" />
-          <stop offset="1" stopColor="#7C8BFF" />
-        </linearGradient>
-        <linearGradient id="hg3" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FBC2A4" />
-          <stop offset="1" stopColor="#F78CA0" />
-        </linearGradient>
-      </defs>
-      <line x1="70" y1="90" x2="330" y2="370" stroke="rgba(11,19,48,0.12)" strokeWidth="2" strokeDasharray="3 8" />
-      <rect x="20" y="40" width="200" height="88" rx="16" fill="url(#hg1)" opacity="0.92" transform="rotate(-6 120 84)" />
-      <rect x="150" y="160" width="220" height="88" rx="16" fill="url(#hg2)" opacity="0.95" transform="rotate(4 260 204)" />
-      <rect x="60" y="290" width="230" height="88" rx="16" fill="url(#hg3)" transform="rotate(-3 175 334)" />
-      <circle cx="330" cy="120" r="26" fill="#0B1330" stroke="#6488FB" strokeWidth="2" />
-      <path d="M320 120l7 7 13-14" stroke="#8FAEFF" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="60" cy="380" r="5" fill="#8FAEFF" />
-      <circle cx="380" cy="40" r="5" fill="#F78CA0" />
-    </svg>
   );
 }
 
@@ -422,59 +406,6 @@ function Graduate({ x = 0, y = 0, scale = 1, gown = FIG.gown }: { x?: number; y?
   );
 }
 
-/** Home hero — a graduate, a dotted path through milestones, ending at a career badge. */
-export function HeroScene() {
-  return (
-    <svg viewBox="0 0 460 430" fill="none" className="w-full">
-      <defs>
-        <linearGradient id="hs-blob" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#EDF0FE" />
-          <stop offset="1" stopColor="#FDEEE3" />
-        </linearGradient>
-        <linearGradient id="hs-badge" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#5B8DEF" />
-          <stop offset="1" stopColor="#1F3F94" />
-        </linearGradient>
-      </defs>
-
-      <ellipse cx="230" cy="240" rx="210" ry="170" fill="url(#hs-blob)" />
-
-      {/* dotted journey path */}
-      <path
-        d="M120 300 C 170 300, 190 210, 250 200 S 340 150, 372 96"
-        stroke="#B9C6F5"
-        strokeWidth="3"
-        strokeDasharray="2 10"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {[
-        [186, 250, '#7C8BFF'],
-        [258, 196, '#F78CA0'],
-        [318, 150, '#E28040'],
-      ].map(([cx, cy, c], i) => (
-        <circle key={i} cx={cx as number} cy={cy as number} r="7" fill={c as string} />
-      ))}
-
-      {/* graduate */}
-      <Graduate x={70} y={188} scale={1.9} />
-
-      {/* career badge */}
-      <g transform="translate(330 40)">
-        <rect width="92" height="92" rx="24" fill="url(#hs-badge)" />
-        <rect x="26" y="34" width="40" height="30" rx="5" fill="#fff" />
-        <path d="M36 34v-5a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v5" stroke="#fff" strokeWidth="4" fill="none" strokeLinecap="round" />
-        <rect x="26" y="46" width="40" height="4" fill="#5B8DEF" />
-      </g>
-
-      {/* confetti */}
-      <circle cx="96" cy="150" r="4" fill="#F78CA0" />
-      <rect x="410" y="150" width="8" height="8" rx="2" fill="#7C8BFF" transform="rotate(20 414 154)" />
-      <circle cx="250" cy="70" r="3" fill="#E28040" />
-    </svg>
-  );
-}
-
 /** Graduation moment — for alumni / outcomes sections. */
 export function GraduationScene() {
   return (
@@ -548,61 +479,6 @@ export function InterviewScene() {
         <path d="M18 38l6 9 5-9z" fill="#fff" stroke="#E6E9F0" />
         <path d="M16 20l7 7 13-14" stroke="#1F9D6B" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </g>
-    </svg>
-  );
-}
-
-export function DashboardMockup() {
-  return (
-    <svg viewBox="0 0 420 280" fill="none" className="w-full">
-      <rect width="420" height="280" fill="#EEF3FF" />
-      <rect x="24" y="24" width="180" height="110" rx="10" fill="#fff" stroke="#E6E9F0" />
-      <rect x="40" y="40" width="90" height="10" rx="5" fill="#DCE6FF" />
-      <rect x="40" y="60" width="140" height="8" rx="4" fill="#EDF0F6" />
-      <rect x="40" y="76" width="120" height="8" rx="4" fill="#EDF0F6" />
-      <rect x="40" y="100" width="60" height="22" rx="6" fill="#3B6EF5" />
-      <rect x="216" y="24" width="180" height="110" rx="10" fill="#fff" stroke="#E6E9F0" />
-      <circle cx="250" cy="60" r="16" fill="#E7F6EF" />
-      <rect x="276" y="52" width="100" height="8" rx="4" fill="#EDF0F6" />
-      <rect x="276" y="66" width="70" height="8" rx="4" fill="#EDF0F6" />
-      <rect x="236" y="96" width="140" height="8" rx="4" fill="#FFF4E0" />
-      <rect x="24" y="146" width="372" height="110" rx="10" fill="#fff" stroke="#E6E9F0" />
-      <rect x="44" y="164" width="332" height="10" rx="5" fill="#F4F6FB" className="animate-pulse" />
-      <rect x="44" y="184" width="220" height="10" rx="5" fill="#F4F6FB" className="animate-pulse" />
-      <rect x="44" y="204" width="200" height="10" rx="5" fill="#DCE6FF" />
-      <rect x="44" y="228" width="90" height="20" rx="6" fill="#1F9D6B" opacity="0.85" />
-    </svg>
-  );
-}
-
-/** Wider "officer desktop" mock — a placement funnel + a couple of KPI tiles. */
-export function OfficerDesktopMockup() {
-  const bars = [92, 74, 61, 55, 48, 40, 33, 27];
-  return (
-    <svg viewBox="0 0 640 360" fill="none" className="w-full">
-      <rect width="640" height="360" fill="#F4F6FB" />
-      {/* KPI row */}
-      {[
-        ['#5B8DEF', '#3B6EF5'],
-        ['#FBC2A4', '#F78CA0'],
-        ['#A9B6FF', '#7C8BFF'],
-        ['#7CC0FF', '#5B8DEF'],
-      ].map((c, i) => (
-        <g key={i} transform={`translate(${24 + i * 150}, 24)`}>
-          <rect width="138" height="78" rx="12" fill={c[0]} />
-          <rect x="16" y="16" width="70" height="8" rx="4" fill="#ffffff" opacity="0.7" />
-          <rect x="16" y="34" width="44" height="18" rx="5" fill="#ffffff" />
-        </g>
-      ))}
-      {/* Funnel card */}
-      <rect x="24" y="124" width="592" height="212" rx="14" fill="#fff" stroke="#E6E9F0" />
-      <rect x="44" y="144" width="150" height="10" rx="5" fill="#DCE6FF" />
-      {bars.map((w, i) => (
-        <g key={i} transform={`translate(44, ${170 + i * 20})`}>
-          <rect width="90" height="10" rx="5" fill="#EDF0F6" />
-          <rect x="110" width={(w / 100) * 440} height="10" rx="5" fill={i < 5 ? '#3B6EF5' : '#1F9D6B'} opacity={0.85} />
-        </g>
-      ))}
     </svg>
   );
 }

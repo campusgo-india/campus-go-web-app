@@ -12,7 +12,7 @@ import {
   HierarchyDiagram,
   InterviewScene,
   MailIcon,
-  OfficerDesktopMockup,
+  HeroDashboard,
   RECRUITMENT_TOPICS,
   Section,
   SectionHeading,
@@ -82,7 +82,7 @@ export default function PlatformPage() {
             </div>
             <div className="mt-7">
               <BrowserFrame>
-                <OfficerDesktopMockup />
+                <HeroDashboard />
               </BrowserFrame>
               <p className="mt-2 text-xs text-subtle">
                 Placement Dashboard — progress stage by stage, per programme.

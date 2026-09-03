@@ -4,7 +4,7 @@ import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   ADVANTAGE_FLOW,
   BrowserFrame,
-  OfficerDesktopMockup,
+  HeroDashboard,
   REPORT_CATEGORIES,
   Section,
   TINT_BG,
@@ -57,7 +57,7 @@ export default function ReportsPage() {
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="w-full max-w-md lg:w-[440px] lg:flex-shrink-0">
             <BrowserFrame>
-              <OfficerDesktopMockup />
+              <HeroDashboard />
             </BrowserFrame>
             <p className="mt-2 text-xs text-subtle">Analytics — placement funnel and package stats, UG / PG.</p>
           </div>
