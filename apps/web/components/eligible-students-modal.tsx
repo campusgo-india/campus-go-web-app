@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Badge } from '@campusgo/ui';
 import { getEligibleStudents, type EligibleStudent } from '../lib/jobs';
@@ -27,14 +28,16 @@ export function EligibleStudentsModal({
   );
   const [search, setSearch] = useState('');
   const [notAppliedOnly, setNotAppliedOnly] = useState(true);
+  // Portal to <body> so the overlay is fixed to the viewport, not trapped by
+  // an ancestor with a transform (the admin shell's page-transition wrapper).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    const scrollY = window.scrollY;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = prevOverflow;
-      window.scrollTo(0, scrollY);
+      document.documentElement.style.overflow = prev;
     };
   }, []);
 
@@ -78,7 +81,9 @@ export function EligibleStudentsModal({
     URL.revokeObjectURL(url);
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -190,6 +195,7 @@ export function EligibleStudentsModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

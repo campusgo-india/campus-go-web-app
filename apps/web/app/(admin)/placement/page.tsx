@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Badge, Card, SectionCard, StatTile } from '@campusgo/ui';
 import { useSession } from '../../../lib/session';
@@ -488,17 +489,16 @@ function AttentionModal({
     () => getStudentsInAttentionCategory(category),
   );
   const [search, setSearch] = useState('');
+  // Portal to <body> so the overlay is fixed to the viewport, not trapped by
+  // the admin shell's page-transition wrapper (which has a transform).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  // The page behind a full-screen modal shouldn't scroll or jump — lock it
-  // while open, and put the scroll position back exactly where it was on
-  // close (rather than wherever focus/layout happens to land).
   useEffect(() => {
-    const scrollY = window.scrollY;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = prevOverflow;
-      window.scrollTo(0, scrollY);
+      document.documentElement.style.overflow = prev;
     };
   }, []);
 
@@ -538,7 +538,9 @@ function AttentionModal({
     URL.revokeObjectURL(url);
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -633,6 +635,7 @@ function AttentionModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
