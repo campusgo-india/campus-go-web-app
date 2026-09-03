@@ -212,15 +212,44 @@ export class JobsService {
     // How many of this college's applicants have been placed on each job — a
     // second query because Prisma's `_count` can't filter the same relation
     // twice (once for "all applicants", once for "selected") in one include.
-    const selectedByJob = await this.prisma.application.groupBy({
-      by: ['jobId'],
-      where: { jobId: { in: jobs.map((j) => j.id) }, collegeId, status: 'SELECTED' },
-      _count: { id: true },
-    });
+    const [selectedByJob, verifiedStudents, placedIds] = await Promise.all([
+      this.prisma.application.groupBy({
+        by: ['jobId'],
+        where: { jobId: { in: jobs.map((j) => j.id) }, collegeId, status: 'SELECTED' },
+        _count: { id: true },
+      }),
+      this.prisma.student.findMany({
+        where: { collegeId, isActive: true, verificationStatus: 'VERIFIED' },
+        include: { user: true, resume: { select: { id: true } } },
+      }),
+      this.placedStudentIds(collegeId),
+    ]);
     const selectedCountById = new Map(selectedByJob.map((s) => [s.jobId, s._count.id]));
 
+    // Eligible headcount per job on this page — verified students matched
+    // against each job's criteria (same rule as GET :id/eligible-students).
+    const eligibleStudentModels = verifiedStudents.map((s) => ({
+      s,
+      model: toEligibilityStudent(s, placedIds.has(s.id)),
+    }));
+    const eligibleCountById = new Map<string, number>(
+      jobs.map((j) => {
+        const criteria = toEligibilityJob(j);
+        const n = eligibleStudentModels.reduce(
+          (acc, { model }) => acc + (checkEligibility(model, criteria).eligible ? 1 : 0),
+          0,
+        );
+        return [j.id, n];
+      }),
+    );
+
     return {
-      items: jobs.map((j) => this.publicJob(j, { selectedCount: selectedCountById.get(j.id) ?? 0 })),
+      items: jobs.map((j) =>
+        this.publicJob(j, {
+          selectedCount: selectedCountById.get(j.id) ?? 0,
+          eligibleCount: eligibleCountById.get(j.id) ?? 0,
+        }),
+      ),
       meta: { total, page, limit, pages: Math.ceil(total / limit) },
     };
   }
@@ -945,7 +974,7 @@ export class JobsService {
     createdById?: string;
     createdBy?: { id: string; fullName: string } | null;
     _count?: { applications: number; rounds?: number };
-  }, extra?: { selectedCount?: number }) {
+  }, extra?: { selectedCount?: number; eligibleCount?: number }) {
     const isPlatform = j.scope === 'PLATFORM';
     return {
       id: j.id,
@@ -997,6 +1026,7 @@ export class JobsService {
       createdBy: j.createdBy ?? undefined,
       applicationCount: j._count?.applications,
       selectedCount: extra?.selectedCount,
+      eligibleCount: extra?.eligibleCount,
       // Rounds created for this job (this college's, for a shared platform job)
       // — drives the "In progress" lifecycle label on the officer views.
       roundCount: j._count?.rounds ?? 0,

@@ -14,6 +14,7 @@ import {
 } from '../../../lib/jobs';
 import { JobCard } from '../../../components/job-card';
 import { ListSkeleton } from '../../../components/page-skeleton';
+import { EligibleStudentsModal } from '../../../components/eligible-students-modal';
 import { useSession } from '../../../lib/session';
 
 type ViewMode = 'tile' | 'list';
@@ -54,6 +55,8 @@ export default function JobsPage() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Job whose "Eligible" count was clicked → eligible-students popup.
+  const [eligibleJob, setEligibleJob] = useState<{ id: string; title: string } | null>(null);
 
   // Debounce the search box so we don't hit the API on every keystroke.
   useEffect(() => {
@@ -226,6 +229,7 @@ export default function JobsPage() {
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">CTC</th>
                 <th className="px-4 py-3 font-medium">Posted</th>
+                <th className="px-4 py-3 font-medium">Eligible</th>
                 <th className="px-4 py-3 font-medium">Applicants</th>
                 <th className="px-4 py-3 font-medium">Selected</th>
                 <th className="px-4 py-3 font-medium">Posted by</th>
@@ -257,6 +261,22 @@ export default function JobsPage() {
                         month: 'short',
                         year: 'numeric',
                       })}
+                    </td>
+                    <td className="px-4 py-3">
+                      {j.isPlatform || j.eligibleCount == null ? (
+                        <span className="text-subtle">—</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEligibleJob({ id: j.id, title: `${j.title} · ${company}` });
+                          }}
+                          className="font-medium text-primary-600 hover:underline"
+                        >
+                          {j.eligibleCount}
+                        </button>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-body">{j.applicationCount ?? 0}</td>
                     <td className="px-4 py-3 text-body">
@@ -339,6 +359,14 @@ export default function JobsPage() {
           </label>
           <span className="text-xs text-subtle">({draftIds.length} drafts)</span>
         </div>
+      )}
+
+      {eligibleJob && (
+        <EligibleStudentsModal
+          jobId={eligibleJob.id}
+          title={eligibleJob.title}
+          onClose={() => setEligibleJob(null)}
+        />
       )}
     </div>
   );

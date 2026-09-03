@@ -116,6 +116,8 @@ export interface Job {
   // Only populated on the list endpoint — how many of this college's
   // applicants have been placed on this job.
   selectedCount?: number;
+  // Officer list endpoint only — verified students matching this job's criteria.
+  eligibleCount?: number;
   // Officer views: interview rounds created for this job (this college's, on a
   // shared platform job). Drives the "In progress" lifecycle label.
   roundCount?: number;
