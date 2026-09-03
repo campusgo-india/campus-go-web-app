@@ -49,7 +49,7 @@ export function PhoneCarousel({ shots }: { shots: PhoneShotData[] }) {
             key={s.src}
             className="flex w-[78%] shrink-0 snap-start flex-col items-center sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
           >
-            <PhoneShot src={s.src} alt={s.alt} />
+            <PhoneShot src={s.src} alt={s.alt} compact />
             <figcaption className="mt-3 text-center text-xs text-subtle">{s.caption}</figcaption>
           </figure>
         ))}

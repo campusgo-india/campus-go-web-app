@@ -85,10 +85,10 @@ export default function ReadinessPage() {
           <div className="flex w-full max-w-md flex-col items-center lg:w-[420px] lg:flex-shrink-0">
             <div className="flex items-end justify-center gap-4">
               <div className="w-[180px]">
-                <PhoneShot src={STUDENT_SHOTS.employability.src} alt={STUDENT_SHOTS.employability.alt} />
+                <PhoneShot src={STUDENT_SHOTS.employability.src} alt={STUDENT_SHOTS.employability.alt} compact />
               </div>
               <div className="hidden w-[160px] pb-6 sm:block">
-                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} />
+                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} compact />
               </div>
             </div>
             <p className="mt-3 text-xs text-subtle">

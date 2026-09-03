@@ -68,7 +68,7 @@ export default function ReportsPage() {
                 </BrowserFrame>
               </div>
               <div className="hidden w-[130px] flex-shrink-0 sm:block">
-                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} />
+                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} compact />
               </div>
             </div>
             <p className="mt-2 text-xs text-subtle">

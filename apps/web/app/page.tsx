@@ -168,10 +168,10 @@ export default function HomePage() {
           </div>
           <div className="flex flex-shrink-0 justify-center gap-4">
             <div className="hidden w-[170px] translate-y-4 sm:block">
-              <PhoneShot src={STUDENT_SHOTS.home.src} alt={STUDENT_SHOTS.home.alt} />
+              <PhoneShot src={STUDENT_SHOTS.home.src} alt={STUDENT_SHOTS.home.alt} compact />
             </div>
             <div className="w-[190px]">
-              <PhoneShot src={STUDENT_SHOTS.applications.src} alt={STUDENT_SHOTS.applications.alt} />
+              <PhoneShot src={STUDENT_SHOTS.applications.src} alt={STUDENT_SHOTS.applications.alt} compact />
             </div>
           </div>
         </div>

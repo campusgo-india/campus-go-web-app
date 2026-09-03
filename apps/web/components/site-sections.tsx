@@ -324,11 +324,30 @@ export function Shot({ src, alt }: { src: string; alt: string }) {
   return <img src={src} alt={alt} className="block w-full" loading="lazy" />;
 }
 
-export function PhoneShot({ src, alt }: { src: string; alt: string }) {
+/** `compact` (small renders — carousel, tight clusters): 10px frame / 6px screen.
+ *  Default (larger single renders): 20px frame / 14px screen. */
+export function PhoneShot({
+  src,
+  alt,
+  compact = false,
+}: {
+  src: string;
+  alt: string;
+  compact?: boolean;
+}) {
   return (
-    <div className="w-full max-w-[244px] overflow-hidden rounded-[36px] bg-strong p-[6px] shadow-2xl ring-1 ring-black/10">
+    <div
+      className={`w-full max-w-[244px] overflow-hidden bg-strong p-[5px] shadow-2xl ring-1 ring-black/10 ${
+        compact ? 'rounded-[10px]' : 'rounded-[20px]'
+      }`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="block w-full rounded-[30px]" loading="lazy" />
+      <img
+        src={src}
+        alt={alt}
+        className={`block w-full ${compact ? 'rounded-[6px]' : 'rounded-[14px]'}`}
+        loading="lazy"
+      />
     </div>
   );
 }
