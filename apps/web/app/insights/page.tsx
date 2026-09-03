@@ -3,11 +3,9 @@ import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
   ADVANTAGE_FLOW,
-  BrowserFrame,
-  PhoneShot,
+  DeviceCombo,
   REPORT_CATEGORIES,
   Section,
-  Shot,
   STUDENT_SHOTS,
   TINT_BG,
   TINT_FG,
@@ -58,20 +56,12 @@ export default function ReportsPage() {
       <Section alt>
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="w-full max-w-md lg:w-[440px] lg:flex-shrink-0">
-            <div className="flex items-end gap-4">
-              <div className="min-w-0 flex-1">
-                <BrowserFrame>
-                  <Shot
-                    src="/screenshots/officer-dashboard.png"
-                    alt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
-                  />
-                </BrowserFrame>
-              </div>
-              <div className="hidden w-[130px] flex-shrink-0 sm:block">
-                <PhoneShot src={STUDENT_SHOTS.tracker.src} alt={STUDENT_SHOTS.tracker.alt} compact />
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-subtle">
+            <DeviceCombo
+              desktopSrc="/screenshots/officer-dashboard.png"
+              desktopAlt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
+              phone={STUDENT_SHOTS.tracker}
+            />
+            <p className="mt-10 text-xs text-subtle sm:mt-8">
               The same activity, aggregated for the institution and mirrored back to each student.
             </p>
           </div>

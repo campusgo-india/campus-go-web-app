@@ -324,6 +324,36 @@ export function Shot({ src, alt }: { src: string; alt: string }) {
   return <img src={src} alt={alt} className="block w-full" loading="lazy" />;
 }
 
+/**
+ * Balanced "product shot": a browser frame as the dominant element with an
+ * optional phone tucked into its bottom-right, a little smaller. Same
+ * composition everywhere it's used. On mobile the phone drops below.
+ */
+export function DeviceCombo({
+  desktopSrc,
+  desktopAlt,
+  phone,
+}: {
+  desktopSrc: string;
+  desktopAlt: string;
+  phone?: PhoneShotData;
+}) {
+  return (
+    <div className="relative">
+      <div className="lg:w-[88%]">
+        <BrowserFrame>
+          <Shot src={desktopSrc} alt={desktopAlt} />
+        </BrowserFrame>
+      </div>
+      {phone && (
+        <div className="mx-auto mt-5 w-[120px] sm:absolute sm:-bottom-6 sm:right-0 sm:mt-0 sm:w-[136px] lg:w-[156px]">
+          <PhoneShot src={phone.src} alt={phone.alt} compact />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** `compact` (small renders — carousel, tight clusters): 10px frame / 6px screen.
  *  Default (larger single renders): 20px frame / 14px screen. */
 export function PhoneShot({

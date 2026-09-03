@@ -130,12 +130,14 @@ export default function MobilePage() {
             </ul>
           </div>
           <div className="w-full flex-1">
-            <BrowserFrame>
-              <Shot
-                src="/screenshots/officer-dashboard.png"
-                alt="Placement officer dashboard — total students, placed students, offers extended, placement progress by track and drive trend"
-              />
-            </BrowserFrame>
+            <div className="lg:w-[92%]">
+              <BrowserFrame>
+                <Shot
+                  src="/screenshots/officer-dashboard.png"
+                  alt="Placement officer dashboard — total students, placed students, offers extended, placement progress by track and drive trend"
+                />
+              </BrowserFrame>
+            </div>
             <p className="mt-2 text-xs text-subtle">
               The full placement dashboard — the same view scales down to the phone.
             </p>

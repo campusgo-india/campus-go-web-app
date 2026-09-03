@@ -6,9 +6,9 @@ import {
   BoltIcon,
   BrowserFrame,
   BuildingIcon,
+  DeviceCombo,
   GRADIENT_BG,
   JOURNEY_STEPS,
-  PhoneShot,
   Section,
   SectionHeading,
   Shot,
@@ -157,25 +157,14 @@ export default function HomePage() {
           title="One Screen for the Whole Drive"
           subtitle="Placement teams run recruitment from a single dashboard — progress stage by stage, per programme. Students get the same data, focused, on their phone."
         />
-        <div className="mt-11 flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:gap-6">
-          <div className="w-full lg:flex-1">
-            <BrowserFrame>
-              <Shot
-                src="/screenshots/officer-dashboard.png"
-                alt="Placement officer dashboard — KPI cards, placement progress by programme and drive trend"
-              />
-            </BrowserFrame>
-          </div>
-          <div className="flex flex-shrink-0 justify-center gap-4">
-            <div className="hidden w-[170px] translate-y-4 sm:block">
-              <PhoneShot src={STUDENT_SHOTS.home.src} alt={STUDENT_SHOTS.home.alt} compact />
-            </div>
-            <div className="w-[190px]">
-              <PhoneShot src={STUDENT_SHOTS.applications.src} alt={STUDENT_SHOTS.applications.alt} compact />
-            </div>
-          </div>
+        <div className="mt-11">
+          <DeviceCombo
+            desktopSrc="/screenshots/officer-dashboard.png"
+            desktopAlt="Placement officer dashboard — KPI cards, placement progress by programme and drive trend"
+            phone={STUDENT_SHOTS.applications}
+          />
         </div>
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-2">
+        <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <p className="text-sm font-bold text-strong">Placement Dashboard</p>
             <p className="mt-1.5 text-sm leading-relaxed text-subtle">
