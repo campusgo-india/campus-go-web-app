@@ -1,6 +1,6 @@
 {
   "packageId": "com.campusgoindia.student",
-  "host": "campusgoindia.com",
+  "host": "www.campusgoindia.com",
   "name": "CampusGO",
   "launcherName": "CampusGO",
   "display": "standalone",
@@ -14,11 +14,11 @@
   "backgroundColor": "#14245C",
   "enableNotifications": true,
   "startUrl": "/login",
-  "iconUrl": "https://campusgoindia.com/icon-512.png",
-  "maskableIconUrl": "https://campusgoindia.com/icon-512-maskable.png",
+  "iconUrl": "https://www.campusgoindia.com/icon-512.png",
+  "maskableIconUrl": "https://www.campusgoindia.com/icon-512-maskable.png",
   "monochromeIconUrl": "",
-  "webManifestUrl": "https://campusgoindia.com/manifest.webmanifest",
-  "fullScopeUrl": "https://campusgoindia.com/",
+  "webManifestUrl": "https://www.campusgoindia.com/manifest.webmanifest",
+  "fullScopeUrl": "https://www.campusgoindia.com/",
   "splashScreenFadeOutDuration": 0,
   "signingKey": {
     "path": "./android.keystore",
@@ -36,7 +36,9 @@
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "minSdkVersion": 21,
-  "additionalTrustedOrigins": [],
+  "additionalTrustedOrigins": [
+    "campusgoindia.com"
+  ],
   "retainedBundles": [],
   "protocolHandlers": [],
   "fileHandlers": [],
