@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { PHONE_REGEX } from '@campusgo/shared';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import { submitContactEnquiry } from '../../lib/contact';
 
@@ -116,21 +117,33 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const ready = form.name.trim() && form.institution.trim() && form.email.trim();
+  // Every field is compulsory.
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+  const phoneOk = PHONE_REGEX.test(form.phone.replace(/[\s-]/g, ''));
+  const ready =
+    form.name.trim().length >= 2 &&
+    form.institution.trim().length >= 2 &&
+    form.designation.trim().length >= 2 &&
+    emailOk &&
+    phoneOk &&
+    form.message.trim().length >= 10;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!ready) return;
+    if (!ready) {
+      setError('Please fill in every field — a valid email and 10-digit mobile number are required.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       await submitContactEnquiry({
         name: form.name.trim(),
         institution: form.institution.trim(),
-        designation: form.designation.trim() || undefined,
+        designation: form.designation.trim(),
         email: form.email.trim(),
-        phone: form.phone.trim() || undefined,
-        message: form.message.trim() || undefined,
+        phone: form.phone.replace(/[\s-]/g, ''),
+        message: form.message.trim(),
         source: intent,
       });
       setSubmitted(true);
@@ -175,18 +188,26 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
 
       <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
         <Field label="Name *">
-          <input className={inputCls} value={form.name} onChange={set('name')} placeholder="Enter your name" />
+          <input
+            required
+            className={inputCls}
+            value={form.name}
+            onChange={set('name')}
+            placeholder="Enter your name"
+          />
         </Field>
         <Field label="Institution *">
           <input
+            required
             className={inputCls}
             value={form.institution}
             onChange={set('institution')}
             placeholder="College / University name"
           />
         </Field>
-        <Field label="Designation">
+        <Field label="Designation *">
           <input
+            required
             className={inputCls}
             value={form.designation}
             onChange={set('designation')}
@@ -195,6 +216,7 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
         </Field>
         <Field label="Email *">
           <input
+            required
             type="email"
             className={inputCls}
             value={form.email}
@@ -202,19 +224,23 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
             placeholder="Enter your official email"
           />
         </Field>
-        <Field label="Phone">
+        <Field label="Phone *">
           <input
+            required
+            type="tel"
+            inputMode="numeric"
             className={inputCls}
             value={form.phone}
             onChange={set('phone')}
-            placeholder="Enter your phone number"
+            placeholder="10-digit mobile number"
           />
         </Field>
       </div>
 
       <div className="mt-3.5">
-        <Field label="Message">
+        <Field label="Message *">
           <textarea
+            required
             rows={4}
             className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
             value={form.message}

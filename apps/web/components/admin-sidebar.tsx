@@ -20,6 +20,7 @@ const PLATFORM_NAV: NavItem[] = [
   { href: '/platform/dashboard', label: 'Dashboard' },
   { href: '/platform/colleges', label: 'Colleges' },
   { href: '/platform/jobs', label: 'Jobs' },
+  { href: '/platform/leads', label: 'Leads' },
 ];
 
 // College Admin + Placement Officer share the operational shell.

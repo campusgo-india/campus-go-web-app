@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import { EmailService } from '../email/email.service';
-import { SubmitContactEnquiryDto } from './dto';
+import { ListLeadsDto, SubmitContactEnquiryDto } from './dto';
 
 function escapeHtml(s: string): string {
   return s
@@ -62,5 +62,22 @@ export class ContactService {
     }
 
     return { success: true, id: enquiry.id };
+  }
+
+  /** Platform-Admin: paginated list of submitted leads, newest first. */
+  async list(q: ListLeadsDto) {
+    const page = q.page ?? 1;
+    const limit = q.limit ?? 50;
+    const where = q.source ? { source: q.source } : {};
+    const [total, items] = await this.prisma.$transaction([
+      this.prisma.contactEnquiry.count({ where }),
+      this.prisma.contactEnquiry.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+    return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
   }
 }
