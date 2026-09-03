@@ -1,8 +1,9 @@
 import { LegalPageShell, LegalSection } from '../../components/legal-page-shell';
 
 export const metadata = {
-  title: 'Terms & Conditions — CampusGO',
+  title: 'Terms & Conditions',
   description: 'The terms that govern use of the CampusGO placement platform.',
+  alternates: { canonical: '/terms' },
 };
 
 const UPDATED = 'August 30, 2026';

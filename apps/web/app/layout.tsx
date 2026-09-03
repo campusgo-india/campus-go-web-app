@@ -10,10 +10,35 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
+const SITE_URL = 'https://www.campusgoindia.com';
+
 export const metadata: Metadata = {
-  title: 'CampusGO — Placement Intelligence',
-  description: 'Placement Intelligence & Career Success Platform',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'CampusGO — From Campus to Career',
+    template: '%s · CampusGO',
+  },
+  description:
+    'The complete placement & career readiness platform for colleges and universities — student data, training, recruiters, recruitment, placements, internships and alumni in one connected system.',
+  applicationName: 'CampusGO',
   manifest: '/manifest.webmanifest',
+  alternates: { canonical: '/' },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: 'website',
+    siteName: 'CampusGO',
+    locale: 'en_IN',
+    url: SITE_URL,
+    title: 'CampusGO — From Campus to Career',
+    description:
+      'The complete placement & career readiness platform for colleges and universities.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CampusGO — From Campus to Career',
+    description:
+      'The complete placement & career readiness platform for colleges and universities.',
+  },
 };
 
 export const viewport: Viewport = {

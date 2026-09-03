@@ -1,8 +1,9 @@
 import { LegalPageShell, LegalSection } from '../../components/legal-page-shell';
 
 export const metadata = {
-  title: 'Privacy Policy — CampusGO',
+  title: 'Privacy Policy',
   description: 'How CampusGO collects, uses, and protects student and college data.',
+  alternates: { canonical: '/privacy' },
 };
 
 const UPDATED = 'August 30, 2026';

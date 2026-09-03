@@ -19,7 +19,7 @@ import {
 } from '../components/site-sections';
 
 export const metadata: Metadata = {
-  title: 'CampusGO — From Campus to Career',
+  title: { absolute: 'CampusGO — From Campus to Career' },
   description:
     'CampusGO connects students, training, employers, opportunities, recruitment and placement outcomes in one platform — the complete placement & career readiness system for colleges and universities.',
   alternates: { canonical: '/' },
@@ -52,9 +52,35 @@ const EXPLORE = [
   },
 ];
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      name: 'CampusGO',
+      url: 'https://www.campusgoindia.com',
+      logo: 'https://www.campusgoindia.com/icon-512.png',
+      description:
+        'The complete placement & career readiness platform for colleges and universities.',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'CampusGO',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web, Android',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Request a demo' },
+      url: 'https://www.campusgoindia.com',
+    },
+  ],
+};
+
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-app">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <SiteHeader />
 
       {/* HERO */}
