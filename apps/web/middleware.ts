@@ -20,6 +20,12 @@ const PUBLIC_PATHS = [
   '/contact',
   '/privacy',
   '/terms',
+  // Public marketing pages.
+  '/product',
+  '/readiness',
+  '/mobile',
+  '/insights',
+  '/opengraph-image',
   '/forgot-password',
   '/reset-password',
   '/alumni-register',
