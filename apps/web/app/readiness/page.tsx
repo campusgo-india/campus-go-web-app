@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 import {
-  InterviewScene,
   PhoneShot,
   READINESS_PILLARS,
   Section,
@@ -90,10 +89,6 @@ export default function ReadinessPage() {
             <p className="mt-3 text-xs text-subtle">
               The student&rsquo;s employability view — readiness score, tier and roadmap, private to them.
             </p>
-            <div className="mt-6 w-full overflow-hidden rounded-card bg-card p-4 shadow-card">
-              <InterviewScene />
-            </div>
-            <p className="mt-2 text-xs text-subtle">Mock interviews and assessments feed the readiness score.</p>
           </div>
         </div>
       </Section>
