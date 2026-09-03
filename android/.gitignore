@@ -1,0 +1,26 @@
+# Bubblewrap-generated Android project — recreated by `bubblewrap update`.
+/app/
+/.gradle/
+/build/
+/gradle/
+gradlew
+gradlew.bat
+settings.gradle
+build.gradle
+local.properties
+store_icon.png
+*.iml
+
+# Build outputs
+*.apk
+*.aab
+*.idsig
+
+# Signing key — NEVER commit. Back it up in a password manager.
+*.keystore
+*.jks
+signing-key-info.txt
+
+# Bubblewrap-managed JDK / Android SDK (only if it lands here)
+/jdk/
+/android_sdk/

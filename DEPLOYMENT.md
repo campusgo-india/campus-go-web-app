@@ -66,6 +66,15 @@ Build/start (already in the blueprint):
 
 ---
 
+## Android app (Play Store)
+
+The Android app is a **Trusted Web Activity** wrapper of the deployed web app.
+Everything needed to (re)build it — the Bubblewrap config, the splash-blanking
+script, signing-key and Play Store notes — is in [`android/`](android/README.md).
+Do not build the APK from an ad-hoc folder; build it from `android/`.
+
+---
+
 ## Production env var reference
 
 **API (Render)**
