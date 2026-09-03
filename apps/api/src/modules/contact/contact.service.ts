@@ -1,8 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import { EmailService } from '../email/email.service';
-import { ListLeadsDto, SubmitContactEnquiryDto } from './dto';
+import { ListLeadsDto, SubmitContactEnquiryDto, UpdateLeadDto } from './dto';
 
 function escapeHtml(s: string): string {
   return s
@@ -79,5 +79,24 @@ export class ContactService {
       }),
     ]);
     return { items, meta: { total, page, limit, pages: Math.ceil(total / limit) } };
+  }
+
+  /** Platform-Admin: correct a lead's details. */
+  async update(id: string, dto: UpdateLeadDto) {
+    await this.getOr404(id);
+    return this.prisma.contactEnquiry.update({ where: { id }, data: dto });
+  }
+
+  /** Platform-Admin: delete a lead. */
+  async remove(id: string) {
+    await this.getOr404(id);
+    await this.prisma.contactEnquiry.delete({ where: { id } });
+    return { success: true };
+  }
+
+  private async getOr404(id: string) {
+    const found = await this.prisma.contactEnquiry.findUnique({ where: { id } });
+    if (!found) throw new NotFoundException('Lead not found');
+    return found;
   }
 }

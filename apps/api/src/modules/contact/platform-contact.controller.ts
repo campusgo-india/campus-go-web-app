@@ -1,8 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Query } from '@nestjs/common';
 import { UserRole } from '@campusgo/shared';
 import { Roles } from '../../common/decorators';
 import { ContactService } from './contact.service';
-import { ListLeadsDto } from './dto';
+import { ListLeadsDto, UpdateLeadDto } from './dto';
 
 /** Platform-Admin view of marketing-site leads (Contact us / Request a demo). */
 @Controller('platform/leads')
@@ -14,5 +14,15 @@ export class PlatformContactController {
   async list(@Query() query: ListLeadsDto) {
     const { items, meta } = await this.contact.list(query);
     return { data: items, meta };
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() dto: UpdateLeadDto) {
+    return { data: await this.contact.update(id, dto) };
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return { data: await this.contact.remove(id) };
   }
 }

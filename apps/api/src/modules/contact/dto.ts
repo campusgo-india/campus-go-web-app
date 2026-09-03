@@ -41,6 +41,43 @@ export class SubmitContactEnquiryDto {
   source?: 'CONTACT' | 'DEMO';
 }
 
+/** Platform-Admin edit of a submitted lead — every field optional. */
+export class UpdateLeadDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  institution?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  designation?: string;
+
+  @IsOptional()
+  @IsEmail()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(10)
+  message?: string;
+
+  @IsOptional()
+  @IsIn(['CONTACT', 'DEMO'])
+  source?: 'CONTACT' | 'DEMO';
+}
+
 /** Platform-Admin listing of submitted leads. */
 export class ListLeadsDto {
   @IsOptional()
