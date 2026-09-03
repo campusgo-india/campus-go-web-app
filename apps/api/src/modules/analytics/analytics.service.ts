@@ -511,14 +511,25 @@ export class AnalyticsService {
       if (maxSeqReached >= 3 || myApps.some((a) => (ROUND_3_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
         bucket.round3++;
       }
+      const isSelected = myApps.some(
+        (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
+      );
+      if (isSelected) bucket.selected++;
+      // "Offered" is a superset of "Selected" — selecting a candidate *is*
+      // extending an offer. It also picks up an offer released but not yet
+      // accepted (stage OFFER_RELEASED) or a letter/CTC on file. So Offered is
+      // never less than Selected.
       if (
+        isSelected ||
         myApps.some(
-          (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
+          (a) =>
+            a.offerCtc != null ||
+            a.offerLetterUrl != null ||
+            (OFFER_STAGES as readonly string[]).includes(a.stage),
         )
       ) {
-        bucket.selected++;
+        bucket.offered++;
       }
-      if (myApps.some((a) => a.offerCtc != null || a.offerLetterUrl != null)) bucket.offered++;
       if (myApps.some((a) => a.stage === 'JOINED')) bucket.joined++;
     }
 
