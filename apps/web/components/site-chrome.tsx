@@ -16,18 +16,6 @@ const FOOTER_PRODUCT = [
   { href: '/mobile', label: 'Mobile app' },
   { href: '/insights', label: 'Reports & Insights' },
 ];
-const FOOTER_PLATFORM = [
-  'Student Management',
-  'Companies & Recruiters',
-  'Jobs & Opportunities',
-  'Training & Assessments',
-  'Applications & Recruitment',
-  'Internships & PPOs',
-  'Alumni',
-  'Communication',
-  'Reports & Analytics',
-];
-const FOOTER_FOR = ['Colleges', 'Universities', 'Placement Teams', 'Students'];
 
 /** Shared header across every public marketing page. */
 export function SiteHeader() {
@@ -64,7 +52,7 @@ export function SiteFooter() {
   return (
     <footer className="bg-[#0B1330] px-6 pb-7 pt-14">
       <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-2 gap-8 border-b border-white/10 pb-10 sm:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-8 border-b border-white/10 pb-10 sm:grid-cols-3">
           <div className="col-span-2 sm:col-span-1">
             <div className="text-lg font-extrabold">
               <span className="text-primary-300">Campus</span>
@@ -82,22 +70,6 @@ export function SiteFooter() {
                 <Link key={p.href} href={p.href} className="text-sm text-white/65 hover:text-white">
                   {p.label}
                 </Link>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/40">Platform</p>
-            <div className="mt-4 flex flex-col gap-2.5">
-              {FOOTER_PLATFORM.map((p) => (
-                <span key={p} className="text-sm text-white/65">{p}</span>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/40">For</p>
-            <div className="mt-4 flex flex-col gap-2.5">
-              {FOOTER_FOR.map((f) => (
-                <span key={f} className="text-sm text-white/65">{f}</span>
               ))}
             </div>
           </div>
