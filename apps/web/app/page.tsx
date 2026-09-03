@@ -4,10 +4,13 @@ import { SiteHeader, SiteFooter } from '../components/site-chrome';
 import {
   ADVANTAGE_FLOW,
   BoltIcon,
+  BrowserFrame,
   BuildingIcon,
   GRADIENT_BG,
   HeroScene,
   JOURNEY_STEPS,
+  OfficerDesktopMockup,
+  PhoneMockup,
   Section,
   SectionHeading,
   STAKEHOLDERS,
@@ -137,6 +140,39 @@ export default function HomePage() {
           <ValueStat tint="lavender" icon={<BoltIcon />} label="Less manual work" body="Rounds, notifications, and reports that used to take hours now run automatically." />
           <ValueStat tint="mint" icon={<TargetIcon />} label="Readiness before opportunity" body="Understand student preparedness across four pillars before an opportunity even opens." />
           <ValueStat tint="cream" icon={<BuildingIcon />} label="Built for many colleges" body="Each college gets its own branded, isolated portal — logo, email identity, and data." />
+        </div>
+      </Section>
+
+      {/* PRODUCT PREVIEW */}
+      <Section>
+        <SectionHeading
+          eyebrow="See it in action"
+          title="One Screen for the Whole Drive"
+          subtitle="Placement teams run recruitment from a single dashboard — progress stage by stage, per programme. Students get the same data, focused, on their phone."
+        />
+        <div className="relative mt-11">
+          <BrowserFrame>
+            <OfficerDesktopMockup />
+          </BrowserFrame>
+          <div className="pointer-events-none absolute -bottom-8 right-2 hidden w-[190px] sm:block">
+            <PhoneMockup />
+          </div>
+        </div>
+        <div className="mt-14 grid grid-cols-1 gap-6 sm:mt-10 sm:grid-cols-2">
+          <div>
+            <p className="text-sm font-bold text-strong">Placement Dashboard</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-subtle">
+              Applied → shortlisted → round by round → selected → offered, split by UG and PG, with
+              active drives and the students who still need a nudge.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-bold text-strong">Analytics &amp; Training</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-subtle">
+              Placement rate, packages, offer counts, and cohort readiness — the numbers your
+              institution reports on, kept current as the season runs.
+            </p>
+          </div>
         </div>
       </Section>
 
