@@ -21,6 +21,39 @@ export const metadata: Metadata = {
   alternates: { canonical: '/mobile' },
 };
 
+const STUDENT_SHOTS: { src: string; alt: string; caption: string }[] = [
+  {
+    src: '/screenshots/student-home.png',
+    alt: 'Student app home — readiness banner, quick actions and a live list of applications',
+    caption: 'Home — readiness & applications at a glance',
+  },
+  {
+    src: '/screenshots/student-employability.png',
+    alt: 'My Employability — 79% ready, department rank, tier badge and a placement roadmap',
+    caption: 'Employability — readiness, tier & roadmap',
+  },
+  {
+    src: '/screenshots/student-jobs.png',
+    alt: 'Jobs list — Open / Applied / Closed tabs with per-job lifecycle and application status',
+    caption: 'Jobs — filtered by where each one stands',
+  },
+  {
+    src: '/screenshots/student-applications.png',
+    alt: 'Application timeline — every round, cleared or not, and the offer when selected',
+    caption: 'Applications — round-by-round timeline',
+  },
+  {
+    src: '/screenshots/student-tracker.png',
+    alt: 'Placement Tracker — applications, interviews, selections and an application funnel',
+    caption: 'Tracker — the season in one view',
+  },
+  {
+    src: '/screenshots/student-notifications.png',
+    alt: 'Notifications — new jobs, scheduled rounds, results and offer updates',
+    caption: 'Notifications — the moment things happen',
+  },
+];
+
 export default function MobilePage() {
   return (
     <div className="min-h-screen bg-app">
@@ -80,29 +113,29 @@ export default function MobilePage() {
           </p>
         </div>
 
-        <div className="mt-11 flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:justify-center">
-          <div className="flex flex-shrink-0 flex-col items-center">
-            <PhoneShot
-              src="/screenshots/student-employability.png"
-              alt="Student employability screen — readiness score, department rank, tier badge and roadmap with recommended actions"
-            />
-            <p className="mt-3 text-xs text-subtle">Employability — readiness, tier &amp; roadmap.</p>
-          </div>
-          <div className="grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-2">
-            {STUDENT_FEATURES.map((f) => (
-              <div key={f.title} className="flex gap-3 rounded-card bg-card p-5 shadow-card">
-                <div className={`mt-0.5 flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-md ${TINT_BG[f.tint]}`}>
-                  <span className={TINT_FG[f.tint]}>
-                    <CheckIcon />
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-strong">{f.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-subtle">{f.body}</p>
-                </div>
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {STUDENT_FEATURES.map((f) => (
+            <div key={f.title} className="flex gap-3 rounded-card bg-card p-5 shadow-card">
+              <div className={`mt-0.5 flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-md ${TINT_BG[f.tint]}`}>
+                <span className={TINT_FG[f.tint]}>
+                  <CheckIcon />
+                </span>
               </div>
-            ))}
-          </div>
+              <div>
+                <p className="text-sm font-bold text-strong">{f.title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-subtle">{f.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 flex snap-x gap-6 overflow-x-auto pb-4 lg:flex-wrap lg:justify-center lg:overflow-visible">
+          {STUDENT_SHOTS.map((s) => (
+            <figure key={s.src} className="flex w-[210px] flex-shrink-0 snap-center flex-col items-center">
+              <PhoneShot src={s.src} alt={s.alt} />
+              <figcaption className="mt-3 text-center text-xs text-subtle">{s.caption}</figcaption>
+            </figure>
+          ))}
         </div>
       </Section>
 
