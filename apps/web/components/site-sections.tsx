@@ -303,6 +303,95 @@ export function HeroGraphic() {
   );
 }
 
+/** Realistic app-screenshot mock for the hero — sidebar, KPI cards and a
+ *  placement funnel. Swap for a real /screenshots/officer-placement.png. */
+export function HeroDashboard() {
+  const funnel: [string, number, string][] = [
+    ['Applied', 100, '#5B8DEF'],
+    ['Attended', 82, '#5B8DEF'],
+    ['Round 2', 61, '#7C8BFF'],
+    ['Round 3', 44, '#7C8BFF'],
+    ['Selected', 28, '#1F9D6B'],
+    ['Offered', 28, '#1F9D6B'],
+  ];
+  return (
+    <svg viewBox="0 0 720 460" className="w-full" fill="none" fontFamily="ui-sans-serif, system-ui, sans-serif">
+      <rect width="720" height="460" fill="#F4F6FB" />
+
+      {/* sidebar */}
+      <rect width="86" height="460" fill="#14245C" />
+      <circle cx="43" cy="34" r="11" fill="#5B8DEF" />
+      {[70, 106, 142, 178, 214].map((y, i) => (
+        <rect key={y} x="18" y={y} width="50" height="20" rx="6" fill={i === 1 ? '#2E4CA6' : 'rgba(255,255,255,0.10)'} />
+      ))}
+
+      {/* top bar */}
+      <rect x="86" width="634" height="52" fill="#fff" />
+      <text x="112" y="32" fontSize="15" fontWeight="700" fill="#1B2333">
+        Placement Dashboard
+      </text>
+      <rect x="520" y="15" width="120" height="22" rx="11" fill="#F4F6FB" />
+      <circle cx="672" cy="26" r="14" fill="#5B8DEF" />
+      <text x="672" y="30" fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">
+        JB
+      </text>
+
+      {/* KPI cards */}
+      {[
+        ['Placed', '6', '↑ 7.7%'],
+        ['Offers extended', '8', 'this season'],
+        ['Avg package', '₹4.9 LPA', 'UG + PG'],
+      ].map(([label, value, sub], i) => (
+        <g key={label as string} transform={`translate(${110 + i * 200}, 74)`}>
+          <rect width="182" height="92" rx="12" fill="#fff" stroke="#E6E9F0" />
+          <text x="18" y="28" fontSize="11" fill="#98A2B3">
+            {label}
+          </text>
+          <text x="18" y="58" fontSize="24" fontWeight="800" fill="#1B2333">
+            {value}
+          </text>
+          <text x="18" y="78" fontSize="10" fill="#1F9D6B">
+            {sub}
+          </text>
+        </g>
+      ))}
+
+      {/* funnel panel */}
+      <g transform="translate(110, 186)">
+        <rect width="582" height="252" rx="14" fill="#fff" stroke="#E6E9F0" />
+        <text x="22" y="34" fontSize="13" fontWeight="700" fill="#1B2333">
+          Placement Progress
+        </text>
+        <text x="560" y="34" fontSize="10" fill="#98A2B3" textAnchor="end">
+          Stage by stage
+        </text>
+        {funnel.map(([name, pct, color], i) => (
+          <g key={name} transform={`translate(22, ${58 + i * 30})`}>
+            <text x="0" y="12" fontSize="10.5" fill="#4A5468">
+              {name}
+            </text>
+            <rect x="86" y="2" width="400" height="12" rx="6" fill="#EDF0F6" />
+            <rect x="86" y="2" width={(pct / 100) * 400} height="12" rx="6" fill={color} />
+            <text x="500" y="12" fontSize="10.5" fontWeight="700" fill="#1B2333">
+              {Math.round((pct / 100) * 54)}
+            </text>
+          </g>
+        ))}
+      </g>
+
+      {/* floating notification chip */}
+      <g transform="translate(486, 150)">
+        <rect width="196" height="40" rx="12" fill="#0B1330" />
+        <circle cx="24" cy="20" r="9" fill="#1F9D6B" />
+        <path d="M20 20l3 3 6-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="42" y="24" fontSize="10.5" fill="#fff">
+          Offer verified — Infosys
+        </text>
+      </g>
+    </svg>
+  );
+}
+
 /* ── Flat illustrations: a graduate, and the campus → career path ── */
 
 const FIG = {

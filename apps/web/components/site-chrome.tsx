@@ -36,7 +36,7 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
         <Link href="/" className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured */}
-          <img src="/site-logo.png" alt="CampusGO — From Campus to Career" className="h-9 w-auto sm:h-10" />
+          <img src="/site-logo.png" alt="CampusGO — From Campus to Career" className="h-11 w-auto sm:h-12" />
         </Link>
         <nav className="hidden items-center gap-7 md:flex">
           {NAV_LINKS.map((l) => (

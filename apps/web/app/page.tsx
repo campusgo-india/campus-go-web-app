@@ -7,7 +7,7 @@ import {
   BrowserFrame,
   BuildingIcon,
   GRADIENT_BG,
-  HeroScene,
+  HeroDashboard,
   JOURNEY_STEPS,
   OfficerDesktopMockup,
   PhoneMockup,
@@ -96,7 +96,7 @@ export default function HomePage() {
           className="pointer-events-none absolute -left-32 bottom-0 h-[420px] w-[420px] rounded-full opacity-70"
           style={{ background: 'radial-gradient(circle, rgba(226,128,64,0.08) 0%, rgba(255,255,255,0) 70%)' }}
         />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-12 px-6 py-16 sm:py-20 lg:flex-row lg:py-24">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-12 px-6 py-16 sm:py-20 lg:flex-row lg:gap-16 lg:py-24">
           <div className="w-full max-w-xl text-center lg:text-left">
             <span className="inline-flex items-center rounded-full bg-primary-50 px-3.5 py-1.5 text-xs font-medium text-primary-600">
               The Complete Placement &amp; Career Readiness Platform
@@ -128,8 +128,12 @@ export default function HomePage() {
               <TrustItem color="#E28040">Multi-college, tenant-isolated by design</TrustItem>
             </div>
           </div>
-          <div className="w-full max-w-md flex-shrink-0 lg:w-[420px]">
-            <HeroScene />
+          <div className="w-full flex-shrink-0 lg:w-[560px]">
+            <div className="rounded-[20px] bg-gradient-to-br from-primary-50 to-tint-accent p-3 shadow-nav">
+              <BrowserFrame>
+                <HeroDashboard />
+              </BrowserFrame>
+            </div>
           </div>
         </div>
       </section>
