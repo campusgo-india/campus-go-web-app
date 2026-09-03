@@ -1,0 +1,130 @@
+name: Build Android APK (TWA)
+
+# Builds the Trusted Web Activity wrapper from android/twa-manifest.json and
+# uploads the signed APK + AAB as workflow artifacts.
+#
+# Trigger it manually: Actions tab → "Build Android APK (TWA)" → Run workflow.
+#
+# ── Secrets (Settings → Secrets and variables → Actions) ─────────────────────
+#  ANDROID_KEYSTORE_BASE64   base64 of your android.keystore  (optional)
+#  ANDROID_KEYSTORE_PASSWORD keystore password                (optional)
+#  ANDROID_KEY_PASSWORD      key password                     (optional)
+#  ANDROID_KEY_ALIAS         key alias (defaults to "campusgo")
+#
+# If ANDROID_KEYSTORE_BASE64 is not set, the workflow GENERATES a fresh
+# keystore, signs with it, and uploads it as the "android-keystore" artifact.
+# Download it, store its bytes as ANDROID_KEYSTORE_BASE64 and set the password
+# secrets, then every future build reuses the same key. A new key == a new app
+# on the Play Store, so do this once and keep it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionCode:
+        description: "appVersionCode (integer, must increase each Play upload)"
+        required: false
+      versionName:
+        description: "appVersionName (e.g. 1.0.1)"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Bubblewrap
+        run: npm i -g @bubblewrap/cli@1.24.1
+
+      - name: Point Bubblewrap at the CI JDK + Android SDK
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+          cat > "$HOME/.bubblewrap/config.json" <<EOF
+          { "jdkPath": "$JAVA_HOME", "androidSdkPath": "$ANDROID_SDK_ROOT" }
+          EOF
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+      - name: Apply version overrides
+        if: ${{ inputs.versionCode != '' || inputs.versionName != '' }}
+        run: |
+          cd android
+          node - <<'EOF'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('twa-manifest.json', 'utf8'));
+          const vc = process.env.VC, vn = process.env.VN;
+          if (vc) m.appVersionCode = parseInt(vc, 10);
+          if (vn) m.appVersionName = vn;
+          fs.writeFileSync('twa-manifest.json', JSON.stringify(m, null, 2) + '\n');
+          EOF
+        env:
+          VC: ${{ inputs.versionCode }}
+          VN: ${{ inputs.versionName }}
+
+      - name: Resolve signing key
+        id: key
+        run: |
+          cd android
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android.keystore
+            echo "kspass=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_OUTPUT"
+            echo "keypass=${{ secrets.ANDROID_KEY_PASSWORD }}" >> "$GITHUB_OUTPUT"
+            echo "alias=${{ secrets.ANDROID_KEY_ALIAS || 'campusgo' }}" >> "$GITHUB_OUTPUT"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          else
+            PW="$(openssl rand -hex 16)"
+            keytool -genkeypair -v -keystore android.keystore -alias campusgo \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$PW" -keypass "$PW" \
+              -dname "CN=CampusGO, O=CampusGO India, C=IN"
+            echo "kspass=$PW" >> "$GITHUB_OUTPUT"
+            echo "keypass=$PW" >> "$GITHUB_OUTPUT"
+            echo "alias=campusgo" >> "$GITHUB_OUTPUT"
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret — generated a NEW keystore. Download the android-keystore artifact and save it as secrets, or every build produces an un-updatable app."
+          fi
+
+      - name: Bubblewrap init + build
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.key.outputs.kspass }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ steps.key.outputs.keypass }}
+        run: |
+          # keystore already exists → init won't prompt to create one; feed a
+          # newline stream for any remaining y/n confirmations.
+          yes "" | bubblewrap init --manifest ./twa-manifest.json --directory . || true
+          ./scripts/blank-splash.sh
+          yes "" | bubblewrap build --skipPwaValidation
+
+      - name: Show signing fingerprint (for assetlinks.json)
+        working-directory: android
+        run: |
+          keytool -list -v -keystore android.keystore \
+            -alias "${{ steps.key.outputs.alias }}" \
+            -storepass "${{ steps.key.outputs.kspass }}" | grep -A1 "SHA256:"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: campusgo-android
+          path: |
+            android/app-release-signed.apk
+            android/app-release-bundle.aab
+          if-no-files-found: error
+
+      - name: Upload generated keystore (first run only)
+        if: ${{ steps.key.outputs.generated == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-keystore
+          path: android/android.keystore
+          retention-days: 7

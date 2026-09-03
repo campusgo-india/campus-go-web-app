@@ -1,6 +1,6 @@
 {
   "packageId": "com.campusgoindia.student",
-  "host": "PROD_DOMAIN_PLACEHOLDER",
+  "host": "campusgoindia.com",
   "name": "CampusGO",
   "launcherName": "CampusGO",
   "display": "standalone",
@@ -13,16 +13,16 @@
   "navigationDividerColorDark": "#14245C",
   "backgroundColor": "#14245C",
   "enableNotifications": true,
-  "startUrl": "/me",
-  "iconUrl": "https://PROD_DOMAIN_PLACEHOLDER/icon-512.png",
-  "maskableIconUrl": "https://PROD_DOMAIN_PLACEHOLDER/icon-512-maskable.png",
+  "startUrl": "/login",
+  "iconUrl": "https://campusgoindia.com/icon-512.png",
+  "maskableIconUrl": "https://campusgoindia.com/icon-512-maskable.png",
   "monochromeIconUrl": "",
-  "webManifestUrl": "https://PROD_DOMAIN_PLACEHOLDER/manifest.webmanifest",
-  "fullScopeUrl": "https://PROD_DOMAIN_PLACEHOLDER/",
+  "webManifestUrl": "https://campusgoindia.com/manifest.webmanifest",
+  "fullScopeUrl": "https://campusgoindia.com/",
   "splashScreenFadeOutDuration": 0,
   "signingKey": {
     "path": "./android.keystore",
-    "alias": "android"
+    "alias": "campusgo"
   },
   "appVersionName": "1.0.0",
   "appVersionCode": 1,

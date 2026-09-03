@@ -2,13 +2,31 @@
 
 The Android app is a **Trusted Web Activity (TWA)** — a thin native wrapper,
 built with [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap), that
-opens the deployed web app full-screen with no browser chrome. There is no
-separate mobile codebase: the app *is* the website.
+opens `https://campusgoindia.com` full-screen with no browser chrome. There is
+no separate mobile codebase: the app *is* the website.
 
 > **Why this folder exists:** the original wrapper project was built outside
-> this repo and lost. This folder is now the single source of truth for the
-> Android build. Do not build the APK from an ad-hoc directory again — always
-> from here, and commit any config changes.
+> this repo and lost. This folder is now the single source of truth. Always
+> build from here; commit any config change to `twa-manifest.json`.
+
+---
+
+## ⚠️ Before the app is usable: point the domain at the site
+
+`https://campusgoindia.com` currently serves a **GoDaddy parking page** on
+every path (checked: `/`, `/login`, `/manifest.webmanifest`,
+`/.well-known/assetlinks.json` all return the "under construction" lander).
+
+Until DNS for `campusgoindia.com` points at the Vercel deployment:
+
+- the app will just show the parking page, and
+- Digital Asset Links verification fails, so the TWA opens **with a URL bar**.
+
+Fix first: Vercel project → **Settings → Domains → add `campusgoindia.com`**,
+then update the DNS records at GoDaddy as Vercel instructs. Confirm
+`https://campusgoindia.com/.well-known/assetlinks.json` returns the JSON in
+[`../apps/web/public/.well-known/assetlinks.json`](../apps/web/public/.well-known/assetlinks.json)
+(not HTML) before shipping the APK.
 
 ---
 
@@ -16,144 +34,112 @@ separate mobile codebase: the app *is* the website.
 
 | File | Committed? | Purpose |
 |---|---|---|
-| `twa-manifest.json` | ✅ yes | The Bubblewrap config — the source of truth. Every wrapper setting lives here. |
-| `scripts/blank-splash.sh` | ✅ yes | Replaces Bubblewrap's generated full-screen logo splash with nothing (see "Splash screen"). |
-| `assets/blank.png` | ✅ yes | 1×1 transparent PNG used by the script above. |
-| `.gitignore` | ✅ yes | Ignores the generated Android project, build outputs, and the keystore. |
-| `app/`, `.gradle/`, `build/`, `*.apk`, `*.aab` | ❌ generated | Recreated by `bubblewrap update` — never edited by hand, never committed. |
-| `android.keystore` + passwords | ❌ **NEVER commit** | The signing key. See "Signing key" — losing it means you cannot ship updates. |
+| `twa-manifest.json` | ✅ | Bubblewrap config — the source of truth. `host` = `campusgoindia.com`, `startUrl` = `/login`, splash `#14245C` with `splashScreenFadeOutDuration: 0`, `packageId` `com.campusgoindia.student` (matches `assetlinks.json`). |
+| `scripts/blank-splash.sh` + `assets/blank.png` | ✅ | Overwrites Bubblewrap's generated full-screen logo splash with a 1×1 transparent pixel. |
+| `.gitignore` | ✅ | Ignores the generated Android project, build outputs, and the keystore. |
+| `../.github/workflows/android-apk.yml` | ✅ | CI build — the recommended way to produce the APK/AAB. |
+| `app/`, `.gradle/`, `*.apk`, `*.aab`, `android.keystore` | ❌ | Generated / secret — never committed. |
 
 ---
 
-## Prerequisites
+## Build in CI (recommended)
 
-- **Node 18+** (you already have it for the web app).
-- Bubblewrap downloads and manages its own JDK 17 + Android SDK on first run —
-  you do **not** need Android Studio.
+Bubblewrap needs an interactive terminal, so the reliable path is the GitHub
+Actions workflow **“Build Android APK (TWA)”** (Actions tab → Run workflow).
+It produces `campusgo-android` artifacts: `app-release-signed.apk` (sideload)
+and `app-release-bundle.aab` (Play Store).
+
+**Secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Notes |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | `base64 -i android.keystore` of your signing key |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_PASSWORD` | key password |
+| `ANDROID_KEY_ALIAS` | defaults to `campusgo` |
+
+If `ANDROID_KEYSTORE_BASE64` is **not** set, the first run generates a fresh
+keystore and uploads it as the `android-keystore` artifact — download it,
+store it + its password as the secrets above, and every later build reuses
+that key. **A different key = a different app on the Play Store**, so do this
+once and keep the keystore forever (a password manager / secret store).
+
+Each Play upload needs a higher `appVersionCode` — pass `versionCode` /
+`versionName` as workflow inputs, or bump them in `twa-manifest.json`.
+
+---
+
+## Build locally
+
+Needs Node 18/20 (Bubblewrap is unhappy on Node 22+) and Java 17. Bubblewrap
+downloads its own Android SDK on first run.
 
 ```bash
 npm install -g @bubblewrap/cli
-bubblewrap --version   # sanity check
-```
-
----
-
-## Signing key — read this first
-
-The Play Store identifies the app by `packageId` **+ signing key**. The
-currently-published app is signed with a key whose SHA-256 fingerprint is
-pinned in [`../apps/web/public/.well-known/assetlinks.json`](../apps/web/public/.well-known/assetlinks.json):
-
-```
-95:C4:7E:38:6D:8A:90:06:6C:55:28:79:4B:EA:F9:30:2A:E4:A5:42:D5:1E:DB:FF:7A:8A:6E:C5:86:5F:EF:AB
-```
-
-- **If you still have the original `android.keystore` + alias + passwords:**
-  put the keystore file at `android/android.keystore` (git-ignored) and build
-  as normal. Updates will install over the existing app.
-- **If the original keystore is lost:** you cannot update the existing
-  listing directly. Options:
-  1. If the app is on **Play App Signing** (it should be), you only lost the
-     *upload* key. Follow Play Console → *App integrity* → *Request upload key
-     reset*, then generate a new upload key with Bubblewrap and use it.
-  2. Otherwise you must publish under a **new `packageId`** (e.g.
-     `com.campusgoindia.student2`) as a new listing, and migrate users.
-
-**After any keystore change**, update BOTH fingerprints in
-`assetlinks.json` (the Play *app-signing* SHA-256 from Play Console → *App
-integrity*, and your *upload* key SHA-256), redeploy the web app, and verify
-with <https://developers.google.com/digital-asset-links/tools/generator>.
-
-Back the keystore + passwords up in a password manager / secret store. It is
-`.gitignore`d on purpose — **do not** commit it.
-
----
-
-## First-time setup
-
-1. Edit `twa-manifest.json`:
-   - Set `"host"` and every `https://…` URL to the **real production domain**
-     (whatever serves `https://<domain>/.well-known/assetlinks.json`). It is
-     currently the placeholder `PROD_DOMAIN_PLACEHOLDER`.
-2. Generate the Android project into this folder:
-
-   ```bash
-   cd android
-   bubblewrap init --manifest ./twa-manifest.json
-   ```
-
-   When prompted for a signing key, point it at your existing
-   `android/android.keystore` (or let it create one — then back it up).
-3. Blank the logo splash and build:
-
-   ```bash
-   ./scripts/blank-splash.sh
-   bubblewrap build
-   ```
-
-   Output: `app-release-signed.apk` (for sideload testing) and
-   `app-release-bundle.aab` (for the Play Store).
-
----
-
-## Making changes later
-
-Edit `twa-manifest.json`, then:
-
-```bash
 cd android
-bubblewrap update          # regenerates app/ from the manifest
-./scripts/blank-splash.sh  # re-blank the splash (bubblewrap regenerates it)
+bubblewrap init --manifest ./twa-manifest.json --directory .
+./scripts/blank-splash.sh          # re-run after EVERY init/update
 bubblewrap build
 ```
 
-Bump **`appVersionCode`** (integer, +1) and **`appVersionName`** in
-`twa-manifest.json` for every Play Store upload, or the Console rejects it.
+Later changes: edit `twa-manifest.json` → `bubblewrap update` →
+`./scripts/blank-splash.sh` → `bubblewrap build`.
 
 ---
 
 ## Splash screen
 
-There are two splashes on a cold start:
+Two splashes show on a cold start:
 
-1. **The OS splash (Android 12+)** — a system screen showing the launcher
-   icon on `windowSplashScreenBackground`. Android **requires** the icon here;
-   it cannot be removed, only recoloured. It's set to `#14245C` via
-   `backgroundColor` in the manifest and lasts ~0.5 s.
-2. **Bubblewrap's `LauncherActivity` splash** — a second full-screen image
-   (the app icon again) shown while the web view loads. **This is the "logo
-   splash" we remove.** `scripts/blank-splash.sh` overwrites the generated
-   `res/drawable*/splash.png` with a 1×1 transparent pixel and
-   `splashScreenFadeOutDuration` is `0` in the manifest, so it's invisible.
+1. **OS splash (Android 12+)** — system screen with the launcher icon on
+   `#14245C`. Android *requires* the icon here; it can't be removed, only
+   recoloured. Lasts ~0.5 s.
+2. **Bubblewrap `LauncherActivity` splash** — a second full-screen logo image
+   while the web view loads. **This is the "logo splash" we remove.**
+   `scripts/blank-splash.sh` replaces the generated `res/drawable*/splash.png`
+   with a transparent pixel, and `splashScreenFadeOutDuration` is `0`.
 
-After that, control passes to the web app, where
+Then control passes to the web app, where
 [`apps/web/components/app-splash.tsx`](../apps/web/components/app-splash.tsx)
-draws the blue graduation-cap animation on the same `#14245C` background — so
-the hand-off is seamless with no white flash.
+draws the blue graduation-cap animation on the same `#14245C` — a seamless
+hand-off, no white flash.
 
-Re-run `blank-splash.sh` after **every** `bubblewrap init` / `bubblewrap
-update`, because Bubblewrap regenerates the splash images each time.
+Re-run `blank-splash.sh` after every `bubblewrap init` / `update` (it
+regenerates the splash each time).
+
+---
+
+## Signing key
+
+The published app is identified by `packageId` **+ signing key**. The
+fingerprint currently pinned in
+[`../apps/web/public/.well-known/assetlinks.json`](../apps/web/public/.well-known/assetlinks.json)
+is:
+
+```
+95:C4:7E:38:6D:8A:90:06:6C:55:28:79:4B:EA:F9:30:2A:E4:A5:42:D5:1E:DB:FF:7A:8A:6E:C5:86:5F:EF:AB
+```
+
+- **Original keystore available** → use it (secret / `signingKey.path`).
+  Updates install over the existing app.
+- **Original keystore lost** → either use Play Console → *App integrity* →
+  *Request upload key reset* (works if the app is on Play App Signing), or
+  publish under a new `packageId` as a new listing.
+
+After **any** key change: put the new fingerprint(s) into
+`assetlinks.json` — with Play App Signing that's the **app-signing SHA-256
+from Play Console → App integrity**, plus your upload-key SHA-256 — commit,
+redeploy the web app, and verify with
+<https://developers.google.com/digital-asset-links/tools/generator>.
 
 ---
 
 ## Publishing to the Play Store
 
-1. `bubblewrap build` → upload `app-release-bundle.aab` to Play Console.
-2. Keep **Play App Signing** enabled (default for new apps).
-3. Play Console → *App integrity* → copy the **app-signing SHA-256**.
-4. Put that fingerprint (and your upload-key SHA-256) into
-   `apps/web/public/.well-known/assetlinks.json`, commit, and redeploy the web
-   app. The `/.well-known/assetlinks.json` URL must return HTTP 200 with the
-   correct fingerprints or the TWA opens with a URL bar.
-5. Fill the store listing (screenshots, privacy policy URL —
-   `https://<domain>/privacy`, data-safety form). `display: standalone` +
-   `enableNotifications: true` are already set.
-
----
-
-## Digital Asset Links
-
-`apps/web/public/.well-known/assetlinks.json` is served by the web app and
-links the domain to the app package. It must list the fingerprint of whatever
-key ultimately signs the installed APK (with Play App Signing, that's
-Google's key — get it from Play Console, not your local keystore).
+1. Build → upload `app-release-bundle.aab` to Play Console.
+2. Keep **Play App Signing** on (default).
+3. Play Console → *App integrity* → copy the **app-signing SHA-256** →
+   add to `assetlinks.json` → redeploy web.
+4. Store listing: screenshots, privacy policy `https://campusgoindia.com/privacy`,
+   data-safety form. `display: standalone` + `enableNotifications: true` are
+   already set.
