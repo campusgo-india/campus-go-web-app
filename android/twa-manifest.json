@@ -24,9 +24,9 @@
     "path": "./android.keystore",
     "alias": "campusgo"
   },
-  "appVersionName": "1.0.0",
-  "appVersionCode": 1,
-  "shellVersion": "1.0.0",
+  "appVersionName": "1.0.1",
+  "appVersionCode": 2,
+  "shellVersion": "1.0.1",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {
