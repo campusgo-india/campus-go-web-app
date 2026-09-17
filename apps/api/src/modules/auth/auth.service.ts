@@ -31,14 +31,18 @@ export class AuthService {
       console.log(`[auth] login failed for ${normalized}: user not found`);
       throw new UnauthorizedException('Invalid credentials');
     }
-    if (!user.isActive) {
-      console.log(`[auth] login failed for ${normalized}: account inactive`);
-      throw new UnauthorizedException('Invalid credentials');
-    }
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       console.log(`[auth] login failed for ${normalized}: password mismatch`);
       throw new UnauthorizedException('Invalid credentials');
+    }
+    // Checked only after the password proves ownership — naming the reason to a
+    // caller who guessed wrong would confirm the address exists.
+    if (!user.isActive) {
+      console.log(`[auth] login failed for ${normalized}: account inactive`);
+      throw new UnauthorizedException(
+        'This account has been deactivated. Please contact your placement office.',
+      );
     }
     return user;
   }

@@ -107,7 +107,14 @@ function LoginForm() {
               </div>
             </div>
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && (
+              <p
+                role="alert"
+                className="rounded-2xl border border-danger/20 bg-danger/[0.06] px-4 py-3 text-sm leading-relaxed text-danger"
+              >
+                {error}
+              </p>
+            )}
 
             <Button
               type="submit"
