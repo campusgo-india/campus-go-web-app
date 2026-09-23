@@ -132,7 +132,7 @@ export default function HomePage() {
             <div className="rounded-[20px] bg-gradient-to-br from-primary-50 to-tint-accent p-3 shadow-nav">
               <BrowserFrame>
                 <Shot
-                  src="/screenshots/officer-dashboard.png"
+                  src="/screenshots/officer-dashboard.jpg"
                   alt="CampusGo placement dashboard — placement progress by track, offers trend and top recruiting companies"
                 />
               </BrowserFrame>
@@ -159,7 +159,7 @@ export default function HomePage() {
         />
         <div className="mt-11">
           <DeviceCombo
-            desktopSrc="/screenshots/officer-dashboard.png"
+            desktopSrc="/screenshots/officer-dashboard.jpg"
             desktopAlt="Placement officer dashboard — KPI cards, placement progress by programme and drive trend"
             phone={STUDENT_SHOTS.applications}
           />

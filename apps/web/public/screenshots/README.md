@@ -4,13 +4,17 @@ Referenced by `<Shot>` / `<PhoneShot>` in `components/site-sections.tsx` and the
 marketing pages. PII-safe demo data only — never a capture of the production
 database.
 
-## Desktop
+## Desktop (1536×1024, JPEG q95)
+
+JPEG rather than PNG: these render up to ~969 CSS px (the `DeviceCombo` on `/`),
+so the 1536px source is kept for retina, and q95 re-encoding cuts ~78% of the
+weight with no visible loss. Regenerate with
+`sips -s format jpeg -s formatOptions 95 <in>.png --out <name>.jpg`.
 
 | File | Image | Used on |
 |---|---|---|
-| `officer-dashboard.png` | Placement Officer dashboard (St Francis College demo) | `/`, `/product`, `/insights`, `/mobile` |
-| `complexity-to-clarity.png` | "From Placement Complexity to Placement Clarity" infographic | `/product` |
-| `challenges-solution.png` | "Simplifying Placements. Empowering Futures." infographic | *(spare — not wired)* |
+| `officer-dashboard.jpg` | Placement Officer dashboard (St Francis College demo) | `/`, `/product`, `/insights`, `/mobile` |
+| `complexity-to-clarity.jpg` | "From Placement Complexity to Placement Clarity" infographic | `/product` |
 
 ## Student app (mobile, 540×1200)
 

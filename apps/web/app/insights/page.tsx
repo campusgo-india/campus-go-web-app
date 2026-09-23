@@ -57,7 +57,7 @@ export default function ReportsPage() {
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="w-full max-w-md lg:w-[440px] lg:flex-shrink-0">
             <DeviceCombo
-              desktopSrc="/screenshots/officer-dashboard.png"
+              desktopSrc="/screenshots/officer-dashboard.jpg"
               desktopAlt="Analytics dashboard — placement percentage, package stats, offers per student and drive trend"
               phone={STUDENT_SHOTS.tracker}
             />

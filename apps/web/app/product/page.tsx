@@ -59,7 +59,7 @@ export default function PlatformPage() {
         />
         <div className="mx-auto mt-9 max-w-4xl overflow-hidden rounded-card border border-border shadow-card">
           <Shot
-            src="/screenshots/complexity-to-clarity.png"
+            src="/screenshots/complexity-to-clarity.jpg"
             alt="The pain points colleges struggle with — spreadsheet chaos, time-consuming processes, poor student visibility, communication gaps, limited insights — versus the CampusGo solution: a centralised data hub, automated workflows, 360° student tracking, dashboards and reports"
           />
         </div>
@@ -98,7 +98,7 @@ export default function PlatformPage() {
             <div className="mt-7">
               <BrowserFrame>
                 <Shot
-                  src="/screenshots/officer-dashboard.png"
+                  src="/screenshots/officer-dashboard.jpg"
                   alt="Placement Dashboard — progress stage by stage, per programme"
                 />
               </BrowserFrame>

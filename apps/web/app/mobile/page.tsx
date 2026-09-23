@@ -133,7 +133,7 @@ export default function MobilePage() {
             <div className="lg:w-[92%]">
               <BrowserFrame>
                 <Shot
-                  src="/screenshots/officer-dashboard.png"
+                  src="/screenshots/officer-dashboard.jpg"
                   alt="Placement officer dashboard — total students, placed students, offers extended, placement progress by track and drive trend"
                 />
               </BrowserFrame>
