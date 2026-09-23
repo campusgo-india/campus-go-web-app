@@ -462,7 +462,7 @@ function LogoPanel({ college, onUpdated }: { college: College; onUpdated: () => 
         <p className="text-xs text-subtle">
           {college.logoUrl
             ? 'Shown in the header of this college’s admin and student shells.'
-            : 'No logo uploaded — the CampusGO wordmark is shown in the headers instead.'}
+            : 'No logo uploaded — the CampusGo wordmark is shown in the headers instead.'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <input

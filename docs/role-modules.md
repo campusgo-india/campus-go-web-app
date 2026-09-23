@@ -1,4 +1,4 @@
-# CampusGO — Role → Module Map
+# CampusGo — Role → Module Map
 
 [← Overview](./00-overview.md) | [Design System](./design-system.md)
 

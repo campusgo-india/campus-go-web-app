@@ -2,7 +2,7 @@ import { LegalPageShell, LegalSection } from '../../components/legal-page-shell'
 
 export const metadata = {
   title: 'Privacy Policy',
-  description: 'How CampusGO collects, uses, and protects student and college data.',
+  description: 'How CampusGo collects, uses, and protects student and college data.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -12,20 +12,20 @@ export default function PrivacyPolicyPage() {
   return (
     <LegalPageShell title="Privacy Policy" updated={UPDATED}>
       <p className="text-sm leading-relaxed text-body">
-        CampusGO (&ldquo;CampusGO&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a placement
+        CampusGo (&ldquo;CampusGo&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;) provides a placement
         management platform that colleges license to run their placement seasons — job postings,
         applications, interview pipelines, and student career records. This policy explains what
         data the platform collects, how it&rsquo;s used, and who it&rsquo;s shared with. It applies
         to students, placement staff (Placement Officers, Placement Coordinators, College Admins),
-        alumni, and recruiters who interact with a college&rsquo;s CampusGO instance.
+        alumni, and recruiters who interact with a college&rsquo;s CampusGo instance.
       </p>
 
       <LegalSection n={1} title="Who controls your data">
         <p>
-          Each college operates its own CampusGO instance and is the data controller for its
+          Each college operates its own CampusGo instance and is the data controller for its
           students&rsquo; and staff&rsquo;s information — accounts are created and managed by the
           college&rsquo;s placement cell, not through open self-signup (alumni self-registration is
-          the one exception, and is subject to the college&rsquo;s own approval). CampusGO acts as
+          the one exception, and is subject to the college&rsquo;s own approval). CampusGo acts as
           the platform provider (data processor) that the college uses to store and operate on that
           data.
         </p>
@@ -115,7 +115,7 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection n={6} title="Security">
         <p>
-          All traffic to CampusGO is encrypted in transit (HTTPS). Passwords are hashed, never
+          All traffic to CampusGo is encrypted in transit (HTTPS). Passwords are hashed, never
           stored in plain text. Access to student data is role-based — a Placement Coordinator, for
           instance, only sees students in their assigned programmes — and significant staff actions
           on student records are logged.
@@ -124,7 +124,7 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection n={7} title="Children's privacy">
         <p>
-          CampusGO is built for college-level placement programmes and is not directed at, or
+          CampusGo is built for college-level placement programmes and is not directed at, or
           knowingly used to collect data from, children under 13.
         </p>
       </LegalSection>

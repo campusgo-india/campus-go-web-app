@@ -99,8 +99,8 @@ export class AuthService {
       // mailer never blocks this endpoint's generic "check your email" reply.
       await this.email.sendForCollege(user.collegeId, {
         to: user.email,
-        subject: 'Reset your CampusGO password',
-        html: `<p>Hi ${user.fullName},</p><p>Click the link below to reset your CampusGO password. This link expires in ${PASSWORD_RESET_TTL / 60} minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
+        subject: 'Reset your CampusGo password',
+        html: `<p>Hi ${user.fullName},</p><p>Click the link below to reset your CampusGo password. This link expires in ${PASSWORD_RESET_TTL / 60} minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>If you didn't request this, you can ignore this email.</p>`,
       });
     }
     return { success: true };

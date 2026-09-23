@@ -15,27 +15,27 @@ const SITE_URL = 'https://www.campusgoindia.com';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'CampusGO — From Campus to Career',
-    template: '%s · CampusGO',
+    default: 'CampusGo — From Campus to Career',
+    template: '%s · CampusGo',
   },
   description:
     'The complete placement & career readiness platform for colleges and universities — student data, training, recruiters, recruitment, placements, internships and alumni in one connected system.',
-  applicationName: 'CampusGO',
+  applicationName: 'CampusGo',
   manifest: '/manifest.webmanifest',
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
   openGraph: {
     type: 'website',
-    siteName: 'CampusGO',
+    siteName: 'CampusGo',
     locale: 'en_IN',
     url: SITE_URL,
-    title: 'CampusGO — From Campus to Career',
+    title: 'CampusGo — From Campus to Career',
     description:
       'The complete placement & career readiness platform for colleges and universities.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CampusGO — From Campus to Career',
+    title: 'CampusGo — From Campus to Career',
     description:
       'The complete placement & career readiness platform for colleges and universities.',
   },

@@ -1,4 +1,4 @@
-# Render Blueprint for the CampusGO API (NestJS).
+# Render Blueprint for the CampusGo API (NestJS).
 # Deploy: Render Dashboard → New → Blueprint → pick this repo.
 # Free plan (sleeps after ~15 min idle). DATABASE_URL + WEB_ORIGIN are set in the
 # dashboard (sync:false); the JWT secrets are generated for you.

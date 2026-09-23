@@ -30,7 +30,7 @@ export default function ReadinessPage() {
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60">
             A student receiving a placement opportunity does not necessarily mean the student is
-            ready for it. CampusGO helps institutions understand student readiness through four core
+            ready for it. CampusGo helps institutions understand student readiness through four core
             employability pillars.
           </p>
         </div>

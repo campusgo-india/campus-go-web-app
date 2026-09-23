@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'CampusGO — From Campus to Career';
+export const alt = 'CampusGo — From Campus to Career';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -39,7 +39,7 @@ export default function OgImage() {
           >
             C
           </div>
-          CampusGO
+          CampusGo
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

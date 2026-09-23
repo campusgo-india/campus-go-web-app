@@ -4,7 +4,7 @@ import { SiteHeader, SiteFooter } from '../../components/site-chrome';
 export const metadata = {
   title: 'About',
   description:
-    'CampusGO is a placement automation and student career readiness platform designed for colleges and universities — connecting campuses to careers.',
+    'CampusGo is a placement automation and student career readiness platform designed for colleges and universities — connecting campuses to careers.',
   alternates: { canonical: '/about' },
 };
 

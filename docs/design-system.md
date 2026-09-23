@@ -1,10 +1,10 @@
-# CampusGO — Design System & Platform Split
+# CampusGo — Design System & Platform Split
 
 [← Overview](./00-overview.md)
 
 ## Platform Split (important)
 
-CampusGO ships **one Next.js 15 app** with **two distinct experiences**, gated by role:
+CampusGo ships **one Next.js 15 app** with **two distinct experiences**, gated by role:
 
 | Audience                                               | Experience                                                         | Layout                                                                         |
 | ------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -17,7 +17,7 @@ CampusGO ships **one Next.js 15 app** with **two distinct experiences**, gated b
 - Same coral theme + design tokens across both; the **student side leans into the reference
   mockup** (rounded cards, soft shadows, timeline, pastel category tints), the **admin side** uses a
   lighter, more neutral application of the same palette for long working sessions.
-- Student PWA: `manifest.json` + service worker so students can "install" CampusGO to the home screen.
+- Student PWA: `manifest.json` + service worker so students can "install" CampusGo to the home screen.
 
 ## Visual Language (from reference mockup)
 
@@ -106,9 +106,9 @@ menu), DataTable (sortable, filterable, paginated, row actions), StatCard (metri
 Charts (placement %, funnel, breakdowns — coral/pastel series), KanbanBoard (ATS pipeline by stage),
 FilterBar, FormLayout (multi-section), SlideOver (detail/edit panels).
 
-## Reference mockup → CampusGO mapping
+## Reference mockup → CampusGo mapping
 
-| Mockup element                            | CampusGO usage                                                         |
+| Mockup element                            | CampusGo usage                                                         |
 | ----------------------------------------- | -------------------------------------------------------------------- |
 | "Today's Classes" timeline                | Student **dashboard / upcoming interviews + applications** timeline  |
 | Gradient hero card ("History of Physics") | Student **next interview / featured job** hero card                  |

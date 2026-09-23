@@ -1,12 +1,12 @@
-# CampusGO — Agent Guide
+# CampusGo — Agent Guide
 
-This file is for AI coding agents working on the CampusGO Placement Intelligence & Career Success Platform. It assumes you know nothing about the repo. Use it alongside the planning docs in [`docs/`](./docs) and the root [`README.md`](./README.md).
+This file is for AI coding agents working on the CampusGo Placement Intelligence & Career Success Platform. It assumes you know nothing about the repo. Use it alongside the planning docs in [`docs/`](./docs) and the root [`README.md`](./README.md).
 
 ---
 
 ## 1. Project Overview
 
-CampusGO is a multi-tenant SaaS platform for colleges and universities to manage placements, recruiters, jobs, student applications, interviews, alumni, analytics, and reports.
+CampusGo is a multi-tenant SaaS platform for colleges and universities to manage placements, recruiters, jobs, student applications, interviews, alumni, analytics, and reports.
 
 - **Students** use a mobile-first / PWA shell (`/me/*`).
 - **Placement Officers, College Admins, and Platform Admins** use a desktop web shell (`/dashboard`, `/students`, `/jobs`, `/platform/*`, etc.).

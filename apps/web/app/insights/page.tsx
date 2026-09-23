@@ -30,7 +30,7 @@ export default function ReportsPage() {
             Turn Placement Activity Into Meaningful Data
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/60">
-            CampusGO brings placement, training, internship, recruitment and alumni information into
+            CampusGo brings placement, training, internship, recruitment and alumni information into
             a structured digital environment — from data collection to institutional insight.
           </p>
         </div>
@@ -76,7 +76,7 @@ export default function ReportsPage() {
             </p>
             <div className="mt-6 rounded-card border border-tint-cream bg-tint-cream/60 p-6">
               <p className="text-sm leading-relaxed text-body">
-                The structured data and reports generated through CampusGO can support institutional
+                The structured data and reports generated through CampusGo can support institutional
                 documentation and reporting relevant to{' '}
                 <span className="font-bold text-strong">NAAC, NIRF, UGC</span> and other academic and
                 accreditation-related requirements.

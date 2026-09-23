@@ -87,7 +87,7 @@ export class CollegesController {
 
   // Upload/replace the college's logo. The blob is public with an unguessable URL
   // (same trust model as job PDFs and public résumé links); /auth/me hands the URL
-  // to every shell of that tenant, which fall back to the CampusGO wordmark when null.
+  // to every shell of that tenant, which fall back to the CampusGo wordmark when null.
   @Post(':id/logo')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
   async uploadLogo(
@@ -128,7 +128,7 @@ export class CollegesController {
     return { data: updated };
   }
 
-  // Remove the college's logo; shells fall back to the CampusGO wordmark.
+  // Remove the college's logo; shells fall back to the CampusGo wordmark.
   @Delete(':id/logo')
   async removeLogo(@CurrentUser() actor: JwtPayload, @Param('id') id: string, @Ip() ip: string) {
     const college = await this.colleges.findOne(id);

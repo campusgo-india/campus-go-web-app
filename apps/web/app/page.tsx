@@ -22,9 +22,9 @@ import {
 } from '../components/site-sections';
 
 export const metadata: Metadata = {
-  title: { absolute: 'CampusGO — From Campus to Career' },
+  title: { absolute: 'CampusGo — From Campus to Career' },
   description:
-    'CampusGO connects students, training, employers, opportunities, recruitment and placement outcomes in one platform — the complete placement & career readiness system for colleges and universities.',
+    'CampusGo connects students, training, employers, opportunities, recruitment and placement outcomes in one platform — the complete placement & career readiness system for colleges and universities.',
   alternates: { canonical: '/' },
 };
 
@@ -60,7 +60,7 @@ const JSON_LD = {
   '@graph': [
     {
       '@type': 'Organization',
-      name: 'CampusGO',
+      name: 'CampusGo',
       url: 'https://www.campusgoindia.com',
       logo: 'https://www.campusgoindia.com/icon-512.png',
       description:
@@ -68,7 +68,7 @@ const JSON_LD = {
     },
     {
       '@type': 'SoftwareApplication',
-      name: 'CampusGO',
+      name: 'CampusGo',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web, Android',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Request a demo' },
@@ -107,7 +107,7 @@ export default function HomePage() {
               to Career.
             </h1>
             <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-subtle lg:mx-0">
-              CampusGO connects students, training, employers, opportunities, recruitment and
+              CampusGo connects students, training, employers, opportunities, recruitment and
               placement outcomes in one centralized platform — helping institutions manage the
               complete journey, before, during and after placement.
             </p>
@@ -133,7 +133,7 @@ export default function HomePage() {
               <BrowserFrame>
                 <Shot
                   src="/screenshots/officer-dashboard.png"
-                  alt="CampusGO placement dashboard — placement progress by track, offers trend and top recruiting companies"
+                  alt="CampusGo placement dashboard — placement progress by track, offers trend and top recruiting companies"
                 />
               </BrowserFrame>
             </div>
@@ -185,9 +185,9 @@ export default function HomePage() {
       {/* EXPLORE THE PLATFORM */}
       <Section alt>
         <SectionHeading
-          eyebrow="Explore CampusGO"
+          eyebrow="Explore CampusGo"
           title="One Platform, Four Ways to Look at It"
-          subtitle="The whole placement journey lives in CampusGO. Start wherever your team feels the pain first."
+          subtitle="The whole placement journey lives in CampusGo. Start wherever your team feels the pain first."
         />
         <div className="mt-11 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {EXPLORE.map((c) => (
@@ -213,7 +213,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-xl text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-strong">One Connected Journey</h2>
           <p className="mt-3 text-sm leading-relaxed text-subtle">
-            CampusGO connects the activities that are often managed independently — from student
+            CampusGo connects the activities that are often managed independently — from student
             readiness all the way to placement outcomes.
           </p>
         </div>
@@ -254,9 +254,9 @@ export default function HomePage() {
       {/* THE CAMPUSGO ADVANTAGE */}
       <section className="bg-[#0B1330] py-16">
         <div className="mx-auto max-w-6xl px-6 text-center">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary-300">The CampusGO Advantage</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary-300">The CampusGo Advantage</span>
           <h2 className="mx-auto mt-2.5 max-w-2xl text-3xl font-extrabold tracking-tight text-white">
-            Most Placement Systems Stop at Placement. CampusGO Continues.
+            Most Placement Systems Stop at Placement. CampusGo Continues.
           </h2>
           <p className="mx-auto mt-3.5 max-w-md text-sm leading-relaxed text-white/60">
             A student&rsquo;s journey doesn&rsquo;t end when an offer letter is issued.

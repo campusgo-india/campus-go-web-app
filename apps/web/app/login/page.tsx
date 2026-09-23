@@ -56,11 +56,14 @@ function LoginForm() {
             className="pointer-events-none absolute -left-16 bottom-0 h-48 w-48 rounded-full"
             style={{ background: 'radial-gradient(circle, rgba(226,128,64,0.25) 0%, rgba(255,255,255,0) 70%)' }}
           />
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-nav sm:h-16 sm:w-16">
+          <div className="relative flex items-center justify-center rounded-3xl bg-white px-6 py-4 shadow-nav">
             {/* eslint-disable-next-line @next/next/no-img-element -- static public asset, next/image not configured */}
-            <img src="/logo-mark.png" alt="CampusGo" className="h-12 w-12 object-contain sm:h-10 sm:w-10" />
+            <img
+              src="/site-logo.png"
+              alt="CampusGo — From Campus to Career"
+              className="h-12 w-auto object-contain sm:h-11"
+            />
           </div>
-          <p className="relative mt-4 text-sm font-medium text-white/80">From Campus to Career</p>
         </div>
 
         {/* White sheet — form */}

@@ -61,7 +61,7 @@ export function AppSplash() {
           </g>
         </svg>
       </div>
-      <p className="app-splash__word">CampusGO</p>
+      <p className="app-splash__word">CampusGo</p>
     </div>
   );
 }

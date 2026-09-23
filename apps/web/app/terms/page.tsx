@@ -2,7 +2,7 @@ import { LegalPageShell, LegalSection } from '../../components/legal-page-shell'
 
 export const metadata = {
   title: 'Terms & Conditions',
-  description: 'The terms that govern use of the CampusGO placement platform.',
+  description: 'The terms that govern use of the CampusGo placement platform.',
   alternates: { canonical: '/terms' },
 };
 
@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <LegalPageShell title="Terms &amp; Conditions" updated={UPDATED}>
       <p className="text-sm leading-relaxed text-body">
-        These terms govern your use of CampusGO (&ldquo;the platform&rdquo;) — a placement
+        These terms govern your use of CampusGo (&ldquo;the platform&rdquo;) — a placement
         management system licensed to your college. By signing in and using an account on the
         platform, you agree to these terms.
       </p>
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <p>
           Accounts on the platform are for students, placement staff (Placement Officers,
           Placement Coordinators, College Admins), and alumni of a college that has licensed
-          CampusGO, plus recruiters interacting with a specific job&rsquo;s feedback link. Student
+          CampusGo, plus recruiters interacting with a specific job&rsquo;s feedback link. Student
           and staff accounts are created by your college&rsquo;s placement cell; alumni accounts are
           created via self-registration and are subject to the college&rsquo;s approval.
         </p>
@@ -57,7 +57,7 @@ export default function TermsPage() {
 
       <LegalSection n={4} title="The placement process">
         <p>
-          CampusGO facilitates the placement process — job postings, applications, interview
+          CampusGo facilitates the placement process — job postings, applications, interview
           tracking, and offers — but does not itself employ students or guarantee a placement,
           interview, or offer. Hiring decisions rest entirely with recruiters; eligibility rules
           and process policy (including any restriction on the number of offers a student may hold)
@@ -68,7 +68,7 @@ export default function TermsPage() {
       <LegalSection n={5} title="Content you provide">
         <p>
           You retain ownership of content you upload — your resume, profile details, feedback
-          responses. By uploading it, you grant CampusGO a limited license to store, process, and
+          responses. By uploading it, you grant CampusGo a limited license to store, process, and
           display it as needed to operate the platform (for example, sharing your resume with a
           recruiter for a job you applied to). Job postings and company information belong to the
           placement team or recruiter that submitted them.
@@ -78,7 +78,7 @@ export default function TermsPage() {
       <LegalSection n={6} title="Third-party content">
         <p>
           Job postings, company details, and any external links (e.g. a recruiter&rsquo;s
-          application form) are provided by third parties. CampusGO isn&rsquo;t responsible for the
+          application form) are provided by third parties. CampusGo isn&rsquo;t responsible for the
           accuracy of a job posting or the conduct of a recruiter or company listed on the
           platform.
         </p>

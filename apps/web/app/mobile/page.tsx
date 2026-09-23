@@ -18,7 +18,7 @@ import {
 } from '../../components/site-sections';
 
 export const metadata: Metadata = {
-  title: 'CampusGO on Mobile',
+  title: 'CampusGo on Mobile',
   description:
     'A focused app for students — readiness, opportunities, applications and offer updates in their pocket — and an on-the-go view for placement teams. Installs like an app; nothing to update.',
   alternates: { canonical: '/mobile' },
@@ -38,7 +38,7 @@ export default function MobilePage() {
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-12 px-6 py-16 sm:py-20 lg:flex-row">
           <div className="w-full max-w-xl text-center lg:text-left">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3.5 py-1.5 text-xs font-medium text-primary-600">
-              <PhoneIcon /> CampusGO on Mobile
+              <PhoneIcon /> CampusGo on Mobile
             </span>
             <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-strong sm:text-5xl">
               The Placement Journey,
@@ -56,7 +56,7 @@ export default function MobilePage() {
                 href="/login"
                 className="inline-flex h-12 items-center rounded-md bg-gradient-primary px-6 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95"
               >
-                Open CampusGO
+                Open CampusGo
               </Link>
               <Link href="/contact?intent=demo" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
                 Request a Demo →
@@ -150,7 +150,7 @@ export default function MobilePage() {
         <div className="mx-auto max-w-2xl rounded-card bg-card p-8 text-center shadow-card">
           <h2 className="text-xl font-extrabold tracking-tight text-strong">Install It Like an App</h2>
           <p className="mt-3 text-sm leading-relaxed text-subtle">
-            CampusGO is a Progressive Web App. On Android it&rsquo;s also available as a lightweight app
+            CampusGo is a Progressive Web App. On Android it&rsquo;s also available as a lightweight app
             wrapper. Either way it&rsquo;s the same live product — new features appear the moment they
             ship, with no store update to wait for.
           </p>
@@ -158,7 +158,7 @@ export default function MobilePage() {
             href="/login"
             className="mt-6 inline-flex h-12 items-center rounded-md bg-gradient-primary px-6 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95"
           >
-            Open CampusGO
+            Open CampusGo
           </Link>
         </div>
       </Section>

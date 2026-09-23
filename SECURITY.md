@@ -1,4 +1,4 @@
-# CampusGO — Security Notes & Production Hardening Checklist
+# CampusGo — Security Notes & Production Hardening Checklist
 
 This documents the security model and the **must-do steps before any non-local
 deployment**. The biggest real-world risk is misconfiguration, not the code.

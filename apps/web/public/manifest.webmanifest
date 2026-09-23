@@ -1,6 +1,6 @@
 {
-  "name": "CampusGO",
-  "short_name": "CampusGO",
+  "name": "CampusGo",
+  "short_name": "CampusGo",
   "description": "Placement Intelligence & Career Success Platform",
   "start_url": "/me",
   "display": "standalone",

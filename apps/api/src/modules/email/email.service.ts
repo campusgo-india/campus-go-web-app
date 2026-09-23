@@ -60,7 +60,7 @@ export class EmailService {
 
   private async sendViaResend(resend: Resend, input: SendEmailInput): Promise<void> {
     const fromEmail = this.config.get<string>('DEFAULT_FROM_EMAIL') ?? 'onboarding@resend.dev';
-    const fromName = this.config.get<string>('DEFAULT_FROM_NAME') ?? 'CampusGO';
+    const fromName = this.config.get<string>('DEFAULT_FROM_NAME') ?? 'CampusGo';
     const { error } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: input.to,
@@ -86,7 +86,7 @@ export class EmailService {
       user,
       pass,
       fromEmail,
-      fromName: this.config.get<string>('DEFAULT_FROM_NAME') ?? 'CampusGO',
+      fromName: this.config.get<string>('DEFAULT_FROM_NAME') ?? 'CampusGo',
     };
   }
 
@@ -171,8 +171,8 @@ export class EmailService {
     try {
       await this.send(this.buildTransport(cfg), cfg, {
         to,
-        subject: 'CampusGO test email',
-        text: 'This is a test email from your CampusGO college email settings. If you received this, your SMTP configuration works.',
+        subject: 'CampusGo test email',
+        text: 'This is a test email from your CampusGo college email settings. If you received this, your SMTP configuration works.',
       });
       return { success: true };
     } catch (err) {

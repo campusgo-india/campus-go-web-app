@@ -74,7 +74,7 @@ function addSheet(wb: ExcelJS.Workbook, dataset: ReportDataset, usedNames: Set<s
 /** Serialize a dataset to an XLSX workbook buffer with a styled header row. */
 export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'CampusGO';
+  wb.creator = 'CampusGo';
   wb.created = new Date();
   addSheet(wb, dataset, new Set());
   const out = await wb.xlsx.writeBuffer();
@@ -85,7 +85,7 @@ export async function toXlsx(dataset: ReportDataset): Promise<Buffer> {
  * students export with one tab per department. */
 export async function toMultiSheetXlsx(datasets: ReportDataset[]): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'CampusGO';
+  wb.creator = 'CampusGo';
   wb.created = new Date();
   const usedNames = new Set<string>();
   for (const dataset of datasets) addSheet(wb, dataset, usedNames);

@@ -1,4 +1,4 @@
-# CampusGO — Deployment (Free Stack)
+# CampusGo — Deployment (Free Stack)
 
 Host the whole app for **$0/month**. Three pieces, tied together by the same-origin
 BFF proxy (the browser only ever talks to the web origin; Next.js forwards

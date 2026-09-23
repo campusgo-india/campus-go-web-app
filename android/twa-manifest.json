@@ -1,8 +1,8 @@
 {
   "packageId": "com.campusgoindia.student",
   "host": "www.campusgoindia.com",
-  "name": "CampusGO",
-  "launcherName": "CampusGO",
+  "name": "CampusGo",
+  "launcherName": "CampusGo",
   "display": "standalone",
   "orientation": "default",
   "themeColor": "#14245C",

@@ -17,7 +17,7 @@ export function LegalPageShell({
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-5">
           <Link href="/" className="text-xl font-extrabold tracking-tight sm:text-2xl">
             <span className="text-primary-300">Campus</span>
-            <span className="text-primary-400">GO</span>
+            <span className="text-primary-400">Go</span>
           </Link>
           <Link
             href="/login"
@@ -40,7 +40,7 @@ export function LegalPageShell({
       <footer className="bg-[#0B1330] px-6 py-7">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 sm:flex-row sm:justify-between">
           <span className="text-xs text-white/35">
-            © {new Date().getFullYear()} CampusGO. All rights reserved.
+            © {new Date().getFullYear()} CampusGo. All rights reserved.
           </span>
           <div className="flex gap-4">
             <Link href="/privacy" className="text-xs text-white/50 hover:text-white/80">

@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * CampusGO "cool gray + blue" design tokens — the single source of theme truth.
+ * CampusGo "cool gray + blue" design tokens — the single source of theme truth.
  * Both web shells (mobile student + desktop admin) extend this preset.
  * Mirrors docs/design-system.md.
  */

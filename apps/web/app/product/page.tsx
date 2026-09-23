@@ -45,7 +45,7 @@ export default function PlatformPage() {
             Placement teams manage far more than job opportunities — student profiles, eligibility,
             recruiters, applications, interviews, training, assessments, internships, alumni and
             institutional reporting. Managed separately, that information scatters across
-            spreadsheets, emails and disconnected systems. CampusGO brings it together.
+            spreadsheets, emails and disconnected systems. CampusGo brings it together.
           </p>
         </div>
       </section>
@@ -60,7 +60,7 @@ export default function PlatformPage() {
         <div className="mx-auto mt-9 max-w-4xl overflow-hidden rounded-card border border-border shadow-card">
           <Shot
             src="/screenshots/complexity-to-clarity.png"
-            alt="The pain points colleges struggle with — spreadsheet chaos, time-consuming processes, poor student visibility, communication gaps, limited insights — versus the CampusGO solution: a centralised data hub, automated workflows, 360° student tracking, dashboards and reports"
+            alt="The pain points colleges struggle with — spreadsheet chaos, time-consuming processes, poor student visibility, communication gaps, limited insights — versus the CampusGo solution: a centralised data hub, automated workflows, 360° student tracking, dashboards and reports"
           />
         </div>
       </Section>
@@ -194,7 +194,7 @@ export default function PlatformPage() {
         <SectionHeading
           eyebrow="Built for Colleges & Universities"
           title="Designed Around Your Academic Structure"
-          subtitle="Whether you're managing a college with a few programmes or a university with multiple academic schools, CampusGO keeps placement information organized within your institutional structure."
+          subtitle="Whether you're managing a college with a few programmes or a university with multiple academic schools, CampusGo keeps placement information organized within your institutional structure."
         />
         <div className="mt-11">
           <HierarchyDiagram />
@@ -204,7 +204,7 @@ export default function PlatformPage() {
       {/* WHY CAMPUSGO */}
       <Section alt>
         <div className="mx-auto max-w-xl text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-strong">Why CampusGO?</h2>
+          <h2 className="text-3xl font-extrabold tracking-tight text-strong">Why CampusGo?</h2>
           <p className="mt-3 text-sm leading-relaxed text-subtle">Because placement is a journey, not an event.</p>
         </div>
         <div className="mt-11 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

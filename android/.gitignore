@@ -29,3 +29,5 @@ gradle.properties
 manifest-checksum.txt
 CampusGO-*.apk
 CampusGO-*.aab
+CampusGo-*.apk
+CampusGo-*.aab
