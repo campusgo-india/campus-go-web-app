@@ -49,19 +49,85 @@ export class SchoolsService {
     const school = await this.prisma.collegeSchool.findFirst({ where: { id, collegeId } });
     if (!school) throw new NotFoundException('School not found');
     const name = dto.name?.trim();
-    if (name && name !== school.name) {
+    const renamingSchool = !!name && name !== school.name;
+    if (renamingSchool) {
       const dup = await this.prisma.collegeSchool.findFirst({
         where: { collegeId, name, id: { not: id } },
       });
       if (dup) throw new BadRequestException(`School already exists: ${name}`);
     }
-    return this.prisma.collegeSchool.update({
-      where: { id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(dto.programmes ? { programmes: cleanList(dto.programmes) } : {}),
-        ...(dto.degreeLevel ? { degreeLevel: dto.degreeLevel } : {}),
-      },
+    const finalSchoolName = name ?? school.name;
+
+    // { oldProgramme: newProgramme } for entries the caller actually edited in
+    // place — a comma-separated re-type of `programmes` can't tell a rename
+    // apart from removing one and adding another, so the caller must say so
+    // explicitly. No-ops and blanks are dropped defensively.
+    const programmeRenames = Object.entries(dto.programmeRenames ?? {})
+      .map(([from, to]) => [from.trim(), (to ?? '').trim()] as const)
+      .filter(([from, to]) => from && to && from !== to);
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.collegeSchool.update({
+        where: { id },
+        data: {
+          ...(name ? { name } : {}),
+          ...(dto.programmes ? { programmes: cleanList(dto.programmes) } : {}),
+          ...(dto.degreeLevel ? { degreeLevel: dto.degreeLevel } : {}),
+        },
+      });
+
+      // Student.school, Student.programme and Job.eligible{Schools,Programmes}
+      // all store these names as plain strings (not foreign keys), matched
+      // against the catalog by name. Without cascading, a rename silently
+      // orphans every *current* student/job that referenced the old name —
+      // they fall back to defaults (e.g. UG on the placement dashboard) or
+      // drop out of eligibility matching.
+      //
+      // Alumni is deliberately NOT touched anywhere below — it's a historical
+      // snapshot of what the school/programme was called when that person
+      // graduated (names change year to year), not a live catalog reference.
+      if (renamingSchool) {
+        await tx.student.updateMany({
+          where: { collegeId, school: school.name },
+          data: { school: name! },
+        });
+        await tx.$executeRaw`
+          UPDATE jobs
+          SET eligible_schools = array_replace(eligible_schools, ${school.name}, ${name})
+          WHERE college_id = ${collegeId} AND ${school.name} = ANY(eligible_schools)
+        `;
+
+        // A school with zero configured sub-programmes uses its own name as
+        // the implicit programme (see the student form's "this school has no
+        // sub-programmes, so it is the programme" convention) — renaming the
+        // school must carry that value along too, or Student.programme goes
+        // stale right alongside the name it used to mirror.
+        if (school.programmes.length === 0) {
+          await tx.student.updateMany({
+            where: { collegeId, school: name!, programme: school.name },
+            data: { programme: name! },
+          });
+          await tx.$executeRaw`
+            UPDATE jobs
+            SET eligible_programmes = array_replace(eligible_programmes, ${school.name}, ${name})
+            WHERE college_id = ${collegeId} AND ${school.name} = ANY(eligible_programmes)
+          `;
+        }
+      }
+
+      for (const [from, to] of programmeRenames) {
+        await tx.student.updateMany({
+          where: { collegeId, school: finalSchoolName, programme: from },
+          data: { programme: to },
+        });
+        await tx.$executeRaw`
+          UPDATE jobs
+          SET eligible_programmes = array_replace(eligible_programmes, ${from}, ${to})
+          WHERE college_id = ${collegeId} AND ${from} = ANY(eligible_programmes)
+        `;
+      }
+
+      return updated;
     });
   }
 

@@ -11,6 +11,12 @@ import {
   type CollegeSchool,
   type DegreeLevel,
 } from '../../../../lib/courses';
+import {
+  ProgrammeListEditor,
+  diffProgrammeRows,
+  initProgrammeRows,
+  type ProgrammeRow,
+} from '../../../../components/programme-list-editor';
 
 const parseProgrammes = (raw: string): string[] =>
   raw
@@ -239,7 +245,9 @@ function EditSchoolForm({
   onSaved: () => void;
 }) {
   const [name, setName] = useState(school.name);
-  const [programmes, setProgrammes] = useState(school.programmes.join(', '));
+  const [programmeRows, setProgrammeRows] = useState<ProgrammeRow[]>(() =>
+    initProgrammeRows(school.programmes),
+  );
   const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>(school.degreeLevel);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -252,9 +260,11 @@ function EditSchoolForm({
     }
     setSaving(true);
     try {
+      const { programmes, renames } = diffProgrammeRows(programmeRows);
       await updateMySchool(school.id, {
         name: name.trim(),
-        programmes: parseProgrammes(programmes),
+        programmes,
+        programmeRenames: renames,
         degreeLevel,
       });
       onSaved();
@@ -264,6 +274,10 @@ function EditSchoolForm({
       setSaving(false);
     }
   }
+
+  const trimmedName = name.trim();
+  const nameChanged = trimmedName !== '' && trimmedName !== school.name;
+  const levelChanged = degreeLevel !== school.degreeLevel;
 
   return (
     <div className="space-y-3">
@@ -281,15 +295,26 @@ function EditSchoolForm({
             <option value="PG">Postgraduate</option>
           </select>
         </Field>
-        <Field label="Programmes (comma-separated)">
-          <input
-            className={inputCls}
-            value={programmes}
-            onChange={(e) => setProgrammes(e.target.value)}
-            placeholder="Leave blank if the school has none"
-          />
-        </Field>
       </div>
+      {(nameChanged || levelChanged) && (
+        <ul className="list-disc space-y-0.5 rounded-md bg-primary-50 px-4 py-2 pl-8 text-xs text-primary-700">
+          {nameChanged && (
+            <li>
+              Will rename &ldquo;{school.name}&rdquo; → &ldquo;{trimmedName}&rdquo; for every enrolled
+              student.
+            </li>
+          )}
+          {levelChanged && (
+            <li>
+              Will change Level to {degreeLevel === 'PG' ? 'Postgraduate' : 'Undergraduate'} for
+              every enrolled student.
+            </li>
+          )}
+        </ul>
+      )}
+      <Field label="Programmes">
+        <ProgrammeListEditor rows={programmeRows} onChange={setProgrammeRows} />
+      </Field>
       {error && <p className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
         <Button onClick={submit} disabled={saving}>

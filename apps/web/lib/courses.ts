@@ -16,6 +16,13 @@ export interface SchoolInput {
   name?: string;
   programmes?: string[];
   degreeLevel?: DegreeLevel;
+  /**
+   * { oldProgrammeName: newProgrammeName } for entries edited in place (not
+   * added/removed) — build this from `diffProgrammeRows` so a rename cascades
+   * to existing students/job eligibility instead of orphaning them. Only
+   * meaningful on update, not create.
+   */
+  programmeRenames?: Record<string, string>;
 }
 
 // ─── Tenant (College Admin / Officer): own college catalog for forms ───

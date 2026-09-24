@@ -10,6 +10,12 @@ import {
   type CollegeSchool,
   type DegreeLevel,
 } from '../lib/courses';
+import {
+  ProgrammeListEditor,
+  diffProgrammeRows,
+  initProgrammeRows,
+  type ProgrammeRow,
+} from './programme-list-editor';
 
 const parseList = (s: string) =>
   s
@@ -64,7 +70,12 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
 
   async function save(
     id: string,
-    input: { name: string; degreeLevel: DegreeLevel; programmes: string[] },
+    input: {
+      name: string;
+      degreeLevel: DegreeLevel;
+      programmes: string[];
+      programmeRenames: Record<string, string>;
+    },
   ) {
     await updateCollegeSchool(collegeId, id, input);
     await load();
@@ -84,9 +95,8 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
     <div className="space-y-3 rounded-md border border-border bg-app/40 p-4">
       <p className="text-sm font-semibold text-strong">School catalog</p>
       <p className="text-xs text-subtle">
-        Level drives the Placement dashboard&apos;s undergraduate / postgraduate split. Fix it here any
-        time — students already enrolled under this school move to the correct track automatically, no
-        re-import needed.
+        Edit a school or programme any time — renames and Level changes carry over to every
+        student already enrolled, automatically. Nothing to re-import.
       </p>
       {error && <p className="text-xs text-danger">{error}</p>}
 
@@ -146,21 +156,28 @@ function SchoolRow({
   school: CollegeSchool;
   onSave: (
     id: string,
-    input: { name: string; degreeLevel: DegreeLevel; programmes: string[] },
+    input: {
+      name: string;
+      degreeLevel: DegreeLevel;
+      programmes: string[];
+      programmeRenames: Record<string, string>;
+    },
   ) => Promise<void>;
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(school.name);
   const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>(school.degreeLevel);
-  const [programmes, setProgrammes] = useState(school.programmes.join(', '));
+  const [programmeRows, setProgrammeRows] = useState<ProgrammeRow[]>(() =>
+    initProgrammeRows(school.programmes),
+  );
   const [saving, setSaving] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
 
   function startEdit() {
     setName(school.name);
     setDegreeLevel(school.degreeLevel);
-    setProgrammes(school.programmes.join(', '));
+    setProgrammeRows(initProgrammeRows(school.programmes));
     setRowError(null);
     setEditing(true);
   }
@@ -173,7 +190,13 @@ function SchoolRow({
     setSaving(true);
     setRowError(null);
     try {
-      await onSave(school.id, { name: name.trim(), degreeLevel, programmes: parseList(programmes) });
+      const { programmes, renames } = diffProgrammeRows(programmeRows);
+      await onSave(school.id, {
+        name: name.trim(),
+        degreeLevel,
+        programmes,
+        programmeRenames: renames,
+      });
       setEditing(false);
     } catch (e) {
       setRowError(e instanceof Error ? e.message : 'Could not save changes');
@@ -205,6 +228,10 @@ function SchoolRow({
     );
   }
 
+  const trimmedName = name.trim();
+  const nameChanged = trimmedName !== '' && trimmedName !== school.name;
+  const levelChanged = degreeLevel !== school.degreeLevel;
+
   return (
     <div className="space-y-2 rounded-md border border-primary-400/40 bg-white px-3 py-2 text-sm">
       <div className="flex flex-wrap items-end gap-2">
@@ -223,15 +250,25 @@ function SchoolRow({
             <option value="PG">Postgraduate</option>
           </select>
         </label>
-        <label className="min-w-[12rem] flex-1 space-y-1">
-          <span className="text-xs font-medium text-subtle">Programmes (comma-separated)</span>
-          <input
-            className={inputCls}
-            value={programmes}
-            onChange={(e) => setProgrammes(e.target.value)}
-            placeholder="CSE, ECE… (leave blank if none)"
-          />
-        </label>
+      </div>
+      {(nameChanged || levelChanged) && (
+        <ul className="list-disc space-y-0.5 pl-4 text-xs text-primary-600">
+          {nameChanged && (
+            <li>
+              Will rename &ldquo;{school.name}&rdquo; → &ldquo;{trimmedName}&rdquo; for every enrolled student.
+            </li>
+          )}
+          {levelChanged && (
+            <li>
+              Will change Level to {degreeLevel === 'PG' ? 'Postgraduate' : 'Undergraduate'} for
+              every enrolled student.
+            </li>
+          )}
+        </ul>
+      )}
+      <div className="max-w-sm space-y-1">
+        <span className="text-xs font-medium text-subtle">Programmes</span>
+        <ProgrammeListEditor rows={programmeRows} onChange={setProgrammeRows} />
       </div>
       {rowError && <p className="text-xs text-danger">{rowError}</p>}
       <div className="flex gap-2">
