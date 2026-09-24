@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
@@ -34,6 +35,7 @@ function detailsStatus(s: {
   return { complete: missing.length === 0, missing };
 }
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import {
   CreateStudentDto,
@@ -65,14 +67,50 @@ interface Viewer {
  */
 @Injectable()
 export class StudentsService {
+  private readonly logger = new Logger(StudentsService.name);
+
   constructor(
     @Inject(PRISMA) private readonly prisma: PrismaClient,
     private readonly notifications: NotificationsService,
+    private readonly email: EmailService,
     private readonly config: ConfigService,
   ) {}
 
   private webOrigin(): string {
     return this.config.get<string>('WEB_ORIGIN') ?? 'http://localhost:3000';
+  }
+
+  /**
+   * Direct-to-student welcome email with their login credentials. Sent
+   * straight to the student's own address — deliberately NOT routed through
+   * NotificationsService.notify(), whose student-facing envelope puts
+   * coordinators/officers in To and the student in Bcc (right for job/
+   * application updates, wrong for a one-time login password that must go
+   * only to its owner). Best-effort and fire-and-forget: a failed send must
+   * never block or fail student creation/import.
+   */
+  private sendWelcomeEmail(
+    collegeName: string,
+    student: { fullName: string; email: string; tempPassword: string },
+  ): void {
+    void this.email
+      .sendForCollege(null, {
+        to: student.email,
+        subject: `Your CampusGo login — ${collegeName}`,
+        html: renderFormalEmail({
+          collegeName,
+          greeting: `Dear ${student.fullName},`,
+          intro: `Your student account on CampusGo, ${collegeName}'s placement portal, has been created. Use the details below to log in.`,
+          fields: [
+            { label: 'Login email', value: student.email },
+            { label: 'Temporary password', value: student.tempPassword },
+          ],
+          note: 'Please change your password from your profile after logging in.',
+          ctaLabel: 'Log in to CampusGo',
+          ctaUrl: `${this.webOrigin()}/login`,
+        }),
+      })
+      .catch((err) => this.logger.error(`Failed to email welcome message to ${student.email}`, err));
   }
 
   // A Placement Coordinator only ever sees their assigned programmes (one or
@@ -96,6 +134,10 @@ export class StudentsService {
 
     const tempPassword = DEFAULT_STUDENT_PASSWORD;
     const passwordHash = await bcrypt.hash(tempPassword, 12);
+    const college = await this.prisma.college.findUnique({
+      where: { id: collegeId },
+      select: { name: true },
+    });
 
     const student = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -135,7 +177,13 @@ export class StudentsService {
       });
     });
 
-    // Every student shares DEFAULT_STUDENT_PASSWORD; surfaced to the officer once.
+    // Every student shares DEFAULT_STUDENT_PASSWORD; surfaced to the officer once
+    // AND emailed directly to the student.
+    this.sendWelcomeEmail(college?.name ?? 'your college', {
+      fullName: dto.fullName,
+      email: dto.email,
+      tempPassword,
+    });
     return { student: this.publicStudent(student), tempPassword };
   }
 
@@ -246,6 +294,17 @@ export class StudentsService {
         this.prisma.user.createMany({ data: userData }),
         this.prisma.student.createMany({ data: studentData }),
       ]);
+
+      // Fire-and-forget, one per student — never awaited here so a large
+      // import doesn't multiply this request's latency (see the perf note
+      // on this method) and a slow/failed send can't turn into a 502.
+      const college = await this.prisma.college.findUnique({
+        where: { id: collegeId },
+        select: { name: true },
+      });
+      for (const c of created) {
+        this.sendWelcomeEmail(college?.name ?? 'your college', c);
+      }
     }
 
     return { createdCount: created.length, errorCount: errors.length, created, errors };

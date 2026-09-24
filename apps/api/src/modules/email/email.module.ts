@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { EmailService } from './email.service';
 
-// Not @Global(): only CollegesModule (test-send endpoint) and NotificationsModule
-// (send-on-notify hook) need this, so it's imported explicitly by those two rather
+// Not @Global(): imported explicitly by each module that sends mail directly
+// (CollegesModule's test-send endpoint, NotificationsModule's send-on-notify
+// hook, StudentsModule and UsersModule's welcome/credential emails) rather
 // than growing the app's global-module surface.
 @Module({
   providers: [EmailService],
