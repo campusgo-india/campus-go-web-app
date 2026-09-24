@@ -132,7 +132,12 @@ export class StudentsController {
   @Post('graduate')
   @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
   async graduate(@CurrentUser() user: JwtPayload, @Body() dto: GraduateBatchDto, @Ip() ip: string) {
-    const result = await this.students.graduateBatch(this.collegeId(user), dto.graduationYear);
+    const result = await this.students.graduateBatch(
+      this.collegeId(user),
+      dto.graduationYear,
+      dto.school,
+      dto.programme,
+    );
     await this.audit.record(user, {
       action: 'STUDENT_BATCH_GRADUATE',
       targetType: 'student',

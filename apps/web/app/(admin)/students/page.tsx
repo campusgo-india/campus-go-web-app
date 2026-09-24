@@ -453,8 +453,11 @@ function StudentsList() {
         </div>
       </header>
 
-      {showGraduate && (
+      {showGraduate && view.mode === 'table' && (
         <GraduateBatchModal
+          year={view.year}
+          school={view.school}
+          programme={programmeFilter || undefined}
           onClose={() => setShowGraduate(false)}
           onDone={() => {
             setShowGraduate(false);
@@ -741,19 +744,36 @@ function LoginCell({ student }: { student: Student }) {
   return <span className="text-xs text-warning">Never</span>;
 }
 
-/** Graduate a batch → copy to Alumni + disable their logins. */
-function GraduateBatchModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [year, setYear] = useState(String(new Date().getFullYear()));
+/**
+ * Graduate one batch → copy to Alumni + disable their logins. Always scoped
+ * to the school (and programme, if one is selected) the officer is currently
+ * viewing — a passout year alone can span several schools, so a free-text
+ * year field here would silently graduate every one of them at once.
+ */
+function GraduateBatchModal({
+  year,
+  school,
+  programme,
+  onClose,
+  onDone,
+}: {
+  year: number;
+  school: string;
+  programme?: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GraduateResult | null>(null);
+  const scopeLabel = [school, programme].filter(Boolean).join(' · ');
 
   async function run() {
     setBusy(true);
     setError(null);
     try {
-      setResult(await graduateBatch(Number(year)));
+      setResult(await graduateBatch(year, school, programme));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not graduate the batch');
     } finally {
@@ -775,7 +795,7 @@ function GraduateBatchModal({ onClose, onDone }: { onClose: () => void; onDone: 
             </div>
             <div className="text-center">
               <h2 className="text-lg font-semibold text-strong">
-                Batch {result.graduationYear} graduated
+                {scopeLabel} {result.graduationYear} graduated
               </h2>
               <p className="mt-1 text-sm text-subtle">
                 {result.alumniCreated} added to Alumni
@@ -790,22 +810,14 @@ function GraduateBatchModal({ onClose, onDone }: { onClose: () => void; onDone: 
         ) : (
           <>
             <div>
-              <h2 className="text-lg font-semibold text-strong">Graduate a batch</h2>
+              <h2 className="text-lg font-semibold text-strong">Graduate this batch</h2>
               <p className="mt-1 text-sm text-subtle">
-                Copies every student of this passout year into the Alumni directory and disables
-                their student logins. Their records are kept.
+                Copies every student of <strong className="text-strong">{scopeLabel}</strong>,{' '}
+                passout year <strong className="text-strong">{year}</strong>, into the Alumni
+                directory and disables their student logins. Their records are kept. Other
+                schools/programmes sharing this passout year are not affected.
               </p>
             </div>
-            <label className="block space-y-1">
-              <span className="text-xs font-medium text-subtle">Passout year</span>
-              <input
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400"
-                min="0"
-              />
-            </label>
             <label className="flex items-start gap-2 text-xs text-body">
               <input
                 type="checkbox"
@@ -813,11 +825,11 @@ function GraduateBatchModal({ onClose, onDone }: { onClose: () => void; onDone: 
                 onChange={(e) => setAck(e.target.checked)}
                 className="mt-0.5"
               />
-              I understand the {year} students&apos; logins will be disabled.
+              I understand only {scopeLabel} ({year}) students&apos; logins will be disabled.
             </label>
             {error && <p className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2">
-              <Button onClick={run} loading={busy} disabled={!ack || !year}>
+              <Button onClick={run} loading={busy} disabled={!ack}>
                 {busy ? 'Graduating…' : 'Graduate batch'}
               </Button>
               <Button variant="ghost" onClick={onClose}>

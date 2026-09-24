@@ -292,6 +292,10 @@ export class SetPlacementRegistrationDto {
 
 export class GraduateBatchDto {
   @Type(() => Number) @IsInt() @Min(1950) @Max(2100) graduationYear!: number;
+  // Scope to one school/programme so graduating one class doesn't sweep up
+  // every other school sharing the same passout year.
+  @IsOptional() @IsString() school?: string;
+  @IsOptional() @IsString() programme?: string;
 }
 
 export class ListStudentsQuery {

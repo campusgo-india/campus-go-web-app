@@ -252,17 +252,35 @@ export class StudentsService {
   }
 
   /**
-   * Graduate a whole batch: copy each student of `graduationYear` into the Alumni
-   * directory (dedup by email) and disable their student logins (record kept).
-   * The new incoming batch is then just a normal CSV import.
+   * Graduate a batch: copy each matching student into the Alumni directory
+   * (dedup by email) and disable their student logins (record kept). The new
+   * incoming batch is then just a normal CSV import.
+   *
+   * Scoped by `graduationYear` alone by default, but `school`/`programme` let
+   * the caller graduate just one class — several schools/programmes often
+   * share the same passout year, and without this a college admin graduating
+   * e.g. "MBA-IB 2026" would otherwise also sweep up "MBA 2026".
    */
-  async graduateBatch(collegeId: string, graduationYear: number) {
+  async graduateBatch(
+    collegeId: string,
+    graduationYear: number,
+    school?: string,
+    programme?: string,
+  ) {
     const students = await this.prisma.student.findMany({
-      where: { collegeId, graduationYear },
+      where: {
+        collegeId,
+        graduationYear,
+        ...(school ? { school } : {}),
+        ...(programme ? { programme } : {}),
+      },
       include: { user: { select: { fullName: true, email: true } } },
     });
     if (students.length === 0) {
-      throw new BadRequestException(`No students found in the ${graduationYear} batch`);
+      const scope = [school, programme].filter(Boolean).join(' · ');
+      throw new BadRequestException(
+        `No students found in the ${graduationYear} batch${scope ? ` for ${scope}` : ''}`,
+      );
     }
 
     // Skip anyone already in the alumni directory (unique per college+email).
@@ -302,6 +320,8 @@ export class StudentsService {
 
     return {
       graduationYear,
+      school: school ?? null,
+      programme: programme ?? null,
       studentsGraduated: students.length,
       alumniCreated: alumniResult.count,
       alreadyAlumni: students.length - alumniData.length,

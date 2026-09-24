@@ -221,16 +221,27 @@ export function listStudentBatches(): Promise<StudentBatch[]> {
 
 export interface GraduateResult {
   graduationYear: number;
+  school: string | null;
+  programme: string | null;
   studentsGraduated: number;
   alumniCreated: number;
   alreadyAlumni: number;
 }
 
-/** Copy a batch to Alumni and disable their logins. */
-export function graduateBatch(graduationYear: number): Promise<GraduateResult> {
+/**
+ * Copy a batch to Alumni and disable their logins. Always scoped by `school`
+ * (a passout year alone can span several schools/programmes) and optionally
+ * further narrowed to one `programme` — e.g. graduate MBA-IB 2026 without
+ * touching MBA 2026.
+ */
+export function graduateBatch(
+  graduationYear: number,
+  school: string,
+  programme?: string,
+): Promise<GraduateResult> {
   return api<GraduateResult>('/students/graduate', {
     method: 'POST',
-    body: JSON.stringify({ graduationYear }),
+    body: JSON.stringify({ graduationYear, school, programme: programme || undefined }),
   });
 }
 

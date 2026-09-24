@@ -62,14 +62,12 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
     }
   }
 
-  async function saveProgrammes(id: string, value: string) {
-    setError(null);
-    try {
-      await updateCollegeSchool(collegeId, id, { programmes: parseList(value) });
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not update');
-    }
+  async function save(
+    id: string,
+    input: { name: string; degreeLevel: DegreeLevel; programmes: string[] },
+  ) {
+    await updateCollegeSchool(collegeId, id, input);
+    await load();
   }
 
   async function remove(id: string) {
@@ -85,6 +83,11 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
   return (
     <div className="space-y-3 rounded-md border border-border bg-app/40 p-4">
       <p className="text-sm font-semibold text-strong">School catalog</p>
+      <p className="text-xs text-subtle">
+        Level drives the Placement dashboard&apos;s undergraduate / postgraduate split. Fix it here any
+        time — students already enrolled under this school move to the correct track automatically, no
+        re-import needed.
+      </p>
       {error && <p className="text-xs text-danger">{error}</p>}
 
       {schools.length === 0 ? (
@@ -92,7 +95,7 @@ export function SchoolsPanel({ collegeId }: { collegeId: string }) {
       ) : (
         <div className="space-y-2">
           {schools.map((c) => (
-            <SchoolRow key={c.id} school={c} onSave={saveProgrammes} onRemove={remove} />
+            <SchoolRow key={c.id} school={c} onSave={save} onRemove={remove} />
           ))}
         </div>
       )}
@@ -141,61 +144,112 @@ function SchoolRow({
   onRemove,
 }: {
   school: CollegeSchool;
-  onSave: (id: string, value: string) => void;
+  onSave: (
+    id: string,
+    input: { name: string; degreeLevel: DegreeLevel; programmes: string[] },
+  ) => Promise<void>;
   onRemove: (id: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(school.programmes.join(', '));
+  const [name, setName] = useState(school.name);
+  const [degreeLevel, setDegreeLevel] = useState<DegreeLevel>(school.degreeLevel);
+  const [programmes, setProgrammes] = useState(school.programmes.join(', '));
+  const [saving, setSaving] = useState(false);
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  function startEdit() {
+    setName(school.name);
+    setDegreeLevel(school.degreeLevel);
+    setProgrammes(school.programmes.join(', '));
+    setRowError(null);
+    setEditing(true);
+  }
+
+  async function submit() {
+    if (!name.trim()) {
+      setRowError('School name is required.');
+      return;
+    }
+    setSaving(true);
+    setRowError(null);
+    try {
+      await onSave(school.id, { name: name.trim(), degreeLevel, programmes: parseList(programmes) });
+      setEditing(false);
+    } catch (e) {
+      setRowError(e instanceof Error ? e.message : 'Could not save changes');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm">
+        <span className="font-medium text-strong">{school.name}</span>
+        <span className="rounded-pill bg-app px-2 py-0.5 text-[10px] font-medium text-subtle">
+          {school.degreeLevel === 'PG' ? 'PG' : 'UG'}
+        </span>
+        <span className="flex-1 text-xs text-subtle">
+          {school.programmes.length ? school.programmes.join(' · ') : 'no programmes'}
+        </span>
+        <button onClick={startEdit} className="text-xs font-medium text-primary-600 hover:underline">
+          Edit
+        </button>
+        <button
+          onClick={() => onRemove(school.id)}
+          className="text-xs font-medium text-danger hover:underline"
+        >
+          Remove
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-2 text-sm">
-      <span className="font-medium text-strong">{school.name}</span>
-      <span className="rounded-pill bg-app px-2 py-0.5 text-[10px] font-medium text-subtle">
-        {school.degreeLevel === 'PG' ? 'PG' : 'UG'}
-      </span>
-      {!editing ? (
-        <>
-          <span className="flex-1 text-xs text-subtle">
-            {school.programmes.length ? school.programmes.join(' · ') : 'no programmes'}
-          </span>
-          <button
-            onClick={() => {
-              setValue(school.programmes.join(', '));
-              setEditing(true);
-            }}
-            className="text-xs font-medium text-primary-600 hover:underline"
+    <div className="space-y-2 rounded-md border border-primary-400/40 bg-white px-3 py-2 text-sm">
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-subtle">School/Department</span>
+          <input className={`${inputCls} w-40`} value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs font-medium text-subtle">Level</span>
+          <select
+            className={`${inputCls} w-36`}
+            value={degreeLevel}
+            onChange={(e) => setDegreeLevel(e.target.value as DegreeLevel)}
           >
-            Edit programmes
-          </button>
-          <button
-            onClick={() => onRemove(school.id)}
-            className="text-xs font-medium text-danger hover:underline"
-          >
-            Remove
-          </button>
-        </>
-      ) : (
-        <>
+            <option value="UG">Undergraduate</option>
+            <option value="PG">Postgraduate</option>
+          </select>
+        </label>
+        <label className="min-w-[12rem] flex-1 space-y-1">
+          <span className="text-xs font-medium text-subtle">Programmes (comma-separated)</span>
           <input
-            className={`${inputCls} flex-1`}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="CSE, ECE…"
+            className={inputCls}
+            value={programmes}
+            onChange={(e) => setProgrammes(e.target.value)}
+            placeholder="CSE, ECE… (leave blank if none)"
           />
-          <button
-            onClick={() => {
-              onSave(school.id, value);
-              setEditing(false);
-            }}
-            className="text-xs font-medium text-primary-600 hover:underline"
-          >
-            Save
-          </button>
-          <button onClick={() => setEditing(false)} className="text-xs text-subtle hover:underline">
-            Cancel
-          </button>
-        </>
-      )}
+        </label>
+      </div>
+      {rowError && <p className="text-xs text-danger">{rowError}</p>}
+      <div className="flex gap-3">
+        <button
+          onClick={submit}
+          disabled={saving}
+          className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          disabled={saving}
+          className="text-xs text-subtle hover:underline"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
