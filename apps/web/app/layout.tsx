@@ -22,8 +22,12 @@ export const metadata: Metadata = {
     'The complete placement & career readiness platform for colleges and universities — student data, training, recruiters, recruitment, placements, internships and alumni in one connected system.',
   applicationName: 'CampusGo',
   manifest: '/manifest.webmanifest',
-  alternates: { canonical: '/' },
   robots: { index: true, follow: true },
+  // No `alternates.canonical` here on purpose. A canonical set on the root
+  // layout is inherited by every page that does not override it, which made
+  // /login and /forgot-password declare themselves duplicates of the homepage
+  // — and a noindex page canonicalising to the homepage can carry that
+  // noindex across. Each indexable page sets its own canonical instead.
   openGraph: {
     type: 'website',
     siteName: 'CampusGo',

@@ -55,24 +55,63 @@ const EXPLORE = [
   },
 ];
 
+const SITE_URL = 'https://www.campusgoindia.com';
+
+/**
+ * One linked graph rather than free-floating nodes: the `@id` references let
+ * Google resolve the publisher of the site and the maker of the app to the
+ * same Organization, instead of guessing at three unrelated entities.
+ */
 const JSON_LD = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
       name: 'CampusGo',
-      url: 'https://www.campusgoindia.com',
-      logo: 'https://www.campusgoindia.com/icon-512.png',
+      url: SITE_URL,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/icon-512.png`,
+        width: 512,
+        height: 512,
+      },
       description:
         'The complete placement & career readiness platform for colleges and universities.',
+      slogan: 'From Campus to Career',
+      areaServed: { '@type': 'Country', name: 'India' },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        url: `${SITE_URL}/contact`,
+        availableLanguage: ['en'],
+      },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: 'CampusGo',
+      description:
+        'The complete placement & career readiness platform for colleges and universities.',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en-IN',
     },
     {
       '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#software`,
       name: 'CampusGo',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web, Android',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR', description: 'Request a demo' },
-      url: 'https://www.campusgoindia.com',
+      url: SITE_URL,
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'INR',
+        description: 'Request a demo',
+        url: `${SITE_URL}/contact?intent=demo`,
+      },
     },
   ],
 };

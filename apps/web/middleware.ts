@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserRole, isAdminRole } from '@campusgo/shared';
+import {
+  ADMIN_PREFIXES,
+  MARKETING_PATHS,
+  PUBLIC_NOINDEX_PATHS,
+  STUDENT_PREFIXES,
+} from './lib/routes';
 
 /**
  * Deny-by-default route protection.
@@ -13,49 +19,14 @@ import { UserRole, isAdminRole } from '@campusgo/shared';
  * Real authorization is enforced server-side by the API (verified JWT). A
  * production hardening step is to move auth behind a same-origin BFF proxy.
  */
-const PUBLIC_PATHS = [
-  '/',
-  '/login',
-  '/about',
-  '/contact',
-  '/privacy',
-  '/terms',
-  // Public marketing pages.
-  '/product',
-  '/readiness',
-  '/mobile',
-  '/insights',
-  '/opengraph-image',
-  '/forgot-password',
-  '/reset-password',
-  '/alumni-register',
-  '/employer-feedback',
-];
+// The marketing pages plus sign-in, password recovery and the tokenised links.
+// '/opengraph-image' is the generated social card route, which crawlers fetch
+// unauthenticated. Same tables robots.txt and the sitemap read from.
+const PUBLIC_PATHS = [...MARKETING_PATHS, ...PUBLIC_NOINDEX_PATHS, '/opengraph-image'];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
-
-// Student routes all live under /me (incl. /me/notifications). Everything else
-// is the desktop admin/officer shell.
-const STUDENT_PREFIXES = ['/me'];
-const ADMIN_PREFIXES = [
-  '/dashboard',
-  '/placement',
-  '/platform',
-  '/students',
-  '/companies',
-  '/jobs',
-  '/applications',
-  '/settings',
-  '/analytics',
-  '/reports',
-  '/alumni',
-  '/notifications',
-  '/internships',
-  '/training',
-  '/feedback',
-];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
