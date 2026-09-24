@@ -234,21 +234,13 @@ function SchoolRow({
         </label>
       </div>
       {rowError && <p className="text-xs text-danger">{rowError}</p>}
-      <div className="flex gap-3">
-        <button
-          onClick={submit}
-          disabled={saving}
-          className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          onClick={() => setEditing(false)}
-          disabled={saving}
-          className="text-xs text-subtle hover:underline"
-        >
+      <div className="flex gap-2">
+        <Button size="sm" onClick={submit} loading={saving}>
+          Save
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
