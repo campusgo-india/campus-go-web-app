@@ -98,12 +98,23 @@ function FeedbackForm({
   const [recruitAgain, setRecruitAgain] = useState<RecruiterVerdict | ''>('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
 
+  const contactPersonOk = contactPerson.trim().length > 0;
   const allRated = RATING_QUESTIONS.every((q) => ratings[q.key] > 0);
-  const valid = contactPerson.trim() && allRated && recruitAgain;
+  const valid = contactPersonOk && allRated && recruitAgain;
 
   async function submit() {
-    if (!valid || !recruitAgain) return;
+    if (!valid || !recruitAgain) {
+      setAttempted(true);
+      const missing = [
+        !contactPersonOk && 'contact person',
+        !allRated && 'every rating',
+        !recruitAgain && '"recruit again" answer',
+      ].filter(Boolean);
+      setError(`Please fill in: ${missing.join(', ')}.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -147,6 +158,9 @@ function FeedbackForm({
           <label className="space-y-1 block">
             <span className="text-xs font-medium text-subtle">Contact Person *</span>
             <input className={inputCls} value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+            {attempted && !contactPersonOk && (
+              <span className="block text-xs text-danger">Contact person is required.</span>
+            )}
           </label>
           <label className="space-y-1 block">
             <span className="text-xs font-medium text-subtle">Designation</span>
@@ -165,6 +179,7 @@ function FeedbackForm({
               label={q.label}
               value={ratings[q.key]}
               onChange={(v) => setRatings((r) => ({ ...r, [q.key]: v }))}
+              unrated={attempted && ratings[q.key] === 0}
             />
           ))}
         </div>
@@ -192,11 +207,14 @@ function FeedbackForm({
             <option value="MAYBE">Maybe</option>
             <option value="NO">No</option>
           </select>
+          {attempted && !recruitAgain && (
+            <span className="block text-xs text-danger">Please answer this question.</span>
+          )}
         </label>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      <Button size="lg" className="w-full" onClick={submit} disabled={!valid || busy}>
+      <Button size="lg" className="w-full" onClick={submit} disabled={busy}>
         {busy ? 'Submitting…' : 'Submit feedback'}
       </Button>
     </Card>

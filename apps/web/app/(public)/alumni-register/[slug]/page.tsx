@@ -78,23 +78,59 @@ function RegisterForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({
+    fullName: false,
+    email: false,
+    phone: false,
+    programme: false,
+    graduationYear: false,
+  });
 
   const set =
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+  const touch = (k: keyof typeof touched) => () => setTouched((t) => ({ ...t, [k]: true }));
 
-  const emailOk = !form.email.trim() || isValidEmail(form.email);
-  const phoneOk = !form.phone.trim() || isValidPhone(form.phone);
-  const ready =
-    form.fullName.trim() &&
-    isValidEmail(form.email) &&
-    form.programme.trim() &&
-    form.graduationYear &&
-    form.phone.trim() &&
-    phoneOk;
+  const fullNameOk = form.fullName.trim().length > 0;
+  const emailOk = isValidEmail(form.email);
+  const phoneOk = form.phone.trim().length > 0 && isValidPhone(form.phone);
+  const programmeOk = form.programme.trim().length > 0;
+  const graduationYearOk = form.graduationYear.trim().length > 0;
+  const ready = fullNameOk && emailOk && programmeOk && graduationYearOk && phoneOk;
+
+  const fieldError = (k: keyof typeof touched): string | null => {
+    if (!touched[k]) return null;
+    switch (k) {
+      case 'fullName':
+        return fullNameOk ? null : 'Full name is required.';
+      case 'email':
+        return emailOk ? null : form.email.trim() ? 'Enter a valid email address.' : 'Email is required.';
+      case 'phone':
+        return phoneOk
+          ? null
+          : form.phone.trim()
+            ? 'Enter a valid 10-digit mobile number.'
+            : 'Phone is required.';
+      case 'programme':
+        return programmeOk ? null : 'Programme is required.';
+      case 'graduationYear':
+        return graduationYearOk ? null : 'Year of graduation is required.';
+    }
+  };
 
   async function submit() {
+    if (!ready) {
+      setTouched({
+        fullName: true,
+        email: true,
+        phone: true,
+        programme: true,
+        graduationYear: true,
+      });
+      setError('Please fix the highlighted fields below.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -134,12 +170,21 @@ function RegisterForm({
         </p>
       </div>
 
-      <Field label="Full name *">
-        <input className={inputCls} value={form.fullName} onChange={set('fullName')} />
+      <Field label="Full name *" error={fieldError('fullName')}>
+        <input
+          className={inputCls}
+          value={form.fullName}
+          onChange={set('fullName')}
+          onBlur={touch('fullName')}
+        />
       </Field>
-      <Field label="Email *">
-        <input className={inputCls} value={form.email} onChange={set('email')} />
-        {!emailOk && <span className="text-xs text-danger">Enter a valid email address.</span>}
+      <Field label="Email *" error={fieldError('email')}>
+        <input
+          className={inputCls}
+          value={form.email}
+          onChange={set('email')}
+          onBlur={touch('email')}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Year of Admission">
@@ -152,17 +197,23 @@ function RegisterForm({
             min="0"
           />
         </Field>
-        <Field label="Year of Graduation *">
+        <Field label="Year of Graduation *" error={fieldError('graduationYear')}>
           <input
             type="number"
             className={inputCls}
             value={form.graduationYear}
             onChange={set('graduationYear')}
+            onBlur={touch('graduationYear')}
             min="0"
           />
         </Field>
-        <Field label="Programme *">
-          <input className={inputCls} value={form.programme} onChange={set('programme')} />
+        <Field label="Programme *" error={fieldError('programme')}>
+          <input
+            className={inputCls}
+            value={form.programme}
+            onChange={set('programme')}
+            onBlur={touch('programme')}
+          />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -181,14 +232,14 @@ function RegisterForm({
             onChange={set('registerNumber')}
           />
         </Field>
-        <Field label="Phone *">
+        <Field label="Phone *" error={fieldError('phone')}>
           <input
             className={inputCls}
             value={form.phone}
             onChange={set('phone')}
+            onBlur={touch('phone')}
             placeholder="10-digit mobile"
           />
-          {!phoneOk && <span className="text-xs text-danger">Enter a valid 10-digit mobile.</span>}
         </Field>
       </div>
       <Field label="Current company">
@@ -230,18 +281,27 @@ function RegisterForm({
       </Field>
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      <Button className="w-full" onClick={submit} loading={saving} disabled={!ready}>
+      <Button className="w-full" onClick={submit} loading={saving}>
         {saving ? 'Submitting…' : 'Register'}
       </Button>
     </Card>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string | null;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-subtle">{label}</span>
       {children}
+      {error && <span className="block text-xs text-danger">{error}</span>}
     </label>
   );
 }

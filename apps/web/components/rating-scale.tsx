@@ -28,14 +28,20 @@ export function RatingRow({
   label,
   value,
   onChange,
+  unrated,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
+  /** Highlights this row when a submit attempt was blocked because it's still unrated. */
+  unrated?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2 border-b border-border py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-sm text-body">{label}</span>
+      <span className={`text-sm ${unrated ? 'font-medium text-danger' : 'text-body'}`}>
+        {label}
+        {unrated && ' — please rate this'}
+      </span>
       <div className="flex gap-1.5">
         {SCALE.map((s) => (
           <button

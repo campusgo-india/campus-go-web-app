@@ -107,12 +107,23 @@ function FeedbackForm({
   const [suggestions, setSuggestions] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
 
+  const academicYearOk = academicYear.trim().length > 0;
   const allRated = RATING_QUESTIONS.every((q) => ratings[q.key] > 0);
-  const valid = academicYear.trim() && placementStatus && allRated;
+  const valid = academicYearOk && placementStatus && allRated;
 
   async function submit() {
-    if (!valid || !placementStatus) return;
+    if (!valid || !placementStatus) {
+      setAttempted(true);
+      const missing = [
+        !academicYearOk && 'academic year',
+        !placementStatus && 'placement status',
+        !allRated && 'every rating',
+      ].filter(Boolean);
+      setError(`Please fill in: ${missing.join(', ')}.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -151,6 +162,9 @@ function FeedbackForm({
             onChange={(e) => setAcademicYear(e.target.value)}
             placeholder="2025-2026"
           />
+          {attempted && !academicYearOk && (
+            <span className="block text-xs text-danger">Academic year is required.</span>
+          )}
         </label>
         <label className="space-y-1 block">
           <span className="text-xs font-medium text-subtle">Placement Status *</span>
@@ -166,6 +180,9 @@ function FeedbackForm({
               </option>
             ))}
           </select>
+          {attempted && !placementStatus && (
+            <span className="block text-xs text-danger">Please select your placement status.</span>
+          )}
         </label>
       </div>
 
@@ -179,6 +196,7 @@ function FeedbackForm({
               label={q.label}
               value={ratings[q.key]}
               onChange={(v) => setRatings((r) => ({ ...r, [q.key]: v }))}
+              unrated={attempted && ratings[q.key] === 0}
             />
           ))}
         </div>
@@ -192,7 +210,7 @@ function FeedbackForm({
       </label>
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      <Button size="lg" className="w-full" onClick={submit} disabled={!valid || busy}>
+      <Button size="lg" className="w-full" onClick={submit} disabled={busy}>
         {busy ? 'Submitting…' : 'Submit feedback'}
       </Button>
     </Card>

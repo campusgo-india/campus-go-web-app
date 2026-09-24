@@ -111,27 +111,62 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<keyof typeof form, boolean>>({
+    name: false,
+    institution: false,
+    designation: false,
+    email: false,
+    phone: false,
+    message: false,
+  });
 
   const set =
     (k: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+  const touch = (k: keyof typeof form) => () => setTouched((t) => ({ ...t, [k]: true }));
 
   // Every field is compulsory.
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
   const phoneOk = PHONE_REGEX.test(form.phone.replace(/[\s-]/g, ''));
-  const ready =
-    form.name.trim().length >= 2 &&
-    form.institution.trim().length >= 2 &&
-    form.designation.trim().length >= 2 &&
-    emailOk &&
-    phoneOk &&
-    form.message.trim().length >= 10;
+  const nameOk = form.name.trim().length >= 2;
+  const institutionOk = form.institution.trim().length >= 2;
+  const designationOk = form.designation.trim().length >= 2;
+  const messageLeft = 10 - form.message.trim().length;
+  const messageOk = messageLeft <= 0;
+  const ready = nameOk && institutionOk && designationOk && emailOk && phoneOk && messageOk;
+
+  // Only shown once a field has been visited — avoids a wall of red on page load.
+  const fieldError = (k: keyof typeof form): string | null => {
+    if (!touched[k]) return null;
+    switch (k) {
+      case 'name':
+        return nameOk ? null : 'Enter your full name.';
+      case 'institution':
+        return institutionOk ? null : 'Enter your institution name.';
+      case 'designation':
+        return designationOk ? null : 'Enter your designation.';
+      case 'email':
+        return emailOk ? null : 'Enter a valid email address.';
+      case 'phone':
+        return phoneOk ? null : 'Enter a valid 10-digit mobile number.';
+      case 'message':
+        return messageOk ? null : `Add ${messageLeft} more character${messageLeft === 1 ? '' : 's'} (10 minimum).`;
+    }
+  };
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!ready) {
-      setError('Please fill in every field — a valid email and 10-digit mobile number are required.');
+      setTouched({
+        name: true,
+        institution: true,
+        designation: true,
+        email: true,
+        phone: true,
+        message: true,
+      });
+      setError('Please fix the highlighted fields below.');
       return;
     }
     setSubmitting(true);
@@ -187,64 +222,76 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
       <p className="text-lg font-bold text-strong">Contact CampusGo</p>
 
       <div className="mt-4 grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-        <Field label="Name *">
+        <Field label="Name *" error={fieldError('name')}>
           <input
             required
-            className={inputCls}
+            className={inputCls(fieldError('name'))}
             value={form.name}
             onChange={set('name')}
+            onBlur={touch('name')}
             placeholder="Enter your name"
           />
         </Field>
-        <Field label="Institution *">
+        <Field label="Institution *" error={fieldError('institution')}>
           <input
             required
-            className={inputCls}
+            className={inputCls(fieldError('institution'))}
             value={form.institution}
             onChange={set('institution')}
+            onBlur={touch('institution')}
             placeholder="College / University name"
           />
         </Field>
-        <Field label="Designation *">
+        <Field label="Designation *" error={fieldError('designation')}>
           <input
             required
-            className={inputCls}
+            className={inputCls(fieldError('designation'))}
             value={form.designation}
             onChange={set('designation')}
+            onBlur={touch('designation')}
             placeholder="Principal / Placement Officer / Administrator / Other"
           />
         </Field>
-        <Field label="Email *">
+        <Field label="Email *" error={fieldError('email')}>
           <input
             required
             type="email"
-            className={inputCls}
+            className={inputCls(fieldError('email'))}
             value={form.email}
             onChange={set('email')}
+            onBlur={touch('email')}
             placeholder="Enter your official email"
           />
         </Field>
-        <Field label="Phone *">
+        <Field label="Phone *" error={fieldError('phone')}>
           <input
             required
             type="tel"
             inputMode="numeric"
-            className={inputCls}
+            className={inputCls(fieldError('phone'))}
             value={form.phone}
             onChange={set('phone')}
+            onBlur={touch('phone')}
             placeholder="10-digit mobile number"
           />
         </Field>
       </div>
 
       <div className="mt-3.5">
-        <Field label="Message *">
+        <Field
+          label="Message *"
+          error={fieldError('message')}
+          hint={!fieldError('message') ? `${form.message.trim().length}/10 characters minimum` : undefined}
+        >
           <textarea
             required
             rows={4}
-            className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
+            className={`w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400 ${
+              fieldError('message') ? 'border-danger' : 'border-border'
+            }`}
             value={form.message}
             onChange={set('message')}
+            onBlur={touch('message')}
             placeholder="Tell us about your institution or what you would like to explore."
           />
         </Field>
@@ -254,7 +301,7 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
 
       <button
         type="submit"
-        disabled={!ready || submitting}
+        disabled={submitting}
         className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-gradient-primary px-6 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
       >
         {submitting ? 'Sending…' : intent === 'DEMO' ? 'Request a Demo' : 'Submit Enquiry'}
@@ -263,14 +310,31 @@ function ContactForm({ initialIntent }: { initialIntent: Intent }) {
   );
 }
 
-const inputCls =
-  'h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400';
+const inputCls = (error?: string | null) =>
+  `h-10 w-full rounded-md border bg-white px-3 text-sm outline-none focus:border-primary-400 ${
+    error ? 'border-danger' : 'border-border'
+  }`;
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  error?: string | null;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-subtle">{label}</span>
       {children}
+      {error ? (
+        <span className="block text-xs text-danger">{error}</span>
+      ) : hint ? (
+        <span className="block text-xs text-subtle">{hint}</span>
+      ) : null}
     </label>
   );
 }
