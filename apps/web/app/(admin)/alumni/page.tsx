@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
@@ -240,25 +241,30 @@ export default function AlumniPage() {
         />
       )}
 
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowForm(false)}
-        >
-          <div className="my-8 w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-            <NewAlumniForm
-              onCancel={() => setShowForm(false)}
-              onCreated={() => {
-                setShowForm(false);
-                load();
-                loadStats();
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {showForm &&
+        createPortal(
+          // Portal to <body> — rendered inline this would sit inside the admin
+          // shell's page-transition wrapper (a transformed div), which turns
+          // `fixed` into "fixed to that ancestor's box" instead of the real viewport.
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setShowForm(false)}
+          >
+            <div className="my-8 w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+              <NewAlumniForm
+                onCancel={() => setShowForm(false)}
+                onCreated={() => {
+                  setShowForm(false);
+                  load();
+                  loadStats();
+                }}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* Search + filters — back navigation lives in the header breadcrumb only. */}
       {showDirectory && (

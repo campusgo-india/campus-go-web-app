@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { useConfirm } from '../../../../../../components/confirm-provider';
@@ -1044,7 +1045,10 @@ function PlaceModal({
 
   const cls =
     'h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400';
-  return (
+  // Portal to <body> — rendered inline this would sit inside the admin shell's
+  // page-transition wrapper (a transformed div), which turns `fixed` into
+  // "fixed to that ancestor's box" instead of the real viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -1103,7 +1107,8 @@ function PlaceModal({
           </Button>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

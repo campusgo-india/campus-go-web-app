@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Badge, Button, Card } from '@campusgo/ui';
@@ -407,31 +408,36 @@ function StudentsList() {
 
   return (
     <div className="space-y-6">
-      {showImported && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <Card className="w-full max-w-sm space-y-4 p-6 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-2xl text-success">
-              ✓
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-strong">
-                {importedCount} student{importedCount === '1' ? '' : 's'} added
-              </h2>
-              <p className="mt-1 text-sm text-subtle">
-                They can sign in with their email and the password{' '}
-                <span className="font-mono">password123</span>.
-              </p>
-            </div>
-            <Button className="w-full" onClick={dismissImported}>
-              Done
-            </Button>
-          </Card>
-        </div>
-      )}
+      {showImported &&
+        createPortal(
+          // Portal to <body> — rendered inline this would sit inside the admin
+          // shell's page-transition wrapper (a transformed div), which turns
+          // `fixed` into "fixed to that ancestor's box" instead of the real viewport.
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <Card className="w-full max-w-sm space-y-4 p-6 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/15 text-2xl text-success">
+                ✓
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-strong">
+                  {importedCount} student{importedCount === '1' ? '' : 's'} added
+                </h2>
+                <p className="mt-1 text-sm text-subtle">
+                  They can sign in with their email and the password{' '}
+                  <span className="font-mono">password123</span>.
+                </p>
+              </div>
+              <Button className="w-full" onClick={dismissImported}>
+                Done
+              </Button>
+            </Card>
+          </div>,
+          document.body,
+        )}
 
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
@@ -781,7 +787,10 @@ function GraduateBatchModal({
     }
   }
 
-  return (
+  // Portal to <body> — rendered inline this would sit inside the admin shell's
+  // page-transition wrapper (a transformed div), which turns `fixed` into
+  // "fixed to that ancestor's box" instead of the real viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -839,7 +848,8 @@ function GraduateBatchModal({
           </>
         )}
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -858,35 +868,45 @@ function DetailsStatus({ steps, complete }: { steps: Student['profileSteps']; co
       <Badge tint={complete ? 'mint' : 'cream'} className="cursor-help">
         {complete ? 'Complete' : 'Incomplete'}
       </Badge>
-      {pos && steps && steps.length > 0 && (
-        <div
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-50 w-64 rounded-md border border-border bg-white p-3 text-left shadow-card"
-        >
-          <p className="mb-2 text-xs font-semibold text-strong">Profile completion</p>
-          <ul className="space-y-1.5">
-            {steps.map((step) => {
-              const done = step.completed === step.total;
-              return (
-                <li key={step.key} className="flex items-start gap-2 text-xs">
-                  <span className={done ? 'text-success' : 'text-warning'}>{done ? '✓' : '○'}</span>
-                  <span className="flex-1 text-body">{step.label}</span>
-                  <span className="text-subtle">
-                    {step.completed}/{step.total}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {pos &&
+        steps &&
+        steps.length > 0 &&
+        createPortal(
+          // Portal to <body> — see RowMenu below for why a plain `position:
+          // fixed` breaks inside the admin shell's transformed page wrapper.
+          <div
+            style={{ position: 'fixed', top: pos.top, left: pos.left }}
+            className="z-50 w-64 rounded-md border border-border bg-white p-3 text-left shadow-card"
+          >
+            <p className="mb-2 text-xs font-semibold text-strong">Profile completion</p>
+            <ul className="space-y-1.5">
+              {steps.map((step) => {
+                const done = step.completed === step.total;
+                return (
+                  <li key={step.key} className="flex items-start gap-2 text-xs">
+                    <span className={done ? 'text-success' : 'text-warning'}>{done ? '✓' : '○'}</span>
+                    <span className="flex-1 text-body">{step.label}</span>
+                    <span className="text-subtle">
+                      {step.completed}/{step.total}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }
 
 /**
  * Per-row "⋮" actions menu. The dropdown is fixed-positioned (computed from the
- * button) so it isn't clipped by the table card's overflow-hidden.
+ * button) so it isn't clipped by the table card's overflow-hidden, and portaled
+ * to <body> — rendered inline it would sit inside the admin shell's
+ * page-transition wrapper ((admin)/template.tsx, an animated div), which turns
+ * `position: fixed` into "fixed to that ancestor's box" instead of the real
+ * viewport, same class of bug documented on PdfModal/EligibleStudentsModal/etc.
  */
 function RowMenu({
   student,
@@ -943,28 +963,30 @@ function RowMenu({
           <circle cx="12" cy="19" r="1.6" />
         </svg>
       </button>
-      {open && (
-        <div
-          ref={menuRef}
-          role="menu"
-          style={{ position: 'fixed', top: pos.top, left: pos.left }}
-          className="z-50 w-40 overflow-hidden rounded-md border border-border bg-white py-1 shadow-card"
-        >
-          <Link href={`/students/${student.id}`} className={`${item} text-body`} role="menuitem">
-            Edit
-          </Link>
-          <button
-            onClick={() => {
-              setOpen(false);
-              onToggle();
-            }}
-            className={`${item} text-body`}
-            role="menuitem"
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ position: 'fixed', top: pos.top, left: pos.left }}
+            className="z-50 w-40 overflow-hidden rounded-md border border-border bg-white py-1 shadow-card"
           >
-            {student.isActive ? 'Disable login' : 'Enable login'}
-          </button>
-        </div>
-      )}
+            <Link href={`/students/${student.id}`} className={`${item} text-body`} role="menuitem">
+              Edit
+            </Link>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onToggle();
+              }}
+              className={`${item} text-body`}
+              role="menuitem"
+            >
+              {student.isActive ? 'Disable login' : 'Enable login'}
+            </button>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

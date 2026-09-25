@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
@@ -720,7 +721,10 @@ function NewCompanyModal({
     }
   }
 
-  return (
+  // Portal to <body> — rendered inline this would sit inside the admin shell's
+  // page-transition wrapper (a transformed div), which turns `fixed` into
+  // "fixed to that ancestor's box" instead of the real viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -767,6 +771,7 @@ function NewCompanyModal({
           </Button>
         </div>
       </Card>
-    </div>
+    </div>,
+    document.body,
   );
 }

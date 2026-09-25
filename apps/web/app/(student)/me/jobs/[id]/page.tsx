@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Card } from '@campusgo/ui';
@@ -107,6 +108,40 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
   const applied = !!app;
   const st = app ? applicationStatusBadge(app.status) : null;
   const avatarTint = tintForName(company);
+
+  // Sticky action footer — only rendered when there's an actual action to
+  // take. The status itself is already shown via the top badge + timeline,
+  // so a disabled full-width "button" just repeating "Rejected"/"Applied" is
+  // a dead, misleading element — removed rather than duplicated.
+  const footerContent = !applied ? (
+    expired ? (
+      <p className="py-2 text-center text-sm text-subtle">Applications closed</p>
+    ) : (
+      <button
+        onClick={onApplyClick}
+        disabled={applying}
+        className="press w-full rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav disabled:opacity-60"
+      >
+        {applying ? 'Applying…' : 'Apply to this job'}
+      </button>
+    )
+  ) : app?.status === 'REJECTED' ? (
+    <Link
+      href="/me/jobs"
+      className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
+    >
+      Browse similar jobs
+    </Link>
+  ) : app?.status === 'SELECTED' && app.offerLetterUrl ? (
+    <a
+      href={app.offerLetterUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
+    >
+      View offer letter
+    </a>
+  ) : null;
 
   return (
     <div className="space-y-5 pb-28">
@@ -268,49 +303,17 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
 
-      {/* Sticky action footer — only rendered when there's an actual action
-          to take. The status itself is already shown via the top badge +
-          timeline, so a disabled full-width "button" just repeating
-          "Rejected"/"Applied" is a dead, misleading element — removed rather
-          than duplicated. */}
-      {!applied && !expired && (
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-          <button
-            onClick={onApplyClick}
-            disabled={applying}
-            className="press w-full rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav disabled:opacity-60"
-          >
-            {applying ? 'Applying…' : 'Apply to this job'}
-          </button>
-        </div>
-      )}
-      {!applied && expired && (
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-          <p className="py-2 text-center text-sm text-subtle">Applications closed</p>
-        </div>
-      )}
-      {applied && app?.status === 'REJECTED' && (
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-          <Link
-            href="/me/jobs"
-            className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
-          >
-            Browse similar jobs
-          </Link>
-        </div>
-      )}
-      {applied && app?.status === 'SELECTED' && app.offerLetterUrl && (
-        <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-          <a
-            href={app.offerLetterUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="press flex w-full items-center justify-center rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav"
-          >
-            View offer letter
-          </a>
-        </div>
-      )}
+      {footerContent &&
+        createPortal(
+          // Portal to <body> — rendered inline this would sit inside the
+          // student shell's page-transition wrapper (a transformed div),
+          // which turns `fixed` into "fixed to that ancestor's box" instead
+          // of the real viewport, breaking the sticky-to-screen-bottom effect.
+          <div className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md border-t border-border bg-white/95 px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
+            {footerContent}
+          </div>,
+          document.body,
+        )}
 
       {pdfView && (
         <PdfModal
