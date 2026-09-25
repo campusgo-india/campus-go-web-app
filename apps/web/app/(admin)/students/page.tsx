@@ -9,6 +9,7 @@ import { Breadcrumbs } from '../../../components/breadcrumbs';
 import { useSession } from '../../../lib/session';
 import { BatchCards } from '../../../components/batch-cards';
 import { InlineSkeleton, ListSkeleton } from '../../../components/page-skeleton';
+import { RowActionsMenu } from '../../../components/row-actions-menu';
 import {
   graduateBatch,
   listStudentBatches,
@@ -900,93 +901,21 @@ function DetailsStatus({ steps, complete }: { steps: Student['profileSteps']; co
   );
 }
 
-/**
- * Per-row "⋮" actions menu. The dropdown is fixed-positioned (computed from the
- * button) so it isn't clipped by the table card's overflow-hidden, and portaled
- * to <body> — rendered inline it would sit inside the admin shell's
- * page-transition wrapper ((admin)/template.tsx, an animated div), which turns
- * `position: fixed` into "fixed to that ancestor's box" instead of the real
- * viewport, same class of bug documented on PdfModal/EligibleStudentsModal/etc.
- */
-function RowMenu({
-  student,
-  onToggle,
-}: {
-  student: Student;
-  onToggle: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDoc(e: MouseEvent) {
-      const t = e.target as Node;
-      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return;
-      setOpen(false);
-    }
-    function close() {
-      setOpen(false);
-    }
-    document.addEventListener('mousedown', onDoc);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('mousedown', onDoc);
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [open]);
-
-  function toggle() {
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 4, left: r.right - 160 });
-    setOpen((o) => !o);
-  }
-
-  const item = 'block w-full px-3 py-2 text-left text-xs hover:bg-app';
-
+/** Per-row "⋮" actions menu — Edit + login toggle. See RowActionsMenu for why
+ * this has to be portaled rather than a plain inline dropdown. */
+function RowMenu({ student, onToggle }: { student: Student; onToggle: () => void }) {
   return (
-    <>
-      <button
-        ref={btnRef}
-        onClick={toggle}
-        aria-label="Row actions"
-        aria-haspopup="menu"
-        className="rounded-md p-1.5 text-subtle transition hover:bg-app hover:text-strong"
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-          <circle cx="12" cy="5" r="1.6" />
-          <circle cx="12" cy="12" r="1.6" />
-          <circle cx="12" cy="19" r="1.6" />
-        </svg>
-      </button>
-      {open &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            style={{ position: 'fixed', top: pos.top, left: pos.left }}
-            className="z-50 w-40 overflow-hidden rounded-md border border-border bg-white py-1 shadow-card"
-          >
-            <Link href={`/students/${student.id}`} className={`${item} text-body`} role="menuitem">
-              Edit
-            </Link>
-            <button
-              onClick={() => {
-                setOpen(false);
-                onToggle();
-              }}
-              className={`${item} text-body`}
-              role="menuitem"
-            >
-              {student.isActive ? 'Disable login' : 'Enable login'}
-            </button>
-          </div>,
-          document.body,
-        )}
-    </>
+    <RowActionsMenu
+      label={`Row actions for ${student.user.fullName}`}
+      width={160}
+      items={[
+        { key: 'edit', label: 'Edit', href: `/students/${student.id}` },
+        {
+          key: 'toggle',
+          label: student.isActive ? 'Disable login' : 'Enable login',
+          onClick: onToggle,
+        },
+      ]}
+    />
   );
 }

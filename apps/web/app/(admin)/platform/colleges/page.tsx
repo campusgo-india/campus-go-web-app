@@ -1,12 +1,12 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Badge, Button, Card } from '@campusgo/ui';
 import { isValidEmail, isValidPhone, toTitleCase } from '@campusgo/shared';
 import { PasswordInput } from '../../../../components/password-input';
 import { CopyButton } from '../../../../components/copy-button';
 import { SchoolsPanel } from '../../../../components/courses-panel';
+import { RowActionsMenu } from '../../../../components/row-actions-menu';
 import { useConfirm } from '../../../../components/confirm-provider';
 import { InlineSkeleton } from '../../../../components/page-skeleton';
 import {
@@ -257,31 +257,33 @@ export default function PlatformCollegesPage() {
                         >
                           {schoolsFor === c.id ? 'Hide schools' : 'Schools'}
                         </button>
-                        <button
-                          onClick={() => setLogoFor((id) => (id === c.id ? null : c.id))}
-                          className="text-xs font-medium text-primary-600 hover:underline"
-                        >
-                          {logoFor === c.id ? 'Hide logo' : 'Logo'}
-                        </button>
-                        <Link
-                          href={`/platform/colleges/${c.id}/email`}
-                          className="text-xs font-medium text-primary-600 hover:underline"
-                        >
-                          Email settings
-                        </Link>
-                        <button
-                          onClick={() => resetPassword(c)}
-                          disabled={busyId === c.id}
-                          className="text-xs font-medium text-primary-600 hover:underline disabled:opacity-50"
-                        >
-                          {busyId === c.id ? 'Resetting…' : 'Reset password'}
-                        </button>
-                        <button
-                          onClick={() => toggleStatus(c)}
-                          className="text-xs font-medium text-primary-600 hover:underline"
-                        >
-                          {c.isActive ? 'Suspend' : 'Reactivate'}
-                        </button>
+                        <RowActionsMenu
+                          label={`More actions for ${c.name}`}
+                          items={[
+                            {
+                              key: 'logo',
+                              label: logoFor === c.id ? 'Hide logo' : 'Logo',
+                              onClick: () => setLogoFor((id) => (id === c.id ? null : c.id)),
+                            },
+                            {
+                              key: 'email',
+                              label: 'Email settings',
+                              href: `/platform/colleges/${c.id}/email`,
+                            },
+                            {
+                              key: 'reset',
+                              label: busyId === c.id ? 'Resetting…' : 'Reset password',
+                              disabled: busyId === c.id,
+                              onClick: () => resetPassword(c),
+                            },
+                            {
+                              key: 'suspend',
+                              label: c.isActive ? 'Suspend' : 'Reactivate',
+                              danger: c.isActive,
+                              onClick: () => toggleStatus(c),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
