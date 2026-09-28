@@ -690,6 +690,7 @@ export class StudentsService {
     await this.findOne(collegeId, id);
     const {
       fullName,
+      email,
       phone,
       cgpa,
       dateOfBirth,
@@ -700,13 +701,23 @@ export class StudentsService {
       ...studentFields
     } = dto;
 
+    if (email !== undefined) {
+      const existing = await this.prisma.student.findUniqueOrThrow({ where: { id } });
+      const normalized = email.trim().toLowerCase();
+      const taken = await this.prisma.user.findFirst({
+        where: { email: normalized, id: { not: existing.userId } },
+      });
+      if (taken) throw new BadRequestException(`Email already in use: ${normalized}`);
+    }
+
     const student = await this.prisma.$transaction(async (tx) => {
-      if (fullName !== undefined || phone !== undefined) {
+      if (fullName !== undefined || email !== undefined || phone !== undefined) {
         const existing = await tx.student.findUniqueOrThrow({ where: { id } });
         await tx.user.update({
           where: { id: existing.userId },
           data: {
             ...(fullName !== undefined ? { fullName } : {}),
+            ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
             ...(phone !== undefined ? { phone } : {}),
           },
         });

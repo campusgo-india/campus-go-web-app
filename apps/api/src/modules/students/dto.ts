@@ -105,6 +105,10 @@ export class CreateStudentDto {
 
 export class UpdateStudentDto {
   @IsOptional() @IsString() @MinLength(2) fullName?: string;
+  // The official/login email — was previously not editable at all, forcing a
+  // typo (common on CSV import / self-entry) to be fixed by hand in the
+  // database. Uniqueness is re-checked in the service, same as on create.
+  @IsOptional() @IsEmail() email?: string;
   @EmptyToUndefined()
   @IsOptional()
   @Matches(PHONE_REGEX, { message: PHONE_MESSAGE })

@@ -386,6 +386,7 @@ function EditStudentForm({
 }) {
   const [form, setForm] = useState({
     fullName: student.user.fullName,
+    email: student.user.email,
     phone: student.user.phone ?? '',
     rollNumber: student.rollNumber,
     school: student.school,
@@ -407,6 +408,7 @@ function EditStudentForm({
     try {
       const updated = await updateStudent(student.id, {
         fullName: form.fullName.trim(),
+        email: form.email.trim(),
         phone: form.phone.trim() || undefined,
         rollNumber: form.rollNumber.trim(),
         school: form.school.trim(),
@@ -428,6 +430,7 @@ function EditStudentForm({
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <EditField label="Name" value={form.fullName} onChange={set('fullName')} />
+        <EditField label="Official email" type="email" value={form.email} onChange={set('email')} />
         <EditField label="Reg no." value={form.rollNumber} onChange={set('rollNumber')} />
         <EditField label="School/Department" value={form.school} onChange={set('school')} />
         <EditField label="Programme" value={form.programme} onChange={set('programme')} />
