@@ -18,7 +18,12 @@ export class AuthController {
   @Public()
   // Per-email brute-force cap (the throttler keys login by email, not IP, so a
   // whole college on one NAT IP isn't limited to a handful of logins per minute).
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  // Raised from 10 to 100/min: bcrypt cost-12 already makes each guess ~100ms+
+  // of CPU, so this is still a real ceiling against scripted brute-forcing,
+  // while giving plenty of headroom for legitimate retries (e.g. several
+  // people re-trying "Sign in" during a slow moment) without tripping our own
+  // limit on top of anything else already in the way.
+  @Throttle({ default: { limit: 100, ttl: 60_000 } })
   @Post('login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const { accessToken, refreshToken, user } = await this.auth.login(dto.email, dto.password);
