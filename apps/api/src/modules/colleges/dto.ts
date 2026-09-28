@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -16,10 +17,12 @@ import { PHONE_REGEX } from '@campusgo/shared';
 import { EmptyToUndefined, TitleCase } from '../../common/transforms';
 
 const PHONE_MESSAGE = 'Enter a valid 10-digit mobile number';
+const DEGREE_LEVELS = ['UG', 'PG'] as const;
 
 export class SchoolInputDto {
   @IsString() @MinLength(1) name!: string;
   @IsOptional() @IsArray() @IsString({ each: true }) programmes?: string[];
+  @IsOptional() @IsIn(DEGREE_LEVELS) degreeLevel?: 'UG' | 'PG';
 }
 
 export class CreateCollegeDto {

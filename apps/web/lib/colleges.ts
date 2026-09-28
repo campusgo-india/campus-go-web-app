@@ -34,7 +34,7 @@ export interface CreateCollegeInput {
   // Optional: set the admin's password directly. Omit to auto-generate one.
   adminPassword?: string;
   // Optional initial school catalog.
-  schools?: { name: string; programmes?: string[] }[];
+  schools?: { name: string; programmes?: string[]; degreeLevel?: 'UG' | 'PG' }[];
 }
 
 export interface CreateCollegeResult {

@@ -517,9 +517,12 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Local school catalog defined during onboarding.
-  const [schools, setSchools] = useState<{ name: string; programmes: string[] }[]>([]);
+  const [schools, setSchools] = useState<
+    { name: string; programmes: string[]; degreeLevel: 'UG' | 'PG' }[]
+  >([]);
   const [schoolName, setSchoolName] = useState('');
   const [schoolProgrammes, setSchoolProgrammes] = useState('');
+  const [schoolLevel, setSchoolLevel] = useState<'UG' | 'PG'>('UG');
 
   function addSchool() {
     const name = schoolName.trim();
@@ -532,9 +535,10 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
           .filter(Boolean),
       ),
     ];
-    setSchools((cs) => [...cs, { name, programmes }]);
+    setSchools((cs) => [...cs, { name, programmes, degreeLevel: schoolLevel }]);
     setSchoolName('');
     setSchoolProgrammes('');
+    setSchoolLevel('UG');
   }
 
   function setField(k: keyof typeof form, v: string) {
@@ -694,6 +698,9 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
                 className="flex items-center gap-2 rounded-md bg-app px-3 py-1.5 text-sm"
               >
                 <span className="font-medium text-strong">{co.name}</span>
+                <span className="rounded-pill bg-white px-2 py-0.5 text-[10px] font-medium text-subtle">
+                  {co.degreeLevel}
+                </span>
                 <span className="flex-1 text-xs text-subtle">
                   {co.programmes.length ? co.programmes.join(' · ') : 'no programmes'}
                 </span>
@@ -717,6 +724,16 @@ function NewCollegeForm({ onCreated }: { onCreated: (result: CreateCollegeResult
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSchool())}
               placeholder="B.Tech"
             />
+          </Field>
+          <Field label="Level">
+            <select
+              className={`${inputCls} w-36`}
+              value={schoolLevel}
+              onChange={(e) => setSchoolLevel(e.target.value as 'UG' | 'PG')}
+            >
+              <option value="UG">Undergraduate</option>
+              <option value="PG">Postgraduate</option>
+            </select>
           </Field>
           <Field label="Programmes (comma-separated)">
             <input

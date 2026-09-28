@@ -53,6 +53,7 @@ export class CollegesService {
           collegeId: c.id,
           name: sc.name.trim(),
           programmes: [...new Set((sc.programmes ?? []).map((p) => p.trim()).filter(Boolean))],
+          ...(sc.degreeLevel ? { degreeLevel: sc.degreeLevel } : {}),
         }))
         .filter((sc) => sc.name);
       if (schools.length) await tx.collegeSchool.createMany({ data: schools });
