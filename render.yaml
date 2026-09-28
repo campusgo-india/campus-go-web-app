@@ -3,6 +3,25 @@
 # Free plan (sleeps after ~15 min idle). DATABASE_URL + WEB_ORIGIN are set in the
 # dashboard (sync:false); the JWT secrets are generated for you.
 services:
+  # Keeps campusgo-api awake by hitting its health check every 5 minutes — the
+  # free web service above sleeps after ~15 min idle, and the first request
+  # after that has to cold-start it (tens of seconds), during which Render's
+  # own edge throttles retries with a 429 that looks like a login/rate-limit
+  # bug but isn't. NOTE: Render Cron Jobs are not on the free tier the way the
+  # web service is — each run bills a few seconds of compute on whichever
+  # instance size you pick when you sync this Blueprint. Check current Render
+  # pricing before enabling. A zero-cost alternative: point a free external
+  # uptime pinger (UptimeRobot, cron-job.org, etc.) at
+  # https://campus-go-web-app.onrender.com/api/v1/health every 5-10 minutes
+  # instead of using this cron job.
+  - type: cron
+    name: campusgo-api-keepalive
+    runtime: node
+    plan: starter
+    region: singapore
+    schedule: "*/5 * * * *"
+    buildCommand: "true"
+    startCommand: curl -sf https://campus-go-web-app.onrender.com/api/v1/health
   - type: web
     name: campusgo-api
     runtime: node

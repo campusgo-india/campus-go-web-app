@@ -68,10 +68,20 @@ export async function api<T>(path: string, options: ApiOptions = {}, _retry = fa
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const message = body?.error?.message ?? `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new Error(body?.error?.message ?? friendlyStatusMessage(res.status));
   }
   return body.data as T;
+}
+
+/**
+ * Fallback wording when the server's error envelope didn't come through (e.g.
+ * a 429 from rate limiting can be thrown before/outside our JSON envelope, or
+ * body parsing failed) — "Request failed (429)" tells a stuck user nothing
+ * about what to actually do next.
+ */
+function friendlyStatusMessage(status: number): string {
+  if (status === 429) return 'Too many attempts — please wait a minute and try again.';
+  return `Request failed (${status})`;
 }
 
 /**
@@ -100,7 +110,7 @@ export async function apiList<T>(
 
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(body?.error?.message ?? `Request failed (${res.status})`);
+    throw new Error(body?.error?.message ?? friendlyStatusMessage(res.status));
   }
   return { data: body.data as T, meta: body.meta };
 }
