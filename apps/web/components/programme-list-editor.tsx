@@ -18,11 +18,16 @@ export function initProgrammeRows(programmes: string[]): ProgrammeRow[] {
 }
 
 /**
- * From the current rows: the final programme list (trimmed, deduped, blanks
- * and removed rows dropped) plus a { old: new } rename map for rows that
- * still exist but whose text changed — everything a school-catalog PATCH
- * needs to cascade a rename instead of orphaning students/job eligibility
- * that reference the old name.
+ * From the current rows: the final programme list (trimmed, blanks dropped)
+ * plus a { old: new } rename map for rows that still exist but whose text
+ * changed — everything a school-catalog PATCH needs to cascade a rename
+ * instead of orphaning students/job eligibility that reference the old name.
+ *
+ * Throws if two rows resolve to the same name (case-insensitive) — e.g.
+ * renaming one programme to match another that already exists. Silently
+ * keeping only one of them would drop the rename info the caller needs,
+ * orphaning whichever students/jobs referenced the discarded row's old name.
+ * The caller (SchoolRow.submit) already surfaces thrown errors as rowError.
  */
 export function diffProgrammeRows(rows: ProgrammeRow[]): {
   programmes: string[];
@@ -30,11 +35,18 @@ export function diffProgrammeRows(rows: ProgrammeRow[]): {
 } {
   const programmes: string[] = [];
   const renames: Record<string, string> = {};
-  const seen = new Set<string>();
+  const seen = new Map<string, string>(); // lowercase key -> the actual-cased value, for the error message
   for (const row of rows) {
     const value = row.value.trim();
-    if (!value || seen.has(value.toLowerCase())) continue;
-    seen.add(value.toLowerCase());
+    if (!value) continue;
+    const key = value.toLowerCase();
+    const existing = seen.get(key);
+    if (existing) {
+      throw new Error(
+        `Two programmes both resolve to "${existing}" — rename one of them to something different.`,
+      );
+    }
+    seen.set(key, value);
     programmes.push(value);
     if (row.original && row.original !== value) renames[row.original] = value;
   }
