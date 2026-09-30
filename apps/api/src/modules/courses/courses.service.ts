@@ -61,9 +61,17 @@ export class SchoolsService {
     // { oldProgramme: newProgramme } for entries the caller actually edited in
     // place — a comma-separated re-type of `programmes` can't tell a rename
     // apart from removing one and adding another, so the caller must say so
-    // explicitly. No-ops and blanks are dropped defensively.
+    // explicitly. No-ops and blanks are dropped defensively. Values aren't
+    // constrained to strings by the DTO (@IsObject() only checks the shape),
+    // so a non-string value is rejected here with a clean 400 instead of
+    // crashing the transaction below with an unhandled TypeError.
     const programmeRenames = Object.entries(dto.programmeRenames ?? {})
-      .map(([from, to]) => [from.trim(), (to ?? '').trim()] as const)
+      .map(([from, to]) => {
+        if (to != null && typeof to !== 'string') {
+          throw new BadRequestException('programmeRenames values must be strings');
+        }
+        return [from.trim(), (to ?? '').trim()] as const;
+      })
       .filter(([from, to]) => from && to && from !== to);
 
     return this.prisma.$transaction(async (tx) => {
@@ -94,7 +102,8 @@ export class SchoolsService {
         await tx.$executeRaw`
           UPDATE jobs
           SET eligible_schools = array_replace(eligible_schools, ${school.name}, ${name})
-          WHERE college_id = ${collegeId} AND ${school.name} = ANY(eligible_schools)
+          WHERE (college_id = ${collegeId} OR ${collegeId} = ANY(target_college_ids))
+            AND ${school.name} = ANY(eligible_schools)
         `;
 
         // A school with zero configured sub-programmes uses its own name as
@@ -110,11 +119,18 @@ export class SchoolsService {
           await tx.$executeRaw`
             UPDATE jobs
             SET eligible_programmes = array_replace(eligible_programmes, ${school.name}, ${name})
-            WHERE college_id = ${collegeId} AND ${school.name} = ANY(eligible_programmes)
+            WHERE (college_id = ${collegeId} OR ${collegeId} = ANY(target_college_ids))
+              AND ${school.name} = ANY(eligible_programmes)
           `;
         }
       }
 
+      // Programme names aren't unique across schools (two schools can both
+      // have a "CSE"), so the cascade must not touch a job that's scoped to a
+      // *different* school just because it happens to list the same
+      // programme name. Only cascade into jobs that are either unrestricted
+      // (eligible_schools empty — no school scope to conflict with) or
+      // explicitly scoped to include this school.
       for (const [from, to] of programmeRenames) {
         await tx.student.updateMany({
           where: { collegeId, school: finalSchoolName, programme: from },
@@ -123,7 +139,9 @@ export class SchoolsService {
         await tx.$executeRaw`
           UPDATE jobs
           SET eligible_programmes = array_replace(eligible_programmes, ${from}, ${to})
-          WHERE college_id = ${collegeId} AND ${from} = ANY(eligible_programmes)
+          WHERE (college_id = ${collegeId} OR ${collegeId} = ANY(target_college_ids))
+            AND ${from} = ANY(eligible_programmes)
+            AND (eligible_schools = '{}' OR ${finalSchoolName} = ANY(eligible_schools))
         `;
       }
 
