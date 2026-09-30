@@ -62,7 +62,18 @@ export function RowActionsMenu({
 
   function toggle() {
     const r = btnRef.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 4, left: r.right - width });
+    if (r) {
+      // Flip the menu above the button when there isn't room below (e.g. the
+      // last row of a long table) instead of letting it render past the
+      // bottom of the viewport. Estimated from item count since the menu
+      // isn't in the DOM yet to measure at toggle time.
+      const estimatedHeight = items.length * 32 + 8;
+      const openUpward = r.bottom + 4 + estimatedHeight > window.innerHeight;
+      setPos({
+        top: openUpward ? r.top - estimatedHeight - 4 : r.bottom + 4,
+        left: r.right - width,
+      });
+    }
     setOpen((o) => !o);
   }
 
