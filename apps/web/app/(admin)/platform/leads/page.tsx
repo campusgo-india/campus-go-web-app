@@ -10,6 +10,7 @@ import {
   updateLead,
   type Lead,
   type LeadPatch,
+  type ListMeta,
   type LeadSource,
 } from '../../../../lib/leads';
 
@@ -32,20 +33,27 @@ function fmt(iso: string): string {
 export default function PlatformLeadsPage() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Lead[]>([]);
-  const [total, setTotal] = useState(0);
+  const [meta, setMeta] = useState<ListMeta | undefined>(undefined);
   const [source, setSource] = useState<'' | LeadSource>('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async (s: '' | LeadSource) => {
+  const load = useCallback(async (s: '' | LeadSource, p: number) => {
     setLoading(true);
     setError(null);
     try {
-      const { items, total } = await listLeads(s);
+      const { items, meta } = await listLeads(s, p);
+      // Deleting the last item on a page (or switching filters) can leave
+      // `page` past the new last page — step back one and retry once.
+      if (items.length === 0 && p > 1) {
+        setPage(p - 1);
+        return;
+      }
       setItems(items);
-      setTotal(total);
+      setMeta(meta);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load leads');
     } finally {
@@ -54,8 +62,13 @@ export default function PlatformLeadsPage() {
   }, []);
 
   useEffect(() => {
-    load(source);
-  }, [source, load]);
+    load(source, page);
+  }, [source, page, load]);
+
+  function changeSource(s: '' | LeadSource) {
+    setSource(s);
+    setPage(1);
+  }
 
   async function saveEdit(id: string, patch: LeadPatch) {
     setBusyId(id);
@@ -83,8 +96,7 @@ export default function PlatformLeadsPage() {
     setError(null);
     try {
       await deleteLead(lead.id);
-      setItems((xs) => xs.filter((x) => x.id !== lead.id));
-      setTotal((t) => Math.max(0, t - 1));
+      await load(source, page);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not delete lead');
     } finally {
@@ -105,7 +117,7 @@ export default function PlatformLeadsPage() {
         {FILTERS.map((f) => (
           <button
             key={f.value || 'ALL'}
-            onClick={() => setSource(f.value)}
+            onClick={() => changeSource(f.value)}
             className={`rounded-pill px-4 py-1.5 text-sm font-medium ${
               source === f.value ? 'bg-primary-600 text-white' : 'bg-white text-body hover:bg-primary-50'
             }`}
@@ -113,9 +125,9 @@ export default function PlatformLeadsPage() {
             {f.label}
           </button>
         ))}
-        {!loading && (
+        {!loading && meta && (
           <span className="ml-1 text-sm text-subtle">
-            {total} {total === 1 ? 'lead' : 'leads'}
+            {meta.total} {meta.total === 1 ? 'lead' : 'leads'}
           </span>
         )}
       </div>
@@ -148,7 +160,7 @@ export default function PlatformLeadsPage() {
                       </Badge>
                     </div>
                     <p className="mt-0.5 text-sm text-subtle">
-                      {lead.designation} · {lead.institution}
+                      {[lead.designation, lead.institution].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   <span className="text-xs text-subtle">{fmt(lead.createdAt)}</span>
@@ -158,14 +170,18 @@ export default function PlatformLeadsPage() {
                   <a href={`mailto:${lead.email}`} className="font-medium text-primary-600 hover:underline">
                     {lead.email}
                   </a>
-                  <a href={`tel:${lead.phone}`} className="font-medium text-primary-600 hover:underline">
-                    {lead.phone}
-                  </a>
+                  {lead.phone && (
+                    <a href={`tel:${lead.phone}`} className="font-medium text-primary-600 hover:underline">
+                      {lead.phone}
+                    </a>
+                  )}
                 </div>
 
-                <p className="mt-3 whitespace-pre-wrap rounded-md bg-app p-3 text-sm leading-relaxed text-body">
-                  {lead.message}
-                </p>
+                {lead.message && (
+                  <p className="mt-3 whitespace-pre-wrap rounded-md bg-app p-3 text-sm leading-relaxed text-body">
+                    {lead.message}
+                  </p>
+                )}
 
                 <div className="mt-3 flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => setEditing(lead.id)}>
@@ -182,6 +198,34 @@ export default function PlatformLeadsPage() {
                 </div>
               </Card>
             ),
+          )}
+
+          {meta && meta.pages > 1 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-subtle">
+                Showing {(meta.page - 1) * meta.limit + 1}–
+                {Math.min(meta.page * meta.limit, meta.total)} of {meta.total} · page {meta.page} of{' '}
+                {meta.pages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={page >= meta.pages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -206,10 +250,13 @@ function LeadEditCard({
   const [form, setForm] = useState({
     name: lead.name,
     institution: lead.institution,
-    designation: lead.designation,
+    // Older leads can have null here (captured before these fields were
+    // required) — default to '' so the controlled inputs/.trim() below
+    // always have a string to work with.
+    designation: lead.designation ?? '',
     email: lead.email,
-    phone: lead.phone,
-    message: lead.message,
+    phone: lead.phone ?? '',
+    message: lead.message ?? '',
     source: lead.source,
   });
 
