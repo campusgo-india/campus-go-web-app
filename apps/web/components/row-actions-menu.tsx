@@ -69,9 +69,12 @@ export function RowActionsMenu({
       // isn't in the DOM yet to measure at toggle time.
       const estimatedHeight = items.length * 32 + 8;
       const openUpward = r.bottom + 4 + estimatedHeight > window.innerHeight;
+      // Clamp so a narrow viewport (or a button close to the left edge of its
+      // container) can't push the menu off the left side of the screen.
+      const left = Math.max(4, r.right - width);
       setPos({
         top: openUpward ? r.top - estimatedHeight - 4 : r.bottom + 4,
-        left: r.right - width,
+        left,
       });
     }
     setOpen((o) => !o);
