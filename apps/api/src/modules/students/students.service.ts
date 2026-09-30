@@ -717,26 +717,45 @@ export class StudentsService {
       ...studentFields
     } = dto;
 
-    if (email !== undefined) {
-      const existing = await this.prisma.student.findUniqueOrThrow({ where: { id } });
-      const normalized = email.trim().toLowerCase();
-      const taken = await this.prisma.user.findFirst({
-        where: { email: normalized, id: { not: existing.userId } },
-      });
-      if (taken) throw new BadRequestException(`Email already in use: ${normalized}`);
-    }
+    const normalizedEmail = email !== undefined ? email.trim().toLowerCase() : undefined;
 
     const student = await this.prisma.$transaction(async (tx) => {
       if (fullName !== undefined || email !== undefined || phone !== undefined) {
         const existing = await tx.student.findUniqueOrThrow({ where: { id } });
-        await tx.user.update({
-          where: { id: existing.userId },
-          data: {
-            ...(fullName !== undefined ? { fullName } : {}),
-            ...(email !== undefined ? { email: email.trim().toLowerCase() } : {}),
-            ...(phone !== undefined ? { phone } : {}),
-          },
-        });
+
+        // Checked inside the same transaction as the write (not before it, as
+        // this used to be) to close the window for two concurrent edits to
+        // both pass the check before either commits. Case-insensitive to
+        // match the login lookup in auth.service.ts — create()/importCsv()
+        // don't lowercase on write, so a stored email can be mixed-case.
+        if (normalizedEmail !== undefined) {
+          const taken = await tx.user.findFirst({
+            where: {
+              email: { equals: normalizedEmail, mode: 'insensitive' },
+              id: { not: existing.userId },
+            },
+          });
+          if (taken) throw new BadRequestException(`Email already in use: ${normalizedEmail}`);
+        }
+
+        try {
+          await tx.user.update({
+            where: { id: existing.userId },
+            data: {
+              ...(fullName !== undefined ? { fullName } : {}),
+              ...(normalizedEmail !== undefined ? { email: normalizedEmail } : {}),
+              ...(phone !== undefined ? { phone } : {}),
+            },
+          });
+        } catch (err) {
+          // Defense in depth: a genuinely simultaneous request can still slip
+          // past the check above and hit the DB's unique constraint — surface
+          // that as the same clean 400 instead of a raw Prisma error.
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+            throw new BadRequestException(`Email already in use: ${normalizedEmail}`);
+          }
+          throw err;
+        }
       }
       return tx.student.update({
         where: { id },
