@@ -92,8 +92,8 @@ export class StudentsService {
   private sendWelcomeEmail(
     collegeName: string,
     student: { fullName: string; email: string; tempPassword: string },
-  ): void {
-    void this.email
+  ): Promise<void> {
+    return this.email
       .sendForCollege(null, {
         to: student.email,
         subject: `Your CampusGo login — ${collegeName}`,
@@ -111,6 +111,23 @@ export class StudentsService {
         }),
       })
       .catch((err) => this.logger.error(`Failed to email welcome message to ${student.email}`, err));
+  }
+
+  /**
+   * Sends welcome emails for a bulk import one at a time with a small stagger,
+   * never awaited by the caller. Resend hard-caps outbound sends at 10/sec —
+   * firing them all at once (the previous behavior) silently drops every send
+   * past that cap with no visibility to the officer who ran the import.
+   */
+  private async sendWelcomeEmailsThrottled(
+    collegeName: string,
+    students: Array<{ fullName: string; email: string; tempPassword: string }>,
+  ): Promise<void> {
+    for (const student of students) {
+      await this.sendWelcomeEmail(collegeName, student);
+      // ~8/sec, safely under Resend's 10/sec cap.
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
   }
 
   // A Placement Coordinator only ever sees their assigned programmes (one or
@@ -179,7 +196,7 @@ export class StudentsService {
 
     // Every student shares DEFAULT_STUDENT_PASSWORD; surfaced to the officer once
     // AND emailed directly to the student.
-    this.sendWelcomeEmail(college?.name ?? 'your college', {
+    void this.sendWelcomeEmail(college?.name ?? 'your college', {
       fullName: dto.fullName,
       email: dto.email,
       tempPassword,
@@ -295,16 +312,15 @@ export class StudentsService {
         this.prisma.student.createMany({ data: studentData }),
       ]);
 
-      // Fire-and-forget, one per student — never awaited here so a large
+      // Fire-and-forget as a whole batch — never awaited here so a large
       // import doesn't multiply this request's latency (see the perf note
-      // on this method) and a slow/failed send can't turn into a 502.
+      // on this method) and a slow/failed send can't turn into a 502. The
+      // batch itself is internally staggered — see sendWelcomeEmailsThrottled.
       const college = await this.prisma.college.findUnique({
         where: { id: collegeId },
         select: { name: true },
       });
-      for (const c of created) {
-        this.sendWelcomeEmail(college?.name ?? 'your college', c);
-      }
+      void this.sendWelcomeEmailsThrottled(college?.name ?? 'your college', created);
     }
 
     return { createdCount: created.length, errorCount: errors.length, created, errors };
