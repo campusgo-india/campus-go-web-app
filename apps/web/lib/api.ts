@@ -81,6 +81,12 @@ export async function api<T>(path: string, options: ApiOptions = {}, _retry = fa
  */
 function friendlyStatusMessage(status: number): string {
   if (status === 429) return 'Too many attempts — please wait a minute and try again.';
+  // The free Render API sleeps after ~15 min idle; the first request after that
+  // hits a 502/503 while it cold-starts (tens of seconds) before the proxy can
+  // reach it. Same underlying cause as the 429 case above, different status.
+  if (status === 502 || status === 503) {
+    return 'Server is waking up after a period of inactivity — please retry in about 30-60 seconds.';
+  }
   return `Request failed (${status})`;
 }
 
