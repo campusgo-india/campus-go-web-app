@@ -886,8 +886,14 @@ export class StudentsService {
   // every profile edit would silently hide all eligible jobs from them.
   async updateOwnProfile(userId: string, dto: UpdateOwnProfileDto) {
     const student = await this.ownStudent(userId);
+    // fullName / school / programme / graduationYear are assigned by the college
+    // when it registers the student — accepted by the DTO (so an older cached
+    // client doesn't get a 400) but ignored here; officers change them.
     const {
-      fullName,
+      fullName: _fullName,
+      school: _school,
+      programme: _programme,
+      graduationYear: _graduationYear,
       phone,
       cgpa,
       dateOfBirth,
@@ -899,13 +905,10 @@ export class StudentsService {
     } = dto;
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      if (fullName !== undefined || phone !== undefined) {
+      if (phone !== undefined) {
         await tx.user.update({
           where: { id: student.userId },
-          data: {
-            ...(fullName !== undefined ? { fullName } : {}),
-            ...(phone !== undefined ? { phone } : {}),
-          },
+          data: { phone },
         });
       }
       const next = await tx.student.update({

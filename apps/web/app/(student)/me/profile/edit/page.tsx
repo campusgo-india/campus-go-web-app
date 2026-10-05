@@ -342,6 +342,22 @@ function FieldInput({
     </span>
   );
 
+  if (field.readOnly) {
+    return (
+      <label className="block space-y-1">
+        {label}
+        <input
+          type="text"
+          value={(value as string | number) ?? ''}
+          readOnly
+          disabled
+          className="h-10 w-full cursor-not-allowed rounded-md border border-border bg-app px-3 text-sm text-body outline-none"
+        />
+        <span className="text-[11px] text-subtle">Set by your college</span>
+      </label>
+    );
+  }
+
   if (field.key === 'gender') {
     return (
       <label className="block space-y-1">
@@ -493,12 +509,10 @@ function clean(form: UpdateOwnProfileInput): UpdateOwnProfileInput {
     if (typeof v === 'boolean') (out[k] as unknown) = v;
   };
 
-  str('fullName');
+  // fullName / school / programme / graduationYear are assigned by the college
+  // (readOnly in PROFILE_STEPS) and deliberately never sent back.
   phoneStr('phone');
   str('enrollmentNumber');
-  str('school');
-  str('programme');
-  if (form.graduationYear != null) out.graduationYear = form.graduationYear;
   num('cgpa');
   if (form.activeBacklogs != null) out.activeBacklogs = form.activeBacklogs;
   if (form.totalBacklogs != null) out.totalBacklogs = form.totalBacklogs;
