@@ -453,7 +453,9 @@ function toForm(s: Student): UpdateOwnProfileInput {
     specialization: str(s.specialization),
     admissionYear: num(s.admissionYear),
     currentSemester: num(s.currentSemester),
-    hasArrearHistory: bool(s.hasArrearHistory),
+    // Never answered yet → derive from the backlog counts already on file, so a
+    // student with no arrears isn't forced to tick the box just to proceed.
+    hasArrearHistory: s.hasArrearHistory ?? (s.activeBacklogs > 0 || s.totalBacklogs > 0),
     tenthBoard: str(s.tenthBoard),
     tenthSchool: str(s.tenthSchool),
     tenthPassingYear: num(s.tenthPassingYear),
