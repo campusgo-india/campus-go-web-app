@@ -55,7 +55,7 @@ const SKILL_SHORT: Record<TrainingPillar, string> = {
   TECHNICAL_TOOLS: 'Technical & Tools',
   SOFT_SKILLS_COMMUNICATION: 'Communication',
   APTITUDE_REASONING: 'Aptitude',
-  CAREER_READINESS: 'Domain knowledge',
+  CAREER_READINESS: 'Career readiness',
 };
 type Band = 'low' | 'mid' | 'high';
 function skillBand(pct: number | null): Band {
