@@ -49,6 +49,9 @@ export default function TrainingCalendarPage() {
                 {fmt(s.startsAt)} – {fmt(s.endsAt)}
                 {s.trainerName ? ` · ${s.trainerName}` : ''}
               </p>
+              {s.description && (
+                <p className="whitespace-pre-wrap pt-1 text-sm text-body">{s.description}</p>
+              )}
               {s.myAttendance != null && (
                 <p className="text-xs text-subtle">
                   Attendance: {s.myAttendance ? 'Present' : 'Absent'}
