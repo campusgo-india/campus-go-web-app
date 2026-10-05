@@ -17,8 +17,10 @@ import {
 import {
   applicationStatusBadge,
   listMyApplications,
+  withdrawApplication,
   type Application,
 } from '../../../../../lib/applications';
+import { useConfirm } from '../../../../../components/confirm-provider';
 import { PdfModal } from '../../../../../components/pdf-modal';
 import { ApplyModal } from '../../../../../components/apply-modal';
 import { ApplicationTimeline } from '../../../../../components/application-timeline';
@@ -53,7 +55,9 @@ const roundProgress = (app: Application) => app.rounds.at(-1)?.seq ?? 0;
 export default function StudentJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const confirm = useConfirm();
   const [applying, setApplying] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [eligibilityOpen, setEligibilityOpen] = useState(false);
   const [pdfView, setPdfView] = useState<{ url: string; name?: string | null } | null>(null);
@@ -94,6 +98,29 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
     }
   }
 
+  async function withdraw() {
+    if (!app) return;
+    const ok = await confirm({
+      title: 'Withdraw this application?',
+      message: 'You will be removed from this job. This cannot be undone.',
+      acknowledgement: 'I understand I can’t re-apply.',
+      confirmLabel: 'Withdraw',
+      destructive: true,
+    });
+    if (!ok) return;
+    setWithdrawing(true);
+    try {
+      await withdrawApplication(app.id);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not withdraw');
+    } finally {
+      setWithdrawing(false);
+      await mutate('/student/applications');
+      await mutate(`/student/job/${id}`);
+      await mutate('/student/jobs');
+    }
+  }
+
   if (!job) return <DetailSkeleton />;
 
   const company = job.companyName ?? job.company?.name ?? 'Company';
@@ -122,7 +149,7 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
         disabled={applying}
         className="press w-full rounded-pill bg-gradient-brand py-3 text-sm font-semibold text-white shadow-nav disabled:opacity-60"
       >
-        {applying ? 'Applying…' : 'Apply to this job'}
+        {applying ? 'Applying…' : 'Apply now'}
       </button>
     )
   ) : app?.status === 'REJECTED' ? (
@@ -141,6 +168,14 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
     >
       View offer letter
     </a>
+  ) : app?.status === 'APPLIED' || app?.status === 'IN_PROGRESS' ? (
+    <button
+      onClick={withdraw}
+      disabled={withdrawing}
+      className="press w-full rounded-pill border border-danger/40 bg-white py-3 text-sm font-semibold text-danger disabled:opacity-60"
+    >
+      {withdrawing ? 'Withdrawing…' : 'Withdraw application'}
+    </button>
   ) : null;
 
   return (
