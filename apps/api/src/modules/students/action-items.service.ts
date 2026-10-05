@@ -102,8 +102,8 @@ export class StudentActionItemsService {
         key: 'inactive',
         title: 'Get Active in Placements',
         body: inactiveDays == null
-          ? `You haven't applied for a job yet. ${matchingJobsCount} opportunity${matchingJobsCount === 1 ? '' : 'ies'} currently match your profile.`
-          : `You haven't applied for a job in the last ${inactiveDays} days. ${matchingJobsCount} opportunit${matchingJobsCount === 1 ? 'y' : 'ies'} currently match your profile.`,
+          ? `You haven't applied for a job yet. ${matchingJobsCount} opportunit${matchingJobsCount === 1 ? 'y' : 'ies'} currently match your profile.`
+          :`You haven't applied for a job in the last ${inactiveDays} days. ${matchingJobsCount} opportunit${matchingJobsCount === 1 ? 'y' : 'ies'} currently match your profile.`,
         ctaLabel: 'Explore Jobs',
         ctaHref: '/me/jobs',
       });
