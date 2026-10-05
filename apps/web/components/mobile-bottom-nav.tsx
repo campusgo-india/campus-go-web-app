@@ -8,6 +8,7 @@ const items = [
   { href: '/me', label: 'Home', icon: HomeIcon },
   { href: '/me/jobs', label: 'Jobs', icon: BriefcaseIcon },
   { href: '/me/training', label: 'Employability', icon: DocIcon },
+  { href: '/me/training/assessments', label: 'Assessments', icon: ClipboardIcon },
   { href: '/me/profile', label: 'Profile', icon: UserIcon },
 ];
 
@@ -35,7 +36,7 @@ export function MobileBottomNav() {
               key={href}
               href={href}
               aria-current={active ? 'page' : undefined}
-              className="press flex flex-col items-center gap-1 px-4 py-1.5"
+              className="press flex min-w-0 flex-1 flex-col items-center gap-1 px-1 py-1.5"
             >
               <span
                 className={cn(
@@ -50,7 +51,7 @@ export function MobileBottomNav() {
               </span>
               <span
                 className={cn(
-                  'text-[11px] transition',
+                  'text-[10px] transition',
                   active ? 'font-semibold text-primary-600' : 'font-medium text-subtle',
                 )}
               >
@@ -84,6 +85,14 @@ function UserIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
+    </svg>
+  );
+}
+function ClipboardIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
+      <rect x="5" y="4" width="14" height="18" rx="2" />
+      <path d="M9 4V3h6v1M9 13l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
