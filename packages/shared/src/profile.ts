@@ -78,7 +78,7 @@ export const PROFILE_STEPS: ProfileStep[] = [
       { key: 'cgpa', label: 'Current percentage / CGPA', type: 'number', required: true },
       { key: 'activeBacklogs', label: 'Standing arrears', type: 'number', required: true },
       { key: 'totalBacklogs', label: 'History of arrears', type: 'number', required: true },
-      { key: 'hasArrearHistory', label: 'Any arrears history?', type: 'boolean', required: true },
+      { key: 'hasArrearHistory', label: 'Any arrears history?', type: 'boolean', required: false },
     ],
   },
   {
