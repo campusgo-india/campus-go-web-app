@@ -141,7 +141,7 @@ export default function StudentHome() {
       {/* Quick launch — circular shortcuts */}
       <div className="grid grid-cols-4 gap-y-4 px-1">
         <QuickIcon href="/me/jobs" tint="cream" icon={<BriefcaseIcon />} label="Jobs" />
-        <QuickIcon href="/me/training" tint="mint" icon={<TrendUpIcon />} label="Employability" />
+        <QuickIcon href="/me/training" tint="mint" icon={<TrendUpIcon />} label="Training" />
         <QuickIcon href="/me/training/assessments" tint="rose" icon={<ClipboardIcon />} label="Assessments" />
         <QuickIcon href="/me/training/calendar" tint="mint" icon={<CalendarIcon />} label="Sessions" />
         <QuickIcon href="/me/placement" tint="lavender" icon={<FunnelIcon />} label="Tracker" />

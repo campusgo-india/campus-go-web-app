@@ -229,7 +229,7 @@ export default function MyEmployabilityPage() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-strong">My Employability</h1>
+        <h1 className="text-2xl font-semibold text-strong">My Training</h1>
         <p className="text-sm text-subtle">Your readiness across the 4 placement pillars.</p>
       </header>
 

@@ -12,7 +12,7 @@ import { NotificationBell } from './notification-bell';
  * - Home (`/me`): a personal greeting row — avatar, "Good evening!" + the
  *   student's first name · college, and the notification bell (the Swiggy-style
  *   Home header in the reference mockup).
- * - Other tab roots (Jobs / Employability / Profile): just the college name in
+ * - Other tab roots (Jobs / Training / Profile): just the college name in
  *   small muted text, matching those mockups.
  * - Inner / detail screens: nothing — the user already knows which app they're
  *   in, and repeating the chrome only eats vertical space.
