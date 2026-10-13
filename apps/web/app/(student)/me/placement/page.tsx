@@ -40,6 +40,10 @@ export default function MyPlacementDashboardPage() {
   const selected = apps.filter((a) => a.status === 'SELECTED' || a.offerCtc != null);
   const rejected = apps.filter((a) => a.status === 'REJECTED');
   const withdrawn = apps.filter((a) => a.status === 'WITHDRAWN');
+  const inProgress = apps.filter((a) => a.status === 'IN_PROGRESS');
+  const completed = apps.filter(
+    (a) => a.status === 'SELECTED' || a.status === 'REJECTED' || a.status === 'WITHDRAWN',
+  );
   const interviewsScheduled = apps.reduce(
     (n, a) => n + a.interviews.filter((r) => r.result === 'PENDING' && r.scheduledAt).length,
     0,
@@ -59,6 +63,22 @@ export default function MyPlacementDashboardPage() {
       count: apps.length,
       Icon: IconClockProgress,
       fill: 'bg-primary-500',
+    },
+    {
+      key: 'in-progress',
+      label: 'In progress',
+      description: 'Applications currently moving through hiring rounds.',
+      count: inProgress.length,
+      Icon: IconCalendarCheck,
+      fill: 'bg-warning',
+    },
+    {
+      key: 'completed',
+      label: 'Completed',
+      description: 'Applications with a final outcome — selected, not selected or withdrawn.',
+      count: completed.length,
+      Icon: IconCheckCircle,
+      fill: 'bg-primary-300',
     },
     {
       key: 'selected',

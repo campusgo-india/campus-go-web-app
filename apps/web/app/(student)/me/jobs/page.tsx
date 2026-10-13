@@ -13,11 +13,13 @@ import { EligibilityCheckModal } from '../../../../components/eligibility-check-
 import { InlineSkeleton, ListSkeleton } from '../../../../components/page-skeleton';
 import { useApi } from '../../../../lib/use-api';
 
-type Category = 'ALL' | 'APPLIED' | 'CLOSED';
+type Category = 'ALL' | 'APPLIED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'ALL', label: 'Open', icon: <BoltIcon /> },
   { key: 'APPLIED', label: 'Applied', icon: <CheckCircleIcon /> },
+  { key: 'IN_PROGRESS', label: 'In progress', icon: <BriefcaseIcon /> },
+  { key: 'COMPLETED', label: 'Completed', icon: <CheckCircleIcon /> },
   { key: 'CLOSED', label: 'Closed', icon: <LockIcon /> },
 ];
 
@@ -28,15 +30,28 @@ function isClosed(job: Job): boolean {
   return false;
 }
 
+const FINISHED_STATUSES = new Set(['SELECTED', 'REJECTED', 'WITHDRAWN']);
+
+function applicationPhase(job: Job): 'APPLIED' | 'IN_PROGRESS' | 'COMPLETED' {
+  const st = job.myStatus ?? 'APPLIED';
+  if (FINISHED_STATUSES.has(st)) return 'COMPLETED';
+  return st === 'IN_PROGRESS' ? 'IN_PROGRESS' : 'APPLIED';
+}
+
 function matchesCategory(job: Job, category: Category): boolean {
   switch (category) {
     case 'ALL':
       // Only show open jobs the student has not applied to.
       return !isClosed(job) && !job.applied;
     case 'APPLIED':
-      return job.applied === true;
+      // Applied, hiring process not started yet.
+      return job.applied === true && applicationPhase(job) === 'APPLIED';
+    case 'IN_PROGRESS':
+      return job.applied === true && applicationPhase(job) === 'IN_PROGRESS';
+    case 'COMPLETED':
+      return job.applied === true && applicationPhase(job) === 'COMPLETED';
     case 'CLOSED':
-      return isClosed(job);
+      return isClosed(job) && !job.applied;
     default:
       return true;
   }
@@ -46,6 +61,10 @@ function emptyMessage(category: Category): string {
   switch (category) {
     case 'APPLIED':
       return 'Your applications will show up here — pick a role and make your first move.';
+    case 'IN_PROGRESS':
+      return 'No applications in a hiring round right now.';
+    case 'COMPLETED':
+      return 'Finished applications (selected, rejected or withdrawn) will appear here.';
     case 'CLOSED':
       return 'Nothing wrapped up yet — plenty still in play.';
     default:
