@@ -10,6 +10,7 @@ import {
   getMyAssessments,
   getMyDashboard,
   listMySessions,
+  PILLAR_COMPONENTS,
   PILLAR_LABEL,
   type Assessment,
   type EmployabilityDashboard,
@@ -51,12 +52,6 @@ const SKILL_ORDER: TrainingPillar[] = [
   'APTITUDE_REASONING',
   'CAREER_READINESS',
 ];
-const SKILL_SHORT: Record<TrainingPillar, string> = {
-  TECHNICAL_TOOLS: 'Technical & Tools',
-  SOFT_SKILLS_COMMUNICATION: 'Communication',
-  APTITUDE_REASONING: 'Aptitude',
-  CAREER_READINESS: 'Career readiness',
-};
 type Band = 'low' | 'mid' | 'high';
 function skillBand(pct: number | null): Band {
   if (pct == null) return 'mid';
@@ -109,7 +104,7 @@ interface Roadmap {
 function buildRoadmap(data: EmployabilityDashboard): Roadmap {
   const { tier, weakestPillar, deptRank } = data;
   const weakLabel = weakestPillar
-    ? (SKILL_SHORT[weakestPillar.pillar] ?? weakestPillar.label)
+    ? (PILLAR_LABEL[weakestPillar.pillar] ?? weakestPillar.label)
     : null;
   const improvementGoal =
     weakestPillar != null && weakLabel != null
@@ -400,7 +395,10 @@ export default function MyEmployabilityPage() {
               return (
                 <div key={p.pillar} className="border-t border-border pt-4 first:border-0 first:pt-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-strong">{SKILL_SHORT[p.pillar]}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-strong">{PILLAR_LABEL[p.pillar]}</p>
+                      <p className="text-xs text-subtle">{PILLAR_COMPONENTS[p.pillar].join(' · ')}</p>
+                    </div>
                     <p className={`text-sm font-bold ${SKILL_TEXT[band]}`}>
                       {p.percentage != null ? `${p.percentage}%` : '—'}
                     </p>
