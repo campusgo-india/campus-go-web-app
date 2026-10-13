@@ -138,10 +138,12 @@ export default function StudentHome() {
         </Link>
       )}
 
-      {/* Quick launch — four circular shortcuts */}
-      <div className="flex items-start justify-between px-1">
+      {/* Quick launch — circular shortcuts */}
+      <div className="grid grid-cols-4 gap-y-4 px-1">
         <QuickIcon href="/me/jobs" tint="cream" icon={<BriefcaseIcon />} label="Jobs" />
         <QuickIcon href="/me/training" tint="mint" icon={<TrendUpIcon />} label="Employability" />
+        <QuickIcon href="/me/training/assessments" tint="rose" icon={<ClipboardIcon />} label="Assessments" />
+        <QuickIcon href="/me/training/calendar" tint="mint" icon={<CalendarIcon />} label="Sessions" />
         <QuickIcon href="/me/placement" tint="lavender" icon={<FunnelIcon />} label="Tracker" />
         <QuickIcon href="/me/placement-policy" tint="cream" icon={<DocIcon />} label="Policy" />
       </div>
@@ -309,7 +311,7 @@ function QuickIcon({
   label: string;
 }) {
   return (
-    <Link href={href} className="press flex w-16 flex-col items-center gap-1.5 text-center">
+    <Link href={href} className="press mx-auto flex w-16 flex-col items-center gap-1.5 text-center">
       <span className={`flex h-14 w-14 items-center justify-center rounded-full ${TINT_BG[tint]} ${TINT_FG[tint]}`}>
         {icon}
       </span>
@@ -411,6 +413,24 @@ function SearchIcon() {
     <svg {...iconProps}>
       <circle cx="11" cy="11" r="7" />
       <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ClipboardIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="5" y="4" width="14" height="18" rx="2" />
+      <path d="M9 4V3h6v1M9 13l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg {...iconProps}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
     </svg>
   );
 }

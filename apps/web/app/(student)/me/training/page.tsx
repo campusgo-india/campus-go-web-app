@@ -238,6 +238,21 @@ export default function MyEmployabilityPage() {
         <p className="text-sm text-subtle">Your readiness across the 4 placement pillars.</p>
       </header>
 
+      <div className="grid grid-cols-2 gap-3">
+        <Link
+          href="/me/training/assessments"
+          className="press rounded-lg border border-border bg-white px-4 py-3 text-center text-sm font-semibold text-primary-600"
+        >
+          Assessments
+        </Link>
+        <Link
+          href="/me/training/calendar"
+          className="press rounded-lg border border-border bg-white px-4 py-3 text-center text-sm font-semibold text-primary-600"
+        >
+          Sessions
+        </Link>
+      </div>
+
       {/* Overall readiness — brand-gradient band, ring on the left */}
       <div className="animate-rise relative overflow-hidden rounded-card bg-gradient-brand p-5 text-white shadow-nav">
         <div
@@ -272,6 +287,18 @@ export default function MyEmployabilityPage() {
           </div>
         </div>
       </div>
+
+      <details className="rounded-lg border border-border bg-white px-4 py-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-primary-600">
+          How is this score calculated?
+        </summary>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-subtle">
+          <li>Each pillar % is the average of your assessment scores (marks ÷ max marks) in that pillar.</li>
+          <li>If you have post-training scores in a pillar, only those count; otherwise your baseline scores are used.</li>
+          <li>Overall readiness is the simple average of the pillars you have scores for. Pillars with no scores yet are left out, not counted as 0.</li>
+          <li>Tier 1 is 80% and above, Tier 2 is 65–79%, Tier 3 is below 65%. The tier is only a label and never blocks you from applying to jobs.</li>
+        </ul>
+      </details>
 
       {/* Segmented tabs */}
       <div className="flex gap-1 rounded-pill bg-muted p-1">
@@ -452,7 +479,7 @@ export default function MyEmployabilityPage() {
             href="/me/training/calendar"
             className="press flex items-center justify-between rounded-lg border border-border bg-white px-4 py-3 text-sm font-semibold text-primary-600"
           >
-            View full calendar
+            View all sessions
             <span>→</span>
           </Link>
         </Card>

@@ -25,8 +25,8 @@ export default function TrainingCalendarPage() {
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-strong">Training calendar</h1>
-          <p className="text-sm text-subtle">Every scheduled session.</p>
+          <h1 className="text-2xl font-semibold text-strong">Sessions</h1>
+          <p className="text-sm text-subtle">Training sessions scheduled by your placement cell.</p>
         </div>
         <Link href="/me/training" className="text-sm text-primary-600 hover:underline">
           Back
