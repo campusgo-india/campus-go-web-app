@@ -55,6 +55,18 @@ export default function ContactPage() {
                 </a>
               </div>
               <div className="mt-3 space-y-2 text-sm">
+                <p className="text-subtle">Phone</p>
+                <a href="tel:+919380508699" className="font-medium text-primary-600 hover:underline">
+                  9380508699
+                </a>
+              </div>
+              <div className="mt-3 space-y-2 text-sm">
+                <p className="text-subtle">Address</p>
+                <p className="font-medium text-strong">
+                  #52, Ananth Nagar, Phase II, Electronic City, Bengaluru - 560100
+                </p>
+              </div>
+              <div className="mt-3 space-y-2 text-sm">
                 <p className="text-subtle">Website</p>
                 <p className="font-medium text-strong">campusgoindia.com</p>
               </div>

@@ -237,8 +237,7 @@ export default function AboutPage() {
           <div className="mt-6 rounded-card border border-tint-cream bg-tint-cream/60 p-6">
             <p className="text-sm leading-relaxed text-body">
               The structured data and reports generated through the platform can support
-              institutional documentation, analysis and reporting relevant to{' '}
-              <span className="font-bold text-strong">NAAC, UGC</span> and other academic and
+              institutional documentation, analysis and reporting relevant to academic and
               accreditation-related requirements.
             </p>
             <p className="mt-2 text-sm font-bold text-strong">Capture. Organize. Analyse. Report.</p>

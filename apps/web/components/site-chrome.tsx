@@ -62,6 +62,12 @@ export function SiteFooter() {
             <p className="mt-3 max-w-[220px] text-xs leading-relaxed text-white/50">
               The complete placement &amp; career readiness platform for colleges and universities.
             </p>
+            <p className="mt-3 max-w-[220px] text-xs leading-relaxed text-white/50">
+              #52, Ananth Nagar, Phase II, Electronic City, Bengaluru - 560100
+            </p>
+            <a href="tel:+919380508699" className="mt-1 block text-xs text-white/65 hover:text-white">
+              9380508699
+            </a>
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Product</p>

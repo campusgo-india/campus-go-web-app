@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = {
   title: 'Reports & Institutional Insights',
   description:
-    'Turn everyday placement, training, internship, recruitment and alumni activity into structured data — ready for institutional review and accreditation reporting (NAAC, NIRF, UGC).',
+    'Turn everyday placement, training, internship, recruitment and alumni activity into structured data — ready to support institutional documentation and reporting relevant to academic and accreditation-related requirements.',
   alternates: { canonical: '/insights' },
 };
 
@@ -77,9 +77,8 @@ export default function ReportsPage() {
             <div className="mt-6 rounded-card border border-tint-cream bg-tint-cream/60 p-6">
               <p className="text-sm leading-relaxed text-body">
                 The structured data and reports generated through CampusGo can support institutional
-                documentation and reporting relevant to{' '}
-                <span className="font-bold text-strong">NAAC, NIRF, UGC</span> and other academic and
-                accreditation-related requirements.
+                documentation and reporting relevant to academic and accreditation-related
+                requirements.
               </p>
             </div>
           </div>
