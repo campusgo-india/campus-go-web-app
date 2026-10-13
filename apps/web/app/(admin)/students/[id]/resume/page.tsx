@@ -15,7 +15,10 @@ export default function StudentResumePage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     getStudentResume(id)
-      .then(setResume)
+      .then((r) => {
+        setResume(r);
+        setShowPdf(true);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'Could not load resume'));
   }, [id]);
 

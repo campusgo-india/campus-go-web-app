@@ -113,7 +113,6 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
     roundType: RoundType | '';
     description: string;
     venue: string;
-    reportingInstructions: string;
     scheduledAt: string;
   }) {
     setBusy(true);
@@ -124,7 +123,6 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
         roundType: input.roundType || undefined,
         description: input.description.trim() || undefined,
         venue: input.venue.trim() || undefined,
-        reportingInstructions: input.reportingInstructions.trim() || undefined,
         scheduledAt: input.scheduledAt || undefined,
       })) as { id: string };
       setShowAddRound(false);
@@ -313,6 +311,11 @@ export default function PlatformFunnelPage({ params }: { params: Promise<{ id: s
             {t.tone === 'done' && <span className={tab === t.key ? '' : 'text-success'}>✓</span>}
             {t.tone === 'open' && <span className={tab === t.key ? '' : 'text-warning'}>●</span>}
             {t.label}
+            {t.tone && (
+              <span className={`text-[11px] ${tab === t.key ? 'opacity-80' : 'text-subtle'}`}>
+                {t.tone === 'open' ? 'In progress' : 'Completed'}
+              </span>
+            )}
             <span className={tab === t.key ? 'opacity-80' : 'text-subtle'}>{t.count}</span>
           </button>
         ))}
@@ -873,7 +876,6 @@ function AddRoundForm({
     roundType: RoundType | '';
     description: string;
     venue: string;
-    reportingInstructions: string;
     scheduledAt: string;
   }) => void;
 }) {
@@ -885,7 +887,6 @@ function AddRoundForm({
   const [roundType, setRoundType] = useState<RoundType | ''>('');
   const [description, setDescription] = useState('');
   const [venue, setVenue] = useState('');
-  const [reportingInstructions, setReportingInstructions] = useState('');
   const [when, setWhen] = useState('');
   const cls =
     'h-10 w-full rounded-md border border-border bg-white px-3 text-sm outline-none focus:border-primary-400';
@@ -958,15 +959,6 @@ function AddRoundForm({
         </label>
       </div>
       <label className="block space-y-1">
-        <span className="text-xs font-medium text-subtle">Reporting instructions (optional)</span>
-        <input
-          className={cls}
-          value={reportingInstructions}
-          onChange={(e) => setReportingInstructions(e.target.value)}
-          placeholder="e.g. CTP, 9:00 AM"
-        />
-      </label>
-      <label className="block space-y-1">
         <span className="text-xs font-medium text-subtle">Additional notes (optional)</span>
         <textarea
           className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
@@ -989,7 +981,6 @@ function AddRoundForm({
               roundType,
               description,
               venue,
-              reportingInstructions,
               scheduledAt: when ? new Date(when).toISOString() : '',
             })
           }
