@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Badge, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../../components/page-skeleton';
 import { useApi } from '../../../../../lib/use-api';
@@ -28,9 +27,6 @@ export default function TrainingCalendarPage() {
           <h1 className="text-2xl font-semibold text-strong">Sessions</h1>
           <p className="text-sm text-subtle">Training sessions scheduled by your placement cell.</p>
         </div>
-        <Link href="/me/training" className="text-sm text-primary-600 hover:underline">
-          Back
-        </Link>
       </header>
 
       {data.length === 0 ? (

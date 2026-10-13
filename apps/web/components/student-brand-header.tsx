@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from '../lib/session';
 import { MAIN_ROUTES } from './mobile-bottom-nav';
@@ -36,7 +37,7 @@ export function StudentBrandHeader() {
 
   return (
     <header className="flex items-center justify-between gap-3 px-5 pt-3">
-      <div className="flex min-w-0 items-center gap-3">
+      <Link href="/me/profile" aria-label="Open your profile" className="press flex min-w-0 items-center gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-700 text-base font-bold text-white shadow-nav">
           {(fullName[0] ?? 'S').toUpperCase()}
         </span>
@@ -45,8 +46,9 @@ export function StudentBrandHeader() {
           <p className="truncate text-sm font-bold text-strong">
             {firstName} · {collegeName}
           </p>
+          <p className="text-[11px] font-medium text-primary-600">View profile</p>
         </div>
-      </div>
+      </Link>
       <NotificationBell
         href="/me/notifications"
         className="relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tint-lavender text-tint-lavender-fg"
