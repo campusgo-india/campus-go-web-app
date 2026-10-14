@@ -45,7 +45,7 @@ jobs:
       - uses: android-actions/setup-android@v3
 
       - name: Install Bubblewrap
-        run: npm i -g @bubblewrap/cli@1.24.1
+        run: npm i -g @bubblewrap/cli@1.27.0
 
       - name: Point Bubblewrap at the CI JDK + Android SDK
         run: |
