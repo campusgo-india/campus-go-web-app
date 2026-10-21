@@ -7,6 +7,10 @@ export interface MyResume {
   fileUrl: string;
   fileName: string;
   fileSize: number;
+  // Optional second résumé; empty strings when not uploaded.
+  secondFileUrl: string;
+  secondFileName: string;
+  secondFileSize: number;
   isPublished: boolean;
   updatedAt: string;
 }
@@ -24,16 +28,19 @@ export function getMyResume(): Promise<MyResume> {
   return api<MyResume>('/me/resume');
 }
 
-export function uploadMyResume(file: File): Promise<MyResume> {
+/** Slot 1 is the primary résumé, slot 2 the optional second one. */
+export type ResumeSlot = 1 | 2;
+
+export function uploadMyResume(file: File, slot: ResumeSlot = 1): Promise<MyResume> {
   const form = new FormData();
   form.append('file', file);
-  return api<MyResume>('/me/resume', { method: 'POST', body: form });
+  return api<MyResume>(`/me/resume?slot=${slot}`, { method: 'POST', body: form });
 }
 
 export function updateMyResume(input: { isPublished: boolean }): Promise<MyResume> {
   return api<MyResume>('/me/resume', { method: 'PATCH', body: JSON.stringify(input) });
 }
 
-export function deleteMyResume(): Promise<MyResume> {
-  return api<MyResume>('/me/resume', { method: 'DELETE' });
+export function deleteMyResume(slot: ResumeSlot = 1): Promise<MyResume> {
+  return api<MyResume>(`/me/resume?slot=${slot}`, { method: 'DELETE' });
 }

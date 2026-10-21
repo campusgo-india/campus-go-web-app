@@ -174,7 +174,7 @@ export default function PlacementDashboardPage() {
         </p>
       </SectionCard>
 
-      <SectionCard title="Placement Progress" subtitle="Final-year students, stage by stage">
+      <SectionCard title="Placement Progress" subtitle="Students, then jobs, stage by stage">
         {!funnel ? (
           <InlineSkeleton width="w-full" height="h-64" />
         ) : (
@@ -184,9 +184,10 @@ export default function PlacementDashboardPage() {
           </div>
         )}
         <p className="mt-4 text-xs text-subtle">
-          Eligible = verified profile with a résumé on file. Round 1/2/3 are cumulative — reaching
-          Round 3 counts a student in Round 1 and 2 as well. Selected / Offered come from each
-          student&apos;s application and interview-round history.
+          Final-year students and Eligible count students (Eligible = verified profile with a résumé
+          on file). Applied onwards count jobs — one per student application. Round 1/2/3 are
+          cumulative: reaching Round 3 counts in Round 1 and 2 as well. Offered counts selections
+          whose offer letter has been uploaded.
         </p>
       </SectionCard>
 
@@ -307,7 +308,8 @@ function FunnelChart({
 }) {
   const fill = tint === 'mint' ? 'bg-tint-mint-fg' : 'bg-tint-cream-fg';
   const bg = tint === 'mint' ? 'bg-tint-mint' : 'bg-tint-cream';
-  const max = Math.max(stages.finalYearStudents, 1);
+  // Job counts (Applied onwards) can exceed the student count, so scale to the largest stage.
+  const max = Math.max(1, ...FUNNEL_STAGES.map((s) => stages[s.key]));
 
   return (
     <div className="space-y-2">
@@ -448,7 +450,6 @@ const ATTENTION_ITEMS: { key: keyof AttentionCounts; label: string }[] = [
   { key: 'eligibleNotApplying', label: 'Eligible — not applying yet' },
   { key: 'noParticipation', label: 'Yet to join a drive' },
   { key: 'withoutInternship', label: 'No internship on record yet' },
-  { key: 'pendingDocuments', label: 'Documents pending' },
 ];
 
 function AttentionGrid({ counts }: { counts: AttentionCounts }) {

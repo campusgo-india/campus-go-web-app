@@ -373,6 +373,11 @@ model Resume {
   fileUrl     String   @map("file_url")
   fileName    String   @map("file_name")
   fileSize    Int      @map("file_size")
+  // Optional second résumé (e.g. a different role or domain). Same public
+  // link; empty string = not uploaded, mirroring fileUrl above.
+  fileUrl2    String   @default("") @map("file_url_2")
+  fileName2   String   @default("") @map("file_name_2")
+  fileSize2   Int      @default(0) @map("file_size_2")
   isPublished Boolean  @default(true) @map("is_published")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

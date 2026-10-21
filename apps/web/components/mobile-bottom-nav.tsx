@@ -8,8 +8,7 @@ const items = [
   { href: '/me', label: 'Home', icon: HomeIcon },
   { href: '/me/jobs', label: 'Jobs', icon: BriefcaseIcon },
   { href: '/me/training', label: 'Training', icon: DocIcon },
-  { href: '/me/training/assessments', label: 'Assessments', icon: ClipboardIcon },
-  { href: '/me/training/calendar', label: 'Sessions', icon: CalendarIcon },
+  { href: '/me/profile', label: 'Profile', icon: UserIcon },
 ];
 
 // Main tabs only. Sub-screens (job detail, applications, edit profile, …) hide the
@@ -17,9 +16,10 @@ const items = [
 // StudentBrandHeader can hide the college-logo banner on the same screens —
 // an inner/detail page shouldn't repeat "you're in this college's app" chrome
 // the user already saw on the tab root.
-// Profile is reached from the avatar at the top of Home rather than a tab, but it
-// is still a root screen, so it keeps the nav and the college header.
-export const MAIN_ROUTES = new Set([...items.map((i) => i.href), '/me/profile']);
+// Assessments and Sessions are sub-views of Training, so they keep the nav (and
+// highlight the Training tab) rather than getting tabs of their own.
+const TRAINING_SUBROUTES = ['/me/training/assessments', '/me/training/calendar'];
+export const MAIN_ROUTES = new Set([...items.map((i) => i.href), ...TRAINING_SUBROUTES]);
 
 /** Icon-above-label bar with a soft pill behind the active icon — a bare
  * color change + tiny dot read as too weak a "you are here" signal (CRED/
@@ -32,7 +32,8 @@ export function MobileBottomNav() {
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active =
+            pathname === href || (href === '/me/training' && TRAINING_SUBROUTES.includes(pathname));
           return (
             <Link
               key={href}
@@ -82,19 +83,11 @@ function BriefcaseIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-function CalendarIcon(props: React.SVGProps<SVGSVGElement>) {
+function UserIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
-    </svg>
-  );
-}
-function ClipboardIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...props}>
-      <rect x="5" y="4" width="14" height="18" rx="2" />
-      <path d="M9 4V3h6v1M9 13l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
     </svg>
   );
 }

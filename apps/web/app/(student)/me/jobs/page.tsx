@@ -13,14 +13,14 @@ import { EligibilityCheckModal } from '../../../../components/eligibility-check-
 import { InlineSkeleton, ListSkeleton } from '../../../../components/page-skeleton';
 import { useApi } from '../../../../lib/use-api';
 
-type Category = 'ALL' | 'APPLIED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED';
+type Category = 'ALL' | 'APPLIED' | 'CLOSED' | 'IN_PROGRESS' | 'COMPLETED';
 
 const CATEGORIES: { key: Category; label: string; icon: React.ReactNode }[] = [
   { key: 'ALL', label: 'Open', icon: <BoltIcon /> },
   { key: 'APPLIED', label: 'Applied', icon: <CheckCircleIcon /> },
+  { key: 'CLOSED', label: 'Closed', icon: <LockIcon /> },
   { key: 'IN_PROGRESS', label: 'In progress', icon: <BriefcaseIcon /> },
   { key: 'COMPLETED', label: 'Completed', icon: <CheckCircleIcon /> },
-  { key: 'CLOSED', label: 'Closed', icon: <LockIcon /> },
 ];
 
 function isClosed(job: Job): boolean {
@@ -167,13 +167,13 @@ export default function StudentJobsPage() {
       </div>
 
       {/* Category tabs */}
-      <div className="-mx-4 px-4">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      <div>
+        <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
             <button
               key={c.key}
               onClick={() => setCategory(c.key)}
-              className={`press-bg flex shrink-0 items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition ${
+              className={`press-bg flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                 category === c.key
                   ? 'bg-primary-600 text-white'
                   : 'bg-white text-body hover:bg-primary-50'

@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Public, Roles } from '../../common/decorators';
-import { ResumesService } from './resumes.service';
+import { ResumesService, type ResumeSlot } from './resumes.service';
 import { UpdateResumeDto } from './dto';
 
 // Minimal shape of a multer upload (avoids depending on @types/multer).
@@ -24,6 +25,8 @@ interface UploadedPdf {
   originalname: string;
   size: number;
 }
+
+const toSlot = (raw?: string): ResumeSlot => (raw === '2' ? 2 : 1);
 
 // No class-level @Roles: the public render route must stay open. Student routes
 // carry method-level @Roles(STUDENT).
@@ -40,9 +43,13 @@ export class ResumesController {
   @Post('me/resume')
   @Roles(UserRole.STUDENT)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1 * 1024 * 1024 } }))
-  async uploadMine(@CurrentUser() user: JwtPayload, @UploadedFile() file?: UploadedPdf) {
+  async uploadMine(
+    @CurrentUser() user: JwtPayload,
+    @Query('slot') slot?: string,
+    @UploadedFile() file?: UploadedPdf,
+  ) {
     if (!file) throw new BadRequestException('No file uploaded');
-    return { data: await this.resumes.uploadMine(user.sub, file) };
+    return { data: await this.resumes.uploadMine(user.sub, file, toSlot(slot)) };
   }
 
   @Patch('me/resume')
@@ -53,8 +60,8 @@ export class ResumesController {
 
   @Delete('me/resume')
   @Roles(UserRole.STUDENT)
-  async deleteMine(@CurrentUser() user: JwtPayload) {
-    return { data: await this.resumes.deleteMine(user.sub) };
+  async deleteMine(@CurrentUser() user: JwtPayload, @Query('slot') slot?: string) {
+    return { data: await this.resumes.deleteMine(user.sub, toSlot(slot)) };
   }
 
   @Get('public/resumes/:slug')

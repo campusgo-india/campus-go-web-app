@@ -14,6 +14,7 @@ import { targetedStudentWhere, visibilityFilter } from './sessions.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { ConfigService } from '@nestjs/config';
+import { cellText, normalizeHeader, pick, ROLL_NUMBER_KEYS } from './import-utils';
 
 const dec = (v: Prisma.Decimal) => Number(v);
 
@@ -338,16 +339,10 @@ export class AssessmentsService {
 function parseCsvRows(text: string): Array<{ rollNumber: string; marksObtained: string }> {
   const records = parseCsv(text);
   return records.map((row) => {
-    const get = (...keys: string[]) => {
-      for (const k of keys) {
-        const v = (row[k] ?? '').trim();
-        if (v !== '') return v;
-      }
-      return '';
-    };
+    const trimmed = Object.fromEntries(Object.entries(row).map(([k, v]) => [k, v.trim()]));
     return {
-      rollNumber: get('studentrollno', 'rollnumber', 'rollno', 'regno', 'studentid'),
-      marksObtained: get('marksobtained', 'marks', 'score'),
+      rollNumber: pick(trimmed, ROLL_NUMBER_KEYS),
+      marksObtained: pick(trimmed, ['marksobtained', 'marks', 'score']),
     };
   });
 }
@@ -361,10 +356,7 @@ async function parseXlsxRows(buffer: Buffer): Promise<Array<{ rollNumber: string
   const headerRow = sheet.getRow(1);
   const headers: string[] = [];
   headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-    headers[colNumber] = String(cell.value ?? '')
-      .trim()
-      .toLowerCase()
-      .replace(/[\s_]/g, '');
+    headers[colNumber] = normalizeHeader(cellText(cell.value));
   });
 
   const rows: Array<{ rollNumber: string; marksObtained: string }> = [];
@@ -374,18 +366,12 @@ async function parseXlsxRows(buffer: Buffer): Promise<Array<{ rollNumber: string
     const obj: Record<string, string> = {};
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       const key = headers[colNumber];
-      if (key) obj[key] = String(cell.value ?? '').trim();
+      if (key) obj[key] = cellText(cell.value);
     });
     if (Object.values(obj).every((v) => v === '')) continue;
-    const get = (...keys: string[]) => {
-      for (const k of keys) {
-        if (obj[k]) return obj[k];
-      }
-      return '';
-    };
     rows.push({
-      rollNumber: get('studentrollno', 'rollnumber', 'rollno', 'regno', 'studentid'),
-      marksObtained: get('marksobtained', 'marks', 'score'),
+      rollNumber: pick(obj, ROLL_NUMBER_KEYS),
+      marksObtained: pick(obj, ['marksobtained', 'marks', 'score']),
     });
   }
   return rows;
@@ -438,7 +424,7 @@ function parseCsv(text: string): Array<Record<string, string>> {
   const rows = records.filter((r) => r.some((v) => v.trim() !== ''));
   if (rows.length === 0) return [];
 
-  const header = rows[0].map((h) => h.trim().toLowerCase().replace(/[\s_]/g, ''));
+  const header = rows[0].map((h) => normalizeHeader(h));
   return rows.slice(1).map((cols) => {
     const obj: Record<string, string> = {};
     header.forEach((h, idx) => {

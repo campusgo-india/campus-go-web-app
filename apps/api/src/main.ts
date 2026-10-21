@@ -2,13 +2,14 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { ResponseEnvelopeInterceptor, AllExceptionsFilter } from './common/interceptors';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: false });
   const config = app.get(ConfigService);
 
   // Behind Render's proxy: trust X-Forwarded-For so req.ip is the real client.
@@ -16,6 +17,9 @@ async function bootstrap() {
   // a whole class of students sharing the same login burst.
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
+  // Training score/attendance imports send the spreadsheet as base64 in the JSON
+  // body; Express's 100kb default rejects anything but a tiny file.
+  app.useBodyParser('json', { limit: '10mb' });
   app.use(helmet());
   app.use(cookieParser());
   app.setGlobalPrefix('api/v1');

@@ -79,13 +79,17 @@ export class AnalyticsService {
         .then((g) => g.length),
       this.prisma.application.findMany({
         where: { collegeId, status: 'SELECTED' },
-        select: { offerCtc: true, job: { select: { ctcMin: true, ctcMax: true } } },
+        select: {
+          offerCtc: true,
+          offerLetterUrl: true,
+          job: { select: { ctcMin: true, ctcMax: true } },
+        },
       }),
     ]);
 
-    // offersCount is every SELECTED application, not just the ones with a
-    // resolvable CTC — a student who self-uploads just the offer letter
-    // (no CTC entered anywhere, incl. the job posting) still counts as an
+    // offersCount is every SELECTED application with an uploaded offer
+    // letter, whether or not a CTC resolves — a student who self-uploads just
+    // the letter (no CTC anywhere, incl. the job posting) still counts as an
     // offer, it just doesn't contribute to the package stats below.
     const packages = offers
       .map((o) => effectiveCtc(o.offerCtc, o.job))
@@ -97,7 +101,7 @@ export class AnalyticsService {
       verifiedStudents: verifiedCount,
       placedStudents: placedCount,
       placementRate, // percentage, one decimal
-      offersCount: offers.length,
+      offersCount: offers.filter((o) => o.offerLetterUrl).length,
       avgPackage: packages.length ? Math.round(mean(packages)) : null,
       medianPackage: packages.length ? Math.round(median(packages)) : null,
       highestPackage: packages.length ? Math.max(...packages) : null,
@@ -130,7 +134,7 @@ export class AnalyticsService {
         this.prisma.application.count({ where: { collegeId } }),
         this.prisma.application.count({ where: { collegeId, stage: { in: [...OFFER_STAGES] } } }),
         this.prisma.job.findMany({
-          where: { status: 'PUBLISHED', ...jobVisibleToCollege(collegeId) },
+          where: { status: { in: ['PUBLISHED', 'CLOSED'] }, ...jobVisibleToCollege(collegeId) },
           select: { companyName: true, company: { select: { name: true } } },
         }),
         this.prisma.job.count({
@@ -289,7 +293,7 @@ export class AnalyticsService {
   // defaults to UG, same as the column default, so nobody silently drops out
   // of the totals.
   async placementDashboard(collegeId: string) {
-    const [schools, students, placingApps, internships] = await Promise.all([
+    const [schools, students, placingApps, internships, recruitingJobs] = await Promise.all([
       this.prisma.collegeSchool.findMany({
         where: { collegeId },
         select: { name: true, degreeLevel: true },
@@ -303,6 +307,7 @@ export class AnalyticsService {
         select: {
           studentId: true,
           offerCtc: true,
+          offerLetterUrl: true,
           job: {
             select: {
               ctcMin: true,
@@ -317,6 +322,11 @@ export class AnalyticsService {
         where: { collegeId },
         select: { studentId: true, isPpo: true },
       }),
+      // Companies that have posted a job this season — active and closed alike.
+      this.prisma.job.findMany({
+        where: { status: { in: ['PUBLISHED', 'CLOSED'] }, ...jobVisibleToCollege(collegeId) },
+        select: { companyName: true, company: { select: { name: true } } },
+      }),
     ]);
 
     const levelByName = new Map(schools.map((s) => [s.name, s.degreeLevel]));
@@ -329,10 +339,9 @@ export class AnalyticsService {
       return {
         finalYearStudents: 0,
         placedIds: new Set<string>(),
-        // Every SELECTED application in this bucket — a student who holds
-        // offers from 2 different jobs counts as 2 offers here (deliberately
-        // NOT deduped by student, unlike placedIds), matching what "Offers
-        // extended" should mean.
+        // SELECTED applications whose offer letter has been uploaded — a
+        // student holding letters for 2 different jobs counts as 2 offers
+        // here (deliberately NOT deduped by student, unlike placedIds).
         offerCount: 0,
         packages: [] as number[],
         internships: 0,
@@ -346,18 +355,19 @@ export class AnalyticsService {
       buckets[bucketOf(s.id)].finalYearStudents++;
     }
 
-    const companies = new Set<string>();
+    const companies = new Set(
+      recruitingJobs.map((j) => j.company?.name ?? j.companyName ?? 'Unknown'),
+    );
     for (const a of placingApps) {
       const bucket = buckets[bucketOf(a.studentId)];
       bucket.placedIds.add(a.studentId);
-      bucket.offerCount++;
+      if (a.offerLetterUrl) bucket.offerCount++;
       // Only contributes to CTC stats when a figure can actually be
       // resolved (explicit offerCtc, or the job's own JD range) — a student
       // who self-uploads just the offer letter with no CTC anywhere still
       // counts as an offer above, it just doesn't move averageCtc/highestCtc.
       const ctc = effectiveCtc(a.offerCtc, a.job);
       if (ctc != null) bucket.packages.push(ctc);
-      companies.add(a.job.company?.name ?? a.job.companyName ?? 'Unknown');
     }
 
     for (const i of internships) {
@@ -410,7 +420,8 @@ export class AnalyticsService {
   }
 
   // ─────────────── Placement Progress funnel (Overall + UG/PG) ───────────────
-  // Eight stages, computed per student from whichever signal is available —
+  // Final-year / Eligible count students; Applied → Joined count jobs (one per
+  // student-job application). Computed from whichever signal is available —
   // this app supports both a granular legacy stage flow (Application.stage)
   // and a streamlined rounds/pipeline flow (Application.status +
   // ApplicationRound), so several stages union both.
@@ -432,15 +443,13 @@ export class AnalyticsService {
       }),
       this.prisma.application.findMany({
         where: { collegeId },
-        select: { studentId: true, status: true, stage: true },
+        select: { id: true, studentId: true, status: true, stage: true, offerLetterUrl: true },
       }),
       this.prisma.applicationRound.findMany({
         where: { application: { collegeId } },
         select: {
-          outcome: true,
-          attended: true,
+          applicationId: true,
           round: { select: { seq: true } },
-          application: { select: { studentId: true } },
         },
       }),
     ]);
@@ -448,18 +457,11 @@ export class AnalyticsService {
     const levelByName = new Map(schools.map((s) => [s.name, s.degreeLevel]));
     const levelOf = (school: string) => levelByName.get(school) ?? 'UG';
 
-    const appsByStudent = new Map<string, typeof applications>();
-    for (const a of applications) {
-      const list = appsByStudent.get(a.studentId) ?? [];
-      list.push(a);
-      appsByStudent.set(a.studentId, list);
-    }
-    const roundsByStudent = new Map<string, typeof rounds>();
+    const roundsByApplication = new Map<string, typeof rounds>();
     for (const r of rounds) {
-      const sid = r.application.studentId;
-      const list = roundsByStudent.get(sid) ?? [];
+      const list = roundsByApplication.get(r.applicationId) ?? [];
       list.push(r);
-      roundsByStudent.set(sid, list);
+      roundsByApplication.set(r.applicationId, list);
     }
 
     function makeStage() {
@@ -486,42 +488,49 @@ export class AnalyticsService {
       const isEligible = s.verificationStatus === 'VERIFIED' && !!s.resume;
       if (isEligible) bucket.eligible++;
 
-      const myApps = appsByStudent.get(s.id) ?? [];
-      const myRounds = roundsByStudent.get(s.id) ?? [];
-      if (myApps.length > 0) bucket.applied++;
+    }
+
+    // Applied → Joined count jobs (one per student-job application), not
+    // students: a student applying to 3 drives adds 3 to "Applied". Only
+    // applications from active students count, same as the student totals.
+    const bucketByStudent = new Map<string, 'UG' | 'PG'>();
+    for (const s of students) {
+      if (s.isActive) bucketByStudent.set(s.id, levelOf(s.school));
+    }
+    for (const a of applications) {
+      const level = bucketByStudent.get(a.studentId);
+      if (!level) continue;
+      const bucket = buckets[level];
+      const appRounds = roundsByApplication.get(a.id) ?? [];
+      const stage = a.stage as string;
+      bucket.applied++;
       // "Attended" = reached at least one interview round. Not gated on the
       // ApplicationRound.attended flag — that's a separate, easy-to-skip
-      // manual "mark present/absent" action officers rarely use, so relying
-      // on it left this stage at 0 even for students who clearly interviewed.
-      // Being enrolled in a round (created automatically when the round
-      // starts) is the reliable signal.
-      if (myRounds.length > 0) bucket.attended++;
-
+      // manual "mark present/absent" action officers rarely use. Being
+      // enrolled in a round (created automatically when the round starts) is
+      // the reliable signal.
+      if (appRounds.length > 0) bucket.attended++;
       // Round 1/2/3: reached a round with that sequence number or later —
-      // nested/cumulative like the rest of this funnel (reaching Round 3
-      // implies having reached Round 1 and 2), from whichever flow moved
-      // them there.
-      const maxSeqReached = myRounds.reduce((max, r) => Math.max(max, r.round.seq), 0);
-      if (maxSeqReached >= 1 || myApps.some((a) => (ROUND_1_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+      // nested/cumulative (reaching Round 3 implies Round 1 and 2), from
+      // whichever flow moved the application there.
+      const maxSeqReached = appRounds.reduce((max, r) => Math.max(max, r.round.seq), 0);
+      if (maxSeqReached >= 1 || (ROUND_1_OR_LATER_STAGES as readonly string[]).includes(stage)) {
         bucket.round1++;
       }
-      if (maxSeqReached >= 2 || myApps.some((a) => (ROUND_2_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+      if (maxSeqReached >= 2 || (ROUND_2_OR_LATER_STAGES as readonly string[]).includes(stage)) {
         bucket.round2++;
       }
-      if (maxSeqReached >= 3 || myApps.some((a) => (ROUND_3_OR_LATER_STAGES as readonly string[]).includes(a.stage))) {
+      if (maxSeqReached >= 3 || (ROUND_3_OR_LATER_STAGES as readonly string[]).includes(stage)) {
         bucket.round3++;
       }
-      // Selecting a candidate IS extending the offer — the two are the same
-      // event, so Selected and Offered always match. (An uploaded offer-letter
-      // PDF is just tracking; it doesn't create an offer.)
-      const isSelected = myApps.some(
-        (a) => a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(a.stage),
-      );
+      const isSelected =
+        a.status === 'SELECTED' || (SELECTED_STAGES as readonly string[]).includes(stage);
       if (isSelected) {
         bucket.selected++;
-        bucket.offered++;
+        // An offer counts as extended only once the letter is uploaded.
+        if (a.offerLetterUrl) bucket.offered++;
       }
-      if (myApps.some((a) => a.stage === 'JOINED')) bucket.joined++;
+      if (stage === 'JOINED') bucket.joined++;
     }
 
     return { ug: buckets.UG, pg: buckets.PG };

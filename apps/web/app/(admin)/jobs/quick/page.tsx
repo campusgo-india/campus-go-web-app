@@ -600,6 +600,15 @@ function CompanyAutocomplete({
   const [show, setShow] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [loading, setLoading] = useState(false);
+  // Only text the user typed triggers a search. A value set any other way
+  // (picking a suggestion, or a company just created in the modal) must not
+  // re-run it, or the dropdown pops open a second time.
+  const typed = useRef('');
+
+  function pick(c: Company) {
+    onChange(c.name, c.id);
+    setShow(false);
+  }
 
   useEffect(() => {
     const q = value.trim();
@@ -608,21 +617,31 @@ function CompanyAutocomplete({
       setShow(false);
       return;
     }
+    if (typed.current !== value) {
+      setShow(false);
+      return;
+    }
+    let cancelled = false;
     const t = setTimeout(async () => {
       setLoading(true);
       try {
         const list = await listCompanies(q, 50);
+        if (cancelled) return;
         setSuggestions(list);
         setHighlight(0);
         setShow(list.length > 0);
       } catch {
+        if (cancelled) return;
         setSuggestions([]);
         setShow(false);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }, 250);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [value]);
 
   return (
@@ -631,6 +650,7 @@ function CompanyAutocomplete({
         className={inputCls}
         value={value}
         onChange={(e) => {
+          typed.current = e.target.value;
           onChange(e.target.value, undefined);
           setShow(true);
         }}
@@ -646,11 +666,8 @@ function CompanyAutocomplete({
             setHighlight((highlight - 1 + suggestions.length) % suggestions.length);
           } else if (e.key === 'Enter') {
             e.preventDefault();
-            const pick = suggestions[highlight];
-            if (pick) {
-              onChange(pick.name, pick.id);
-              setShow(false);
-            }
+            const chosen = suggestions[highlight];
+            if (chosen) pick(chosen);
           } else if (e.key === 'Escape') {
             setShow(false);
           }
@@ -665,10 +682,7 @@ function CompanyAutocomplete({
           {suggestions.map((c, i) => (
             <li
               key={c.id}
-              onMouseDown={() => {
-                onChange(c.name, c.id);
-                setShow(false);
-              }}
+              onMouseDown={() => pick(c)}
               className={`cursor-pointer px-3 py-2 text-sm ${
                 i === highlight ? 'bg-primary-50 text-strong' : 'text-body hover:bg-app'
               }`}

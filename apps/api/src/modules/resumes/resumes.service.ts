@@ -21,6 +21,14 @@ interface UploadedPdf {
 
 const MAX_RESUME_BYTES = 1 * 1024 * 1024;
 
+/** Résumé slot: 1 is the primary file, 2 the optional second one. */
+export type ResumeSlot = 1 | 2;
+
+const SLOT_FIELDS = {
+  1: { url: 'fileUrl', name: 'fileName', size: 'fileSize' },
+  2: { url: 'fileUrl2', name: 'fileName2', size: 'fileSize2' },
+} as const;
+
 @Injectable()
 export class ResumesService {
   constructor(@Inject(PRISMA) private readonly prisma: PrismaClient) {}
@@ -47,7 +55,7 @@ export class ResumesService {
     return this.publicShape(created);
   }
 
-  async uploadMine(userId: string, file: UploadedPdf) {
+  async uploadMine(userId: string, file: UploadedPdf, slot: ResumeSlot = 1) {
     if (file.mimetype !== 'application/pdf') {
       throw new BadRequestException('Only PDF files are allowed');
     }
@@ -76,7 +84,8 @@ export class ResumesService {
       });
     }
 
-    const oldUrl = resume.fileUrl;
+    const f = SLOT_FIELDS[slot];
+    const oldUrl = resume[f.url];
     const safe = file.originalname.replace(/[^\w.\-]+/g, '_').slice(-80) || 'resume.pdf';
     const blob = await put(
       `resume-storage/${student.collegeId}/${student.id}/${Date.now()}-${safe}`,
@@ -92,9 +101,9 @@ export class ResumesService {
     const updated = await this.prisma.resume.update({
       where: { studentId: student.id },
       data: {
-        fileUrl: blob.url,
-        fileName: file.originalname,
-        fileSize: file.size,
+        [f.url]: blob.url,
+        [f.name]: file.originalname,
+        [f.size]: file.size,
       },
     });
 
@@ -119,16 +128,18 @@ export class ResumesService {
     return this.publicShape(updated);
   }
 
-  async deleteMine(userId: string) {
+  async deleteMine(userId: string, slot: ResumeSlot = 1) {
     const student = await this.studentForUser(userId);
     const resume = await this.prisma.resume.findUnique({ where: { studentId: student.id } });
-    if (!resume || !resume.fileUrl) throw new NotFoundException('No resume to delete');
+    const f = SLOT_FIELDS[slot];
+    const url = resume?.[f.url];
+    if (!resume || !url) throw new NotFoundException('No resume to delete');
 
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     const storeId = process.env.BLOB_RESUME_STORE_ID;
-    if (resume.fileUrl && token) {
+    if (token) {
       try {
-        await del(resume.fileUrl, { token, storeId });
+        await del(url, { token, storeId });
       } catch {
         // Ignore cleanup failures.
       }
@@ -136,7 +147,7 @@ export class ResumesService {
 
     const updated = await this.prisma.resume.update({
       where: { studentId: student.id },
-      data: { fileUrl: '', fileName: '', fileSize: 0 },
+      data: { [f.url]: '', [f.name]: '', [f.size]: 0 },
     });
     return this.publicShape(updated);
   }
@@ -148,7 +159,9 @@ export class ResumesService {
     const resume = await this.prisma.resume.findFirst({
       where: { publicSlug: slug, isPublished: true },
     });
-    if (!resume || !resume.fileUrl) throw new NotFoundException('Resume not found');
+    if (!resume || (!resume.fileUrl && !resume.fileUrl2)) {
+      throw new NotFoundException('Resume not found');
+    }
     return this.publicShape(resume);
   }
 
@@ -204,6 +217,9 @@ export class ResumesService {
     fileUrl: string;
     fileName: string;
     fileSize: number;
+    fileUrl2: string;
+    fileName2: string;
+    fileSize2: number;
     isPublished: boolean;
     updatedAt: Date;
   }) {
@@ -212,6 +228,9 @@ export class ResumesService {
       fileUrl: r.fileUrl,
       fileName: r.fileName,
       fileSize: r.fileSize,
+      secondFileUrl: r.fileUrl2,
+      secondFileName: r.fileName2,
+      secondFileSize: r.fileSize2,
       isPublished: r.isPublished,
       updatedAt: r.updatedAt,
     };

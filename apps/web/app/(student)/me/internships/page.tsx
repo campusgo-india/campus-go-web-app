@@ -6,8 +6,6 @@ import { Button, Card } from '@campusgo/ui';
 import { ListSkeleton } from '../../../../components/page-skeleton';
 import {
   createMyInternship,
-  employmentTypeLabel,
-  EMPLOYMENT_TYPES,
   listMyInternships,
   updateMyInternship,
   type Internship,
@@ -67,18 +65,10 @@ export default function MyInternshipsPage() {
         items.map((i) => (
           <Card key={i.id} className="space-y-2 p-4">
             <div>
-              <p className="font-semibold text-strong">{i.role}</p>
-              <p className="text-xs text-subtle">
-                {i.companyName}
-                {i.employmentType ? ` · ${employmentTypeLabel(i.employmentType)}` : ''}
-                {i.location ? ` · ${i.location}` : ''}
-              </p>
+              <p className="font-semibold text-strong">{i.companyName}</p>
+              {i.location && <p className="text-xs text-subtle">{i.location}</p>}
             </div>
-            {(i.domain || i.skills) && (
-              <p className="text-xs text-body">
-                {[i.domain, i.skills].filter(Boolean).join(' · ')}
-              </p>
-            )}
+            {i.domain && <p className="text-xs text-body">{i.domain}</p>}
             {i.description && <p className="text-sm text-body">{i.description}</p>}
             {(i.startDate || i.endDate) && (
               <p className="text-xs text-subtle">
@@ -119,17 +109,15 @@ function InternshipForm({
   onSaved: () => void;
 }) {
   const [form, setForm] = useState({
-    role: internship?.role ?? '',
     companyName: internship?.companyName ?? '',
-    employmentType: internship?.employmentType ?? '',
     domain: internship?.domain ?? '',
-    skills: internship?.skills ?? '',
     location: internship?.location ?? '',
-    isPaid: internship?.isPaid ?? (null as boolean | null),
+    // Strictly Yes/No — an unanswered (null) record reads as "No".
+    isPaid: internship?.isPaid ?? false,
     stipend: internship?.stipend != null ? String(internship.stipend) : '',
     startDate: internship?.startDate ? toDateInput(internship.startDate) : '',
     endDate: internship?.endDate ? toDateInput(internship.endDate) : '',
-    isPpo: internship?.isPpo ?? (null as boolean | null),
+    isPpo: internship?.isPpo ?? false,
     description: internship?.description ?? '',
     pocName: internship?.pocName ?? '',
     pocEmail: internship?.pocEmail ?? '',
@@ -141,13 +129,8 @@ function InternshipForm({
   const set =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
-  // Tri-state Yes/No/(not answered) — keeps "unanswered" visually distinct
-  // from an explicit "No".
-  const setTri = (k: 'isPaid' | 'isPpo') => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    setForm((f) => ({
-      ...f,
-      [k]: e.target.value === '' ? null : e.target.value === 'yes',
-    }));
+  const setYesNo = (k: 'isPaid' | 'isPpo') => (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value === 'yes' }));
 
   async function submit() {
     setSaving(true);
@@ -158,17 +141,16 @@ function InternshipForm({
         throw new Error('Enter a valid 10-digit mobile number');
       }
       const input: InternshipInput = {
-        role: form.role.trim(),
+        // The student form no longer asks for a title; the API still requires one.
+        role: internship?.role ?? 'Intern',
         companyName: form.companyName.trim(),
-        employmentType: (form.employmentType as InternshipInput['employmentType']) || undefined,
         domain: form.domain.trim() || undefined,
-        skills: form.skills.trim() || undefined,
         location: form.location.trim(),
-        isPaid: form.isPaid ?? undefined,
+        isPaid: form.isPaid,
         stipend: form.stipend.trim() ? Number(form.stipend) : undefined,
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
-        isPpo: form.isPpo ?? undefined,
+        isPpo: form.isPpo,
         description: form.description.trim() || undefined,
         pocName: form.pocName.trim(),
         pocEmail: form.pocEmail.trim(),
@@ -187,7 +169,6 @@ function InternshipForm({
 
   const ready =
     form.companyName.trim().length >= 2 &&
-    form.role.trim().length >= 2 &&
     form.location.trim().length >= 1 &&
     form.pocName.trim().length >= 1 &&
     form.pocEmail.trim().length >= 1 &&
@@ -198,59 +179,25 @@ function InternshipForm({
       <p className="text-sm font-semibold text-strong">
         {internship ? 'Edit internship' : 'Add internship'}
       </p>
-      <Labeled label="Position / title *">
-        <input
-          className={inputCls}
-          value={form.role}
-          onChange={set('role')}
-          placeholder="Software Engineering Intern"
-        />
-      </Labeled>
       <Labeled label="Company *">
         <input className={inputCls} value={form.companyName} onChange={set('companyName')} />
       </Labeled>
-      <div className="grid grid-cols-2 gap-3">
-        <Labeled label="Employment type">
-          <select
-            className={inputCls}
-            value={form.employmentType}
-            onChange={(e) => setForm((f) => ({ ...f, employmentType: e.target.value }))}
-          >
-            <option value="">Select</option>
-            {EMPLOYMENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {employmentTypeLabel(t)}
-              </option>
-            ))}
-          </select>
-        </Labeled>
-        <Labeled label="Location *">
-          <input
-            className={inputCls}
-            value={form.location}
-            onChange={set('location')}
-            placeholder="Bangalore / Remote"
-          />
-        </Labeled>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Labeled label="Domain">
-          <input
-            className={inputCls}
-            value={form.domain}
-            onChange={set('domain')}
-            placeholder="e.g. Data Science"
-          />
-        </Labeled>
-        <Labeled label="Skills / technologies">
-          <input
-            className={inputCls}
-            value={form.skills}
-            onChange={set('skills')}
-            placeholder="e.g. Python, React"
-          />
-        </Labeled>
-      </div>
+      <Labeled label="Location *">
+        <input
+          className={inputCls}
+          value={form.location}
+          onChange={set('location')}
+          placeholder="Bangalore / Remote"
+        />
+      </Labeled>
+      <Labeled label="Domain">
+        <input
+          className={inputCls}
+          value={form.domain}
+          onChange={set('domain')}
+          placeholder="e.g. Data Science"
+        />
+      </Labeled>
       <div className="grid grid-cols-2 gap-3">
         <Labeled label="Start date">
           <input
@@ -268,10 +215,9 @@ function InternshipForm({
         <Labeled label="Is the internship paid?">
           <select
             className={inputCls}
-            value={form.isPaid === null ? '' : form.isPaid ? 'yes' : 'no'}
-            onChange={setTri('isPaid')}
+            value={form.isPaid ? 'yes' : 'no'}
+            onChange={setYesNo('isPaid')}
           >
-            <option value="">Not answered</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
           </select>
@@ -288,13 +234,12 @@ function InternshipForm({
           />
         </Labeled>
       </div>
-      <Labeled label="Has the internship been converted to a PPO?">
+      <Labeled label="Has the internship been converted to a job?">
         <select
           className={inputCls}
-          value={form.isPpo === null ? '' : form.isPpo ? 'yes' : 'no'}
-          onChange={setTri('isPpo')}
+          value={form.isPpo ? 'yes' : 'no'}
+          onChange={setYesNo('isPpo')}
         >
-          <option value="">Not answered</option>
           <option value="yes">Yes</option>
           <option value="no">No</option>
         </select>
