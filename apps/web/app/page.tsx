@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteHeader, SiteFooter } from '../components/site-chrome';
+import { PlayStoreButton } from '../components/play-store-button';
+import { PLAY_STORE_URL } from '../lib/site';
 import {
   ADVANTAGE_FLOW,
   BoltIcon,
@@ -11,6 +13,7 @@ import {
   JOURNEY_STEPS,
   Section,
   SectionHeading,
+  PhoneShot,
   Shot,
   STAKEHOLDERS,
   STUDENT_SHOTS,
@@ -53,6 +56,15 @@ const EXPLORE = [
     body: 'Turn everyday placement activity into structured data for institutional and accreditation reporting.',
     tint: 'rose' as const,
   },
+];
+
+const APP_FEATURES = [
+  'Apply to jobs you’re eligible for',
+  'Track every round, live',
+  'Readiness score & roadmap',
+  'Assessments & training sessions',
+  'Scan-to-mark attendance',
+  'Instant job & interview alerts',
 ];
 
 const SITE_URL = 'https://www.campusgoindia.com';
@@ -104,6 +116,7 @@ const JSON_LD = {
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web, Android',
       url: SITE_URL,
+      downloadUrl: PLAY_STORE_URL,
       publisher: { '@id': `${SITE_URL}/#organization` },
       offers: {
         '@type': 'Offer',
@@ -167,7 +180,7 @@ export default function HomePage() {
               <TrustItem color="#E28040">Multi-college, tenant-isolated by design</TrustItem>
             </div>
           </div>
-          <div className="w-full flex-shrink-0 lg:w-[560px]">
+          <div className="relative w-full flex-shrink-0 lg:w-[560px]">
             <div className="rounded-[20px] bg-gradient-to-br from-primary-50 to-tint-accent p-3 shadow-nav">
               <BrowserFrame>
                 <Shot
@@ -176,6 +189,32 @@ export default function HomePage() {
                 />
               </BrowserFrame>
             </div>
+            {/* The student app, called out on the hero image */}
+            <a
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mx-auto mt-5 flex max-w-sm items-center gap-3 rounded-card bg-white p-3 shadow-nav ring-1 ring-border transition hover:-translate-y-0.5 sm:absolute sm:-bottom-7 sm:-left-4 sm:mx-0 sm:mt-0 sm:max-w-[320px] lg:-left-10"
+            >
+              <div className="w-[58px] shrink-0">
+                <PhoneShot
+                  src="/screenshots/student-jobs.png"
+                  alt="CampusGo student app — jobs list"
+                  compact
+                />
+              </div>
+              <span className="min-w-0">
+                <span className="inline-flex rounded-pill bg-tint-mint px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-tint-mint-fg">
+                  New · Android app
+                </span>
+                <span className="mt-1 block text-sm font-bold leading-snug text-strong">
+                  Placements in your pocket
+                </span>
+                <span className="block text-xs leading-snug text-subtle">
+                  Apply, track every round and mark attendance — on Google Play.
+                </span>
+              </span>
+            </a>
           </div>
         </div>
       </section>
@@ -186,6 +225,53 @@ export default function HomePage() {
           <ValueStat tint="lavender" icon={<BoltIcon />} label="Less manual work" body="Rounds, notifications, and reports that used to take hours now run automatically." />
           <ValueStat tint="mint" icon={<TargetIcon />} label="Readiness before opportunity" body="Understand student preparedness across four pillars before an opportunity even opens." />
           <ValueStat tint="cream" icon={<BuildingIcon />} label="Built for many colleges" body="Each college gets its own branded, isolated portal — logo, email identity, and data." />
+        </div>
+      </Section>
+
+      {/* GET THE APP */}
+      <Section id="app" alt>
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-primary-600">
+              The student app
+            </span>
+            <h2 className="mt-2.5 text-3xl font-extrabold tracking-tight text-strong">
+              CampusGo, now on Google Play
+            </h2>
+            <p className="mt-3.5 max-w-md text-sm leading-relaxed text-subtle">
+              Students run their whole placement journey from their phone — no spreadsheets, no
+              missed deadlines, no chasing the placement cell for updates.
+            </p>
+            <ul className="mt-6 grid max-w-md grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {APP_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm text-body">
+                  <span className="mt-0.5 text-success">✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <PlayStoreButton variant="dark" />
+              <Link href="/mobile" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
+                See the app in detail →
+              </Link>
+            </div>
+          </div>
+          <div className="mx-auto flex w-full max-w-md items-end justify-center gap-3 sm:gap-4">
+            <div className="w-[30%]">
+              <PhoneShot src={STUDENT_SHOTS.home.src} alt={STUDENT_SHOTS.home.alt} compact />
+            </div>
+            <div className="w-[34%] -translate-y-5">
+              <PhoneShot src={STUDENT_SHOTS.jobs.src} alt={STUDENT_SHOTS.jobs.alt} compact />
+            </div>
+            <div className="w-[30%]">
+              <PhoneShot
+                src={STUDENT_SHOTS.applications.src}
+                alt={STUDENT_SHOTS.applications.alt}
+                compact
+              />
+            </div>
+          </div>
         </div>
       </Section>
 

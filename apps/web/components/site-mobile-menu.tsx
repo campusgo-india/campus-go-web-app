@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 /** Hamburger + slide-down panel for the public site header, below `md`. */
-export function SiteMobileMenu({ links }: { links: { href: string; label: string }[] }) {
+export function SiteMobileMenu({
+  links,
+  appUrl,
+}: {
+  links: { href: string; label: string }[];
+  appUrl?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -51,6 +57,17 @@ export function SiteMobileMenu({ links }: { links: { href: string; label: string
                   {l.label}
                 </Link>
               ))}
+              {appUrl && (
+                <a
+                  href={appUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 inline-flex h-11 items-center justify-center rounded-md border border-border text-sm font-semibold text-strong hover:bg-app"
+                >
+                  Get the app on Google Play
+                </a>
+              )}
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}

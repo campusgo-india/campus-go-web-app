@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { PLAY_STORE_URL } from '../lib/site';
+import { PlayStoreButton } from './play-store-button';
 import { SiteMobileMenu } from './site-mobile-menu';
 
 const NAV_LINKS = [
@@ -15,6 +17,7 @@ const FOOTER_PRODUCT = [
   { href: '/readiness', label: 'Career Readiness' },
   { href: '/mobile', label: 'Mobile app' },
   { href: '/insights', label: 'Reports & Insights' },
+  { href: PLAY_STORE_URL, label: 'Get it on Google Play', external: true },
 ];
 
 /** Shared header across every public marketing page. */
@@ -34,13 +37,14 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <PlayStoreButton variant="compact" />
           <Link
             href="/login"
             className="hidden h-10 shrink-0 items-center rounded-md bg-gradient-primary px-4 text-sm font-semibold text-primary-foreground shadow-nav hover:opacity-95 md:inline-flex"
           >
             Login
           </Link>
-          <SiteMobileMenu links={NAV_LINKS} />
+          <SiteMobileMenu links={NAV_LINKS} appUrl={PLAY_STORE_URL} />
         </div>
       </div>
     </header>
@@ -68,15 +72,28 @@ export function SiteFooter() {
             <a href="tel:+919380508699" className="mt-1 block text-xs text-white/65 hover:text-white">
               9380508699
             </a>
+            <PlayStoreButton variant="light" className="mt-5" />
           </div>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-white/40">Product</p>
             <div className="mt-4 flex flex-col gap-2.5">
-              {FOOTER_PRODUCT.map((p) => (
-                <Link key={p.href} href={p.href} className="text-sm text-white/65 hover:text-white">
-                  {p.label}
-                </Link>
-              ))}
+              {FOOTER_PRODUCT.map((p) =>
+                'external' in p ? (
+                  <a
+                    key={p.href}
+                    href={p.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-white/65 hover:text-white"
+                  >
+                    {p.label}
+                  </a>
+                ) : (
+                  <Link key={p.href} href={p.href} className="text-sm text-white/65 hover:text-white">
+                    {p.label}
+                  </Link>
+                ),
+              )}
             </div>
           </div>
           <div>
