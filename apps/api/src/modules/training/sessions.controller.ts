@@ -3,7 +3,13 @@ import { UserRole } from '@campusgo/shared';
 import type { JwtPayload } from '@campusgo/shared';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { TrainingSessionsService } from './sessions.service';
-import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
+import {
+  CheckInDto,
+  CreateSessionDto,
+  ImportAttendanceDto,
+  MarkAttendanceDto,
+  UpdateSessionDto,
+} from './dto';
 
 @Controller('training/sessions')
 @Roles(UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_OFFICER, UserRole.TRAINING)
@@ -44,6 +50,12 @@ export class TrainingSessionsController {
     return { data: await this.sessions.remove(this.collegeId(user), id) };
   }
 
+  // Current token + check-in link for the rotating attendance QR.
+  @Get(':id/qr')
+  async qr(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return { data: await this.sessions.issueQr(this.collegeId(user), id) };
+  }
+
   @Get(':id/attendance')
   async listAttendance(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return { data: await this.sessions.listAttendance(this.collegeId(user), id) };
@@ -77,5 +89,11 @@ export class MeTrainingSessionsController {
   @Get()
   async list(@CurrentUser() user: JwtPayload) {
     return { data: await this.sessions.listForStudent(user.sub) };
+  }
+
+  // Marks the student present from a scanned attendance QR.
+  @Post('checkin')
+  async checkIn(@CurrentUser() user: JwtPayload, @Body() dto: CheckInDto) {
+    return { data: await this.sessions.checkIn(user.sub, dto) };
   }
 }

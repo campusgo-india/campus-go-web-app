@@ -261,6 +261,13 @@ export class VerifyStudentDto {
   reason?: string;
 }
 
+// The college's 10th / 12th / UG / PG marks sheet, read client-side and sent as
+// base64 (CSV text or XLSX binary; fileName's extension picks the parser).
+export class ImportAcademicMarksDto {
+  @IsString() @MinLength(1) fileBase64!: string;
+  @IsString() @MinLength(1) fileName!: string;
+}
+
 export class ImportStudentsDto {
   /** Raw CSV text. Header row required; see /students/import template. */
   @IsString()

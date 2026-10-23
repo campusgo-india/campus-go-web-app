@@ -3,6 +3,7 @@ import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient } from '@campusgo/database';
 import { checkEligibility } from '../jobs/eligibility';
 import { jobVisibleToCollege } from '../jobs/job-scope.util';
+import { hasTrainingCriteria, loadTrainingMetrics } from '../training/training-metrics';
 
 // Legacy stage-based flow's equivalent of "reached round N or later" — used
 // alongside the newer rounds/pipeline flow's ApplicationRound.round.seq so
@@ -643,6 +644,8 @@ export class AnalyticsService {
         minTenthPercentage: true,
         minTwelfthPercentage: true,
         minUgPercentage: true,
+        minTrainingAttendance: true,
+        minTrainingScore: true,
         eligibleGenders: true,
         maxActiveBacklogs: true,
         maxTotalBacklogs: true,
@@ -668,6 +671,10 @@ export class AnalyticsService {
       ).map((a) => a.studentId),
     );
 
+    const metrics = hasTrainingCriteria(jobs)
+      ? await loadTrainingMetrics(this.prisma, students.map((s) => s.id))
+      : undefined;
+
     const rows = jobs.map((j) => {
       const criteria = {
         eligibleSchools: j.eligibleSchools,
@@ -680,6 +687,9 @@ export class AnalyticsService {
         eligibleGenders: j.eligibleGenders,
         maxActiveBacklogs: j.maxActiveBacklogs,
         maxTotalBacklogs: j.maxTotalBacklogs,
+        minTrainingAttendance:
+          j.minTrainingAttendance != null ? Number(j.minTrainingAttendance) : null,
+        minTrainingScore: j.minTrainingScore != null ? Number(j.minTrainingScore) : null,
       };
       const eligibleCount = students.filter(
         (s) =>
@@ -698,6 +708,9 @@ export class AnalyticsService {
               activeBacklogs: s.activeBacklogs,
               totalBacklogs: s.totalBacklogs,
               hasResume: !!s.resume,
+              placementRestricted: s.placementRestricted,
+              trainingAttendancePct: metrics?.get(s.id)?.attendancePct ?? null,
+              trainingScorePct: metrics?.get(s.id)?.scorePct ?? null,
             },
             criteria,
           ).eligible,

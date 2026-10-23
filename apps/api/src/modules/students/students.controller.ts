@@ -20,6 +20,7 @@ import { StudentsService } from './students.service';
 import {
   CreateStudentDto,
   GraduateBatchDto,
+  ImportAcademicMarksDto,
   ImportStudentsDto,
   ListStudentsQuery,
   SetStudentStatusDto,
@@ -107,6 +108,18 @@ export class StudentsController {
     };
   }
 
+  // Placement applications + training attendance/scores for one student.
+  @Get(':id/activity')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN, UserRole.PLACEMENT_COORDINATOR)
+  async activity(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return {
+      data: await this.students.activity(this.collegeId(user), id, {
+        role: user.role,
+        userId: user.sub,
+      }),
+    };
+  }
+
   @Post()
   @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
   async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateStudentDto) {
@@ -117,6 +130,42 @@ export class StudentsController {
   @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
   async importCsv(@CurrentUser() user: JwtPayload, @Body() dto: ImportStudentsDto) {
     return { data: await this.students.importCsv(this.collegeId(user), dto) };
+  }
+
+  // College-supplied 10th / 12th / UG / PG marks (locks them against self-editing).
+  @Post('academic-marks/import')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
+  async importAcademicMarks(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ImportAcademicMarksDto,
+    @Ip() ip: string,
+  ) {
+    const result = await this.students.importAcademicMarks(this.collegeId(user), dto);
+    await this.audit.record(user, {
+      action: 'STUDENT_ACADEMIC_MARKS_IMPORT',
+      targetType: 'student',
+      metadata: { updated: result.updatedCount, errors: result.errorCount },
+      ip,
+    });
+    return { data: result };
+  }
+
+  // Lifts the apply block set when a student withdrew from a placement.
+  @Post(':id/placement-access')
+  @Roles(UserRole.PLACEMENT_OFFICER, UserRole.COLLEGE_ADMIN)
+  async allowPlacements(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Ip() ip: string,
+  ) {
+    const result = await this.students.allowPlacements(this.collegeId(user), id);
+    await this.audit.record(user, {
+      action: 'STUDENT_PLACEMENT_ACCESS_RESTORED',
+      targetType: 'student',
+      targetId: id,
+      ip,
+    });
+    return { data: result };
   }
 
   @Patch(':id')

@@ -76,7 +76,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     });
   }
 
-  if (job.minCgpa != null && student?.cgpa == null) {
+  if (job.minCgpa != null && student?.cgpa == null && !student?.academicMarksVerifiedAt) {
     fields.push({
       key: 'cgpa',
       label: 'Current percentage / CGPA',
@@ -85,7 +85,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     });
   }
 
-  if (job.minTenthPercentage != null && student?.tenthPercentage == null) {
+  if (job.minTenthPercentage != null && student?.tenthPercentage == null && !student?.academicMarksVerifiedAt) {
     fields.push({
       key: 'tenthPercentage',
       label: 'Class X percentage',
@@ -94,7 +94,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     });
   }
 
-  if (job.minTwelfthPercentage != null && student?.twelfthPercentage == null) {
+  if (job.minTwelfthPercentage != null && student?.twelfthPercentage == null && !student?.academicMarksVerifiedAt) {
     fields.push({
       key: 'twelfthPercentage',
       label: 'Class XII / Diploma percentage',
@@ -103,7 +103,7 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     });
   }
 
-  if (job.minUgPercentage != null && student?.ugPercentage == null) {
+  if (job.minUgPercentage != null && student?.ugPercentage == null && !student?.academicMarksVerifiedAt) {
     fields.push({ key: 'ugPercentage', label: 'UG percentage', type: 'number', required: true });
   }
 
@@ -111,13 +111,19 @@ export function EligibilityCheckModal({ job, open, onClose, onEligible }: Props)
     if (r === 'Resume not uploaded') return false;
     if (r === 'Gender not set') return false;
     if (r === 'Profile not verified') return false;
-    if (
-      r.startsWith('Percentage below') ||
-      r.startsWith('10th below') ||
-      r.startsWith('12th below') ||
-      r.startsWith('UG below')
-    )
-      return false;
+    // A marks shortfall is only fixable here when we're actually asking for that
+    // value (it was blank). Otherwise it's a real blocker — e.g. the student's
+    // marks are below the cut-off, or the college has locked them.
+    const marksField = r.startsWith('Percentage below')
+      ? 'cgpa'
+      : r.startsWith('10th below')
+        ? 'tenthPercentage'
+        : r.startsWith('12th below')
+          ? 'twelfthPercentage'
+          : r.startsWith('UG below')
+            ? 'ugPercentage'
+            : null;
+    if (marksField) return !fields.some((f) => f.key === marksField);
     return true;
   });
 

@@ -16,6 +16,12 @@ export interface EligibilityStudent {
   activeBacklogs: number;
   totalBacklogs: number;
   hasResume: boolean;
+  // Withdrew from a placement and not yet re-authorized by an officer.
+  placementRestricted?: boolean;
+  // Training metrics in %, null = nothing recorded yet. Only consulted when the
+  // job sets a training criterion.
+  trainingAttendancePct?: number | null;
+  trainingScorePct?: number | null;
 }
 
 export interface EligibilityJob {
@@ -29,6 +35,8 @@ export interface EligibilityJob {
   eligibleGenders: string[];
   maxActiveBacklogs: number | null;
   maxTotalBacklogs: number | null;
+  minTrainingAttendance?: number | null;
+  minTrainingScore?: number | null;
 }
 
 export interface EligibilityResult {
@@ -47,6 +55,9 @@ function runEligibilityChecks(
     reasons.push('Profile not verified');
   }
   if (student.isPlaced) reasons.push('Already placed');
+  if (student.placementRestricted) {
+    reasons.push('Withdrew from a placement — ask your placement officer to re-enable applications');
+  }
   // School / programme / gender comparisons are case-insensitive and tolerate whitespace.
   // Empty arrays mean "no filter" (common for quick/no-criteria jobs).
   const schools = job.eligibleSchools ?? [];
@@ -102,6 +113,20 @@ function runEligibilityChecks(
   }
   if (job.maxTotalBacklogs != null && student.totalBacklogs > job.maxTotalBacklogs) {
     reasons.push('Too many total backlogs');
+  }
+  if (job.minTrainingAttendance != null) {
+    const pct = student.trainingAttendancePct;
+    if (pct == null) reasons.push('No training attendance recorded');
+    else if (pct < job.minTrainingAttendance) {
+      reasons.push(`Training attendance below ${job.minTrainingAttendance}%`);
+    }
+  }
+  if (job.minTrainingScore != null) {
+    const pct = student.trainingScorePct;
+    if (pct == null) reasons.push('No training scores recorded');
+    else if (pct < job.minTrainingScore) {
+      reasons.push(`Training score below ${job.minTrainingScore}%`);
+    }
   }
   if (options.requireResume && !student.hasResume) {
     reasons.push('Resume not uploaded');

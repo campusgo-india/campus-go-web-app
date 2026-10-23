@@ -4,8 +4,10 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, Card } from '@campusgo/ui';
 import { DetailSkeleton } from '../../../../components/page-skeleton';
+import { StudentActivityPanel } from '../../../../components/student-activity';
 import {
   academicYearOptions,
+  allowStudentPlacements,
   getStudent,
   setStudentActive,
   updateStudent,
@@ -45,6 +47,19 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
       setStudent({ ...student, isActive: res.isActive });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function allowPlacements() {
+    if (!student) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setStudent(await allowStudentPlacements(student.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not re-enable placements');
     } finally {
       setBusy(false);
     }
@@ -103,6 +118,24 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
       </header>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      {student.placementRestricted && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border border-warning/40 bg-warning/5 p-4">
+          <div>
+            <p className="text-sm font-semibold text-strong">Blocked from placements</p>
+            <p className="text-xs text-subtle">
+              This student withdrew from a drive
+              {student.placementRestrictedAt
+                ? ` on ${new Date(student.placementRestrictedAt).toLocaleDateString()}`
+                : ''}{' '}
+              and can&apos;t apply to other jobs until you allow it.
+            </p>
+          </div>
+          <Button onClick={allowPlacements} disabled={busy}>
+            {busy ? 'Saving…' : 'Allow placements'}
+          </Button>
+        </Card>
+      )}
 
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between">
@@ -219,6 +252,14 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
             )}
           </div>
         </div>
+
+        {student.academicMarksVerifiedAt && !editing && (
+          <p className="rounded-md bg-tint-mint px-3 py-2 text-xs text-tint-mint-fg">
+            10th / 12th / UG / PG marks were uploaded by the college on{' '}
+            {new Date(student.academicMarksVerifiedAt).toLocaleDateString()} and can&apos;t be edited
+            by the student.
+          </p>
+        )}
 
         {editing ? (
           <EditStudentForm
@@ -349,6 +390,8 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </Card>
+
+      <StudentActivityPanel studentId={student.id} />
     </div>
   );
 }

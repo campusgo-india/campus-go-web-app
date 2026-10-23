@@ -110,9 +110,17 @@ export default function SessionAttendancePage({ params }: { params: Promise<{ id
             {session.pillar ? ` · ${PILLAR_LABEL[session.pillar]}` : ''}
           </p>
         </div>
-        <Link href="/training/sessions" className="shrink-0 text-sm text-primary-600 hover:underline">
-          Back to sessions
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Link href="/training/sessions" className="text-sm text-primary-600 hover:underline">
+            Back to sessions
+          </Link>
+          <Link
+            href={`/training/sessions/${id}/qr`}
+            className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+          >
+            Show attendance QR
+          </Link>
+        </div>
       </div>
 
       <Card className="space-y-3 p-6">

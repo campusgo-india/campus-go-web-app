@@ -2,6 +2,7 @@
 
 import type { StepCompletion } from '@campusgo/shared';
 import { api, apiList, API_URL, getAccessToken, tryRefresh } from './api';
+import { fileToBase64 } from './training';
 
 /** Academic-year session options ("2026-27"), auto-suggested around the
  * current year — 2 years back through 3 years ahead, covers a typical
@@ -81,6 +82,11 @@ export interface Student {
   higherStudiesPlanned: boolean | null;
   entrepreneurshipInterest: boolean | null;
   registeredForPlacements: boolean;
+  // Withdrew from a placement; blocked from applying until an officer allows it.
+  placementRestricted: boolean;
+  placementRestrictedAt: string | null;
+  // Set once the college uploads the 10th/12th/UG/PG marks (locks them for the student).
+  academicMarksVerifiedAt: string | null;
   verificationStatus: string;
   verifiedAt: string | null;
   rejectionReason: string | null;
@@ -280,6 +286,68 @@ export function verifyStudent(
   return api(`/students/${id}/verify`, {
     method: 'POST',
     body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
+  });
+}
+
+/** Re-enables applications for a student who withdrew from a placement. */
+export function allowStudentPlacements(id: string): Promise<Student> {
+  return api(`/students/${id}/placement-access`, { method: 'POST' });
+}
+
+export interface StudentActivity {
+  placement: {
+    applications: Array<{
+      id: string;
+      jobId: string;
+      jobTitle: string;
+      company: string;
+      status: string;
+      stage: string;
+      appliedAt: string;
+      offerCtc: number | null;
+      hasOfferLetter: boolean;
+      rejectionReason: string | null;
+      rounds: Array<{ title: string; seq: number; outcome: string; attended: boolean | null }>;
+    }>;
+  };
+  training: {
+    attendancePct: number | null;
+    scorePct: number | null;
+    attendance: Array<{
+      sessionId: string;
+      title: string;
+      pillar: string | null;
+      startsAt: string;
+      present: boolean;
+    }>;
+    scores: Array<{
+      assessmentId: string;
+      name: string;
+      pillar: string;
+      phase: string;
+      maxMarks: number;
+      marksObtained: number;
+    }>;
+  };
+}
+
+/** One student's placement applications + training attendance/scores. */
+export function getStudentActivity(id: string): Promise<StudentActivity> {
+  return api(`/students/${id}/activity`);
+}
+
+export interface AcademicMarksImportResult {
+  updatedCount: number;
+  errorCount: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
+/** College-supplied 10th / 12th / UG / PG marks sheet (CSV or XLSX). */
+export async function importAcademicMarks(file: File): Promise<AcademicMarksImportResult> {
+  const fileBase64 = await fileToBase64(file);
+  return api('/students/academic-marks/import', {
+    method: 'POST',
+    body: JSON.stringify({ fileBase64, fileName: file.name }),
   });
 }
 

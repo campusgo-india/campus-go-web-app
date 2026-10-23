@@ -1,12 +1,28 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHmac, timingSafeEqual } from 'crypto';
 import ExcelJS from 'exceljs';
 import { PRISMA } from '../../common/prisma.module';
 import type { PrismaClient, TrainingSession } from '@campusgo/database';
-import { CreateSessionDto, ImportAttendanceDto, MarkAttendanceDto, UpdateSessionDto } from './dto';
+import {
+  CheckInDto,
+  CreateSessionDto,
+  ImportAttendanceDto,
+  MarkAttendanceDto,
+  UpdateSessionDto,
+} from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import { cellText, normalizeHeader, pick, ROLL_NUMBER_KEYS } from './import-utils';
+
+// Dynamic attendance QR: the code carries a signed token that changes every
+// window, so a screenshot shared to a classmate who isn't in the room stops
+// working within a minute or so. Scans are accepted for the current window and
+// the two before it (covers slow scans and clock drift).
+const QR_WINDOW_MS = 30_000;
+const QR_GRACE_WINDOWS = 2;
+// Check-in opens an hour before the session starts and closes an hour after it ends.
+const CHECKIN_MARGIN_MS = 60 * 60 * 1000;
 
 function toPublic(s: TrainingSession) {
   return {
@@ -314,6 +330,87 @@ export class TrainingSessionsService {
     });
 
     return { updatedCount: upserts.length, errorCount: errors.length, errors };
+  }
+
+  // ─────────────── Dynamic QR attendance ───────────────
+
+  private qrSignature(sessionId: string, windowIdx: number): string {
+    const secret = this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
+    return createHmac('sha256', `${secret}:attendance-qr`)
+      .update(`${sessionId}.${windowIdx}`)
+      .digest('base64url')
+      .slice(0, 24);
+  }
+
+  // Officer: the current token for the session's QR (the screen re-fetches it
+  // every window). The QR itself encodes a /me/training/checkin link.
+  async issueQr(collegeId: string, id: string) {
+    const session = await this.findOneOrThrow(collegeId, id);
+    if (session.status === 'CANCELLED') {
+      throw new BadRequestException('This session is cancelled');
+    }
+    const windowIdx = Math.floor(Date.now() / QR_WINDOW_MS);
+    return {
+      sessionId: session.id,
+      token: `${windowIdx}.${this.qrSignature(session.id, windowIdx)}`,
+      windowMs: QR_WINDOW_MS,
+      expiresAt: new Date((windowIdx + 1) * QR_WINDOW_MS).toISOString(),
+      checkinUrl: `${this.webOrigin()}/me/training/checkin?s=${session.id}&t=${windowIdx}.${this.qrSignature(session.id, windowIdx)}`,
+    };
+  }
+
+  // Student: marks themselves present by presenting a valid, current token.
+  async checkIn(userId: string, dto: CheckInDto) {
+    const student = await this.studentForUser(userId);
+    const batchIds = await this.myBatchIds(student.id);
+    const session = await this.prisma.trainingSession.findFirst({
+      where: {
+        id: dto.sessionId,
+        collegeId: student.collegeId,
+        ...visibilityFilter(student.school, student.programme, batchIds),
+      },
+    });
+    if (!session) throw new NotFoundException('Training session not found');
+    if (session.status === 'CANCELLED') throw new BadRequestException('This session is cancelled');
+
+    const now = Date.now();
+    if (
+      now < session.startsAt.getTime() - CHECKIN_MARGIN_MS ||
+      now > session.endsAt.getTime() + CHECKIN_MARGIN_MS
+    ) {
+      throw new BadRequestException('Check-in is not open for this session');
+    }
+
+    const expired = new BadRequestException(
+      'This QR code has expired — scan the code currently on the screen.',
+    );
+    const [windowRaw, sig = ''] = dto.token.split('.');
+    const windowIdx = Number(windowRaw);
+    const current = Math.floor(now / QR_WINDOW_MS);
+    if (!Number.isInteger(windowIdx) || current - windowIdx < 0 || current - windowIdx > QR_GRACE_WINDOWS) {
+      throw expired;
+    }
+    const expectedBuf = Buffer.from(this.qrSignature(session.id, windowIdx));
+    const gotBuf = Buffer.from(sig);
+    if (expectedBuf.length !== gotBuf.length || !timingSafeEqual(expectedBuf, gotBuf)) {
+      throw expired;
+    }
+
+    const existing = await this.prisma.trainingAttendance.findUnique({
+      where: { sessionId_studentId: { sessionId: session.id, studentId: student.id } },
+    });
+    await this.prisma.trainingAttendance.upsert({
+      where: { sessionId_studentId: { sessionId: session.id, studentId: student.id } },
+      create: {
+        collegeId: student.collegeId,
+        sessionId: session.id,
+        studentId: student.id,
+        present: true,
+        markedById: userId,
+      },
+      update: { present: true, markedById: userId },
+    });
+    return { success: true, sessionTitle: session.title, alreadyMarked: existing?.present === true };
   }
 
   // ─────────────── Student (self) ───────────────

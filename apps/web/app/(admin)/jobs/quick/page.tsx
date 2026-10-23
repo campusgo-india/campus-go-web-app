@@ -55,6 +55,8 @@ export default function QuickPostPage() {
     minTwelfth: '', // min 12th %
     minUg: '', // min UG %  (undergrad)
     minPg: '', // min PG %  (current/postgrad — student's Percentage)
+    minTrainingAttendance: '', // min training attendance %
+    minTrainingScore: '', // min training score %
   });
   const setD =
     (k: keyof typeof details) =>
@@ -102,7 +104,11 @@ export default function QuickPostPage() {
   const eligibleProgrammes = hasCatalog ? pickedProgrammes : splitList(programmesText);
 
   const valid =
-    title.trim() && eligibleSchools.length && gradYears.length > 0 && details.ctc.trim() !== '';
+    title.trim() &&
+    eligibleSchools.length &&
+    gradYears.length > 0 &&
+    details.ctc.trim() !== '' &&
+    deadline !== '';
 
   async function submit(publish: boolean) {
     setSaving(publish ? 'publish' : 'draft');
@@ -135,12 +141,12 @@ export default function QuickPostPage() {
         minCgpa: num(details.minPg), // PG/current % → student.cgpa (their Percentage)
         minUgPercentage: num(details.minUg), // UG % → student.ugPercentage
         minTenthPercentage: num(details.minTenth),
+        minTrainingAttendance: num(details.minTrainingAttendance),
+        minTrainingScore: num(details.minTrainingScore),
         minTwelfthPercentage: num(details.minTwelfth),
         applicationFormFields: formFields.length > 0 ? cleanFields(formFields) : undefined,
-        // Optional time; defaults to end of that day (23:59) if left blank.
-        applicationDeadline: deadline
-          ? new Date(`${deadline}T${deadlineTime || '23:59'}:00`).toISOString()
-          : undefined,
+        // Time is optional; defaults to end of that day (23:59) if left blank.
+        applicationDeadline: new Date(`${deadline}T${deadlineTime || '23:59'}:00`).toISOString(),
       });
       // Publish straight away (notifies students) or leave as a draft.
       if (publish) await publishJob(job.id);
@@ -292,7 +298,7 @@ export default function QuickPostPage() {
             <Field label="Graduation years *">
               <ChipPicker options={GRAD_YEARS} selected={gradYears} onToggle={toggleGradYear} />
             </Field>
-            <Field label="Last date to apply">
+            <Field label="Last date to apply *">
               <div className="flex gap-2">
                 <input
                   className={inputCls}
@@ -390,6 +396,36 @@ export default function QuickPostPage() {
                   min="0"
                 />
               </Field>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-strong">Training eligibility (optional)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Min training attendance %">
+                  <input
+                    className={inputCls}
+                    type="number"
+                    value={details.minTrainingAttendance}
+                    onChange={setD('minTrainingAttendance')}
+                    placeholder="75"
+                    min="0"
+                    max="100"
+                  />
+                </Field>
+                <Field label="Min training score %">
+                  <input
+                    className={inputCls}
+                    type="number"
+                    value={details.minTrainingScore}
+                    onChange={setD('minTrainingScore')}
+                    placeholder="60"
+                    min="0"
+                    max="100"
+                  />
+                </Field>
+              </div>
+              <span className="text-xs text-subtle">
+                Checked against the student&apos;s recorded training sessions and assessment scores.
+              </span>
             </div>
           </div>
         </div>

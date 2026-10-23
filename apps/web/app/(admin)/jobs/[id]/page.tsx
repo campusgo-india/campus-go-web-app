@@ -405,6 +405,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 value={job.minUgPercentage != null ? `${job.minUgPercentage}%` : 'Any'}
               />
               <Criteria label="Min PG %" value={job.minCgpa != null ? `${job.minCgpa}%` : 'Any'} />
+              {job.minTrainingAttendance != null && (
+                <Criteria label="Min training attendance" value={`${job.minTrainingAttendance}%`} />
+              )}
+              {job.minTrainingScore != null && (
+                <Criteria label="Min training score" value={`${job.minTrainingScore}%`} />
+              )}
             </dl>
           </Card>
 

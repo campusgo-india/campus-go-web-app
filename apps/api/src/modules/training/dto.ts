@@ -65,6 +65,12 @@ export class ImportScoresDto {
   @IsString() @MinLength(1) fileName!: string;
 }
 
+// A student's QR check-in: the session id and rotating token from the scanned code.
+export class CheckInDto {
+  @IsString() @MinLength(1) sessionId!: string;
+  @IsString() @MinLength(1) token!: string;
+}
+
 export class CreateSessionDto {
   @IsString() @MinLength(2) title!: string;
   @IsOptional() @IsEnum(TrainingPillar) pillar?: TrainingPillar;

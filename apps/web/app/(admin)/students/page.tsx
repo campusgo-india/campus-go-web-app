@@ -452,6 +452,9 @@ function StudentsList() {
               <Link href="/students/import">
                 <Button variant="ghost">Import CSV</Button>
               </Link>
+              <Link href="/students/academic-marks">
+                <Button variant="ghost">Upload marks</Button>
+              </Link>
               <Link href="/students/new">
                 <Button>Add student</Button>
               </Link>

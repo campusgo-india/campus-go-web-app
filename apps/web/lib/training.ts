@@ -271,7 +271,7 @@ export interface OfficerTrainingDashboard {
 }
 
 /** Reads a File into a base64 string (strips the data: URL prefix). */
-async function fileToBase64(file: File): Promise<string> {
+export async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   let binary = '';
   const bytes = new Uint8Array(buffer);
@@ -339,6 +339,25 @@ export const markAttendance = (sessionId: string, rows: Array<{ studentId: strin
     method: 'POST',
     body: JSON.stringify({ rows }),
   });
+
+export interface SessionQr {
+  sessionId: string;
+  token: string;
+  windowMs: number;
+  expiresAt: string;
+  checkinUrl: string;
+}
+
+/** Officer: the current rotating token + check-in link for a session's QR. */
+export const getSessionQr = (sessionId: string) =>
+  api<SessionQr>(`/training/sessions/${sessionId}/qr`);
+
+/** Student: mark yourself present from a scanned attendance QR. */
+export const checkInToSession = (sessionId: string, token: string) =>
+  api<{ success: boolean; sessionTitle: string; alreadyMarked: boolean }>(
+    '/me/training/sessions/checkin',
+    { method: 'POST', body: JSON.stringify({ sessionId, token }) },
+  );
 
 export async function importAttendance(sessionId: string, file: File): Promise<ImportResult> {
   const fileBase64 = await fileToBase64(file);

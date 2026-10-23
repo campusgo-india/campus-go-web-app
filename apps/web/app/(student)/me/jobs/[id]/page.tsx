@@ -327,6 +327,12 @@ export default function StudentJobDetailPage({ params }: { params: Promise<{ id:
             <Row label="Min UG %" value={`${job.minUgPercentage}%`} />
           )}
           {job.minCgpa != null && <Row label="Min PG %" value={`${job.minCgpa}%`} />}
+          {job.minTrainingAttendance != null && (
+            <Row label="Min training attendance" value={`${job.minTrainingAttendance}%`} />
+          )}
+          {job.minTrainingScore != null && (
+            <Row label="Min training score" value={`${job.minTrainingScore}%`} />
+          )}
         </dl>
       </Card>
 

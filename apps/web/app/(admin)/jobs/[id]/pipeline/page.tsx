@@ -33,6 +33,7 @@ import {
   type RecruitmentProgress,
   type RoundType,
 } from '../../../../../lib/rounds';
+import { PasteRegNumbers } from '../../../../../components/paste-reg-numbers';
 
 const PROGRESS_TINT: Record<RecruitmentProgress, 'lavender' | 'mint' | 'cream' | 'rose' | 'primary'> = {
   DRAFT: 'lavender',
@@ -518,6 +519,15 @@ function RoundView({
         )}
       </div>
 
+      {open && round.participants.length > 0 && (
+        <PasteRegNumbers
+          candidates={round.participants.map((p) => ({ id: p.applicationId, rollNumber: p.rollNumber }))}
+          picked={picked}
+          setPicked={setPicked}
+          actionLabel="Mark these as shortlisted"
+        />
+      )}
+
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-border bg-app text-xs uppercase text-subtle">
@@ -748,6 +758,13 @@ function FinalistsTable({
 
   return (
     <div className="space-y-3">
+      {!readOnly && (
+        <PasteRegNumbers
+          candidates={people.map((p) => ({ id: p.applicationId, rollNumber: p.rollNumber }))}
+          picked={picked}
+          setPicked={setPicked}
+        />
+      )}
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-border bg-app text-xs uppercase text-subtle">

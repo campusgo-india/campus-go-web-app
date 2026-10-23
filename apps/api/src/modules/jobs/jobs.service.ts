@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { hasTrainingCriteria, loadTrainingMetrics, type TrainingMetrics } from '../training/training-metrics';
 import { ConfigService } from '@nestjs/config';
 import { PRISMA } from '../../common/prisma.module';
 import { Prisma } from '@campusgo/database';
@@ -135,6 +136,8 @@ export class JobsService {
       minTenthPercentage,
       minTwelfthPercentage,
       minUgPercentage,
+      minTrainingAttendance,
+      minTrainingScore,
       applicationDeadline,
       applicationFormFields,
       ...rest
@@ -151,6 +154,8 @@ export class JobsService {
         minTenthPercentage: this.decimalOrNull(minTenthPercentage),
         minTwelfthPercentage: this.decimalOrNull(minTwelfthPercentage),
         minUgPercentage: this.decimalOrNull(minUgPercentage),
+        minTrainingAttendance: this.decimalOrNull(minTrainingAttendance),
+        minTrainingScore: this.decimalOrNull(minTrainingScore),
         applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
         ...(applicationFormFields !== undefined
           ? { applicationFormFields: applicationFormFields as unknown as Prisma.InputJsonValue }
@@ -228,9 +233,12 @@ export class JobsService {
 
     // Eligible headcount per job on this page — verified students matched
     // against each job's criteria (same rule as GET :id/eligible-students).
+    const listMetrics = hasTrainingCriteria(jobs)
+      ? await loadTrainingMetrics(this.prisma, verifiedStudents.map((s) => s.id))
+      : undefined;
     const eligibleStudentModels = verifiedStudents.map((s) => ({
       s,
-      model: toEligibilityStudent(s, placedIds.has(s.id)),
+      model: toEligibilityStudent(s, placedIds.has(s.id), listMetrics?.get(s.id)),
     }));
     const eligibleCountById = new Map<string, number>(
       jobs.map((j) => {
@@ -291,6 +299,8 @@ export class JobsService {
       minTenthPercentage,
       minTwelfthPercentage,
       minUgPercentage,
+      minTrainingAttendance,
+      minTrainingScore,
       applicationDeadline,
       applicationFormFields,
       ...rest
@@ -310,6 +320,12 @@ export class JobsService {
           : {}),
         ...(minUgPercentage !== undefined
           ? { minUgPercentage: this.decimalOrNull(minUgPercentage) }
+          : {}),
+        ...(minTrainingAttendance !== undefined
+          ? { minTrainingAttendance: this.decimalOrNull(minTrainingAttendance) }
+          : {}),
+        ...(minTrainingScore !== undefined
+          ? { minTrainingScore: this.decimalOrNull(minTrainingScore) }
           : {}),
         ...(applicationDeadline !== undefined
           ? { applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null }
@@ -463,6 +479,19 @@ export class JobsService {
     return this.placementPolicy.restrictedStudentIds(collegeId);
   }
 
+  // One student's eligibility model: offer-limit "placed" flag plus, only when
+  // one of the jobs sets a training criterion, their training metrics.
+  private async eligibilityModel(
+    student: Parameters<typeof toEligibilityStudent>[0] & { id: string; collegeId: string },
+    jobs: Array<{ minTrainingAttendance?: unknown; minTrainingScore?: unknown }>,
+  ): Promise<EligibilityStudent> {
+    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
+    const metrics = hasTrainingCriteria(jobs)
+      ? (await loadTrainingMetrics(this.prisma, [student.id])).get(student.id)
+      : undefined;
+    return toEligibilityStudent(student, isPlaced, metrics);
+  }
+
   private async isStudentPlaced(collegeId: string, studentId: string) {
     return this.placementPolicy.isRestricted(collegeId, studentId);
   }
@@ -493,10 +522,16 @@ export class JobsService {
 
     const placedStudentIds = await this.placedStudentIds(collegeId);
     const criteria = toEligibilityJob(job);
+    const metrics = hasTrainingCriteria([job])
+      ? await loadTrainingMetrics(this.prisma, students.map((s) => s.id))
+      : undefined;
     return students
       .filter(
         (s) =>
-          checkEligibility(toEligibilityStudent(s, placedStudentIds.has(s.id)), criteria).eligible,
+          checkEligibility(
+            toEligibilityStudent(s, placedStudentIds.has(s.id), metrics?.get(s.id)),
+            criteria,
+          ).eligible,
       )
       .map((s) => ({
         id: s.id,
@@ -579,6 +614,8 @@ export class JobsService {
       minTenthPercentage,
       minTwelfthPercentage,
       minUgPercentage,
+      minTrainingAttendance,
+      minTrainingScore,
       applicationDeadline,
       applicationFormFields,
       ...rest
@@ -598,6 +635,8 @@ export class JobsService {
         minTenthPercentage: this.decimalOrNull(minTenthPercentage),
         minTwelfthPercentage: this.decimalOrNull(minTwelfthPercentage),
         minUgPercentage: this.decimalOrNull(minUgPercentage),
+        minTrainingAttendance: this.decimalOrNull(minTrainingAttendance),
+        minTrainingScore: this.decimalOrNull(minTrainingScore),
         applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
         ...(applicationFormFields !== undefined
           ? { applicationFormFields: applicationFormFields as unknown as Prisma.InputJsonValue }
@@ -655,6 +694,8 @@ export class JobsService {
       minTenthPercentage,
       minTwelfthPercentage,
       minUgPercentage,
+      minTrainingAttendance,
+      minTrainingScore,
       applicationDeadline,
       applicationFormFields,
       ...rest
@@ -674,6 +715,12 @@ export class JobsService {
           : {}),
         ...(minUgPercentage !== undefined
           ? { minUgPercentage: this.decimalOrNull(minUgPercentage) }
+          : {}),
+        ...(minTrainingAttendance !== undefined
+          ? { minTrainingAttendance: this.decimalOrNull(minTrainingAttendance) }
+          : {}),
+        ...(minTrainingScore !== undefined
+          ? { minTrainingScore: this.decimalOrNull(minTrainingScore) }
           : {}),
         ...(applicationDeadline !== undefined
           ? { applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null }
@@ -761,8 +808,7 @@ export class JobsService {
       jobs.push(j);
     }
 
-    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
-    const me = toEligibilityStudent(student, isPlaced);
+    const me = await this.eligibilityModel(student, jobs);
 
     const myApps = await this.prisma.application.findMany({
       where: { studentId: student.id, jobId: { in: jobs.map((j) => j.id) } },
@@ -807,8 +853,7 @@ export class JobsService {
       where: { status: 'PUBLISHED', ...this.visibleToCollege(student.collegeId) },
     });
 
-    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
-    const me = toEligibilityStudent(student, isPlaced);
+    const me = await this.eligibilityModel(student, jobs);
 
     const myApps = await this.prisma.application.findMany({
       where: { studentId: student.id, jobId: { in: jobs.map((j) => j.id) } },
@@ -847,9 +892,8 @@ export class JobsService {
       throw new NotFoundException('Job not found');
     }
 
-    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
     const { eligible, reasons } = checkApplyEligibility(
-      toEligibilityStudent(student, isPlaced),
+      await this.eligibilityModel(student, [job]),
       toEligibilityJob(job),
     );
 
@@ -876,9 +920,8 @@ export class JobsService {
     }
 
     // Re-validate eligibility server-side — the feed is not the authority.
-    const isPlaced = await this.isStudentPlaced(student.collegeId, student.id);
     const { eligible, reasons } = checkApplyEligibility(
-      toEligibilityStudent(student, isPlaced),
+      await this.eligibilityModel(student, [job]),
       toEligibilityJob(job),
     );
     if (!eligible) throw new ForbiddenException(`Not eligible: ${reasons.join(', ')}`);
@@ -956,6 +999,8 @@ export class JobsService {
     minTenthPercentage: Prisma.Decimal | null;
     minTwelfthPercentage: Prisma.Decimal | null;
     minUgPercentage: Prisma.Decimal | null;
+    minTrainingAttendance: Prisma.Decimal | null;
+    minTrainingScore: Prisma.Decimal | null;
     eligibleGenders: string[];
     maxActiveBacklogs: number | null;
     maxTotalBacklogs: number | null;
@@ -997,6 +1042,9 @@ export class JobsService {
       minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,
       minTwelfthPercentage: j.minTwelfthPercentage != null ? Number(j.minTwelfthPercentage) : null,
       minUgPercentage: j.minUgPercentage != null ? Number(j.minUgPercentage) : null,
+      minTrainingAttendance:
+        j.minTrainingAttendance != null ? Number(j.minTrainingAttendance) : null,
+      minTrainingScore: j.minTrainingScore != null ? Number(j.minTrainingScore) : null,
       eligibleGenders: j.eligibleGenders,
       maxActiveBacklogs: j.maxActiveBacklogs,
       maxTotalBacklogs: j.maxTotalBacklogs,
@@ -1050,8 +1098,10 @@ function toEligibilityStudent(
     activeBacklogs: number;
     totalBacklogs: number;
     resume?: { id: string } | null;
+    placementRestricted?: boolean;
   },
   isPlaced: boolean,
+  metrics?: TrainingMetrics,
 ): EligibilityStudent {
   return {
     verificationStatus: s.verificationStatus,
@@ -1067,6 +1117,9 @@ function toEligibilityStudent(
     activeBacklogs: s.activeBacklogs,
     totalBacklogs: s.totalBacklogs,
     hasResume: !!s.resume,
+    placementRestricted: s.placementRestricted ?? false,
+    trainingAttendancePct: metrics?.attendancePct ?? null,
+    trainingScorePct: metrics?.scorePct ?? null,
   };
 }
 
@@ -1095,6 +1148,8 @@ function toEligibilityJob(j: {
   minTenthPercentage: Prisma.Decimal | null;
   minTwelfthPercentage: Prisma.Decimal | null;
   minUgPercentage: Prisma.Decimal | null;
+  minTrainingAttendance: Prisma.Decimal | null;
+  minTrainingScore: Prisma.Decimal | null;
   eligibleGenders: string[];
   maxActiveBacklogs: number | null;
   maxTotalBacklogs: number | null;
@@ -1107,6 +1162,9 @@ function toEligibilityJob(j: {
     minTenthPercentage: j.minTenthPercentage != null ? Number(j.minTenthPercentage) : null,
     minTwelfthPercentage: j.minTwelfthPercentage != null ? Number(j.minTwelfthPercentage) : null,
     minUgPercentage: j.minUgPercentage != null ? Number(j.minUgPercentage) : null,
+    minTrainingAttendance:
+      j.minTrainingAttendance != null ? Number(j.minTrainingAttendance) : null,
+    minTrainingScore: j.minTrainingScore != null ? Number(j.minTrainingScore) : null,
     eligibleGenders: j.eligibleGenders ?? [],
     maxActiveBacklogs: j.maxActiveBacklogs,
     maxTotalBacklogs: j.maxTotalBacklogs,

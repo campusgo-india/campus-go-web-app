@@ -34,11 +34,14 @@ function detailsStatus(s: {
   if (s.cgpa == null && s.ugPercentage == null) missing.push('Degree %');
   return { complete: missing.length === 0, missing };
 }
+import { parseTabularFile, pickExact, ROLL_NUMBER_KEYS } from '../training/import-utils';
+import { loadTrainingMetrics } from '../training/training-metrics';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
 import { renderFormalEmail, COLLEGE_NAME_TOKEN } from '../notifications/email-templates';
 import {
   CreateStudentDto,
+  ImportAcademicMarksDto,
   ImportStudentsDto,
   ListStudentsQuery,
   UpdateOwnProfileDto,
@@ -874,6 +877,194 @@ export class StudentsService {
     return this.publicStudent(updated);
   }
 
+  // One student's placement + training record in one place, for counselling and
+  // review meetings: every application with its round outcomes, training
+  // attendance session by session, and assessment scores.
+  async activity(collegeId: string, id: string, viewer?: Viewer) {
+    await this.findOne(collegeId, id, viewer); // same scoping / 404 rules as the profile
+    const [applications, attendance, scores, metrics] = await Promise.all([
+      this.prisma.application.findMany({
+        where: { studentId: id, collegeId },
+        orderBy: { appliedAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          stage: true,
+          appliedAt: true,
+          offerCtc: true,
+          offerLetterUrl: true,
+          rejectionReason: true,
+          job: {
+            select: {
+              id: true,
+              title: true,
+              companyName: true,
+              company: { select: { name: true } },
+            },
+          },
+          rounds: {
+            select: { outcome: true, attended: true, round: { select: { title: true, seq: true } } },
+            orderBy: { round: { seq: 'asc' } },
+          },
+        },
+      }),
+      this.prisma.trainingAttendance.findMany({
+        where: { studentId: id, collegeId },
+        select: {
+          present: true,
+          session: { select: { id: true, title: true, pillar: true, startsAt: true } },
+        },
+      }),
+      this.prisma.assessmentScore.findMany({
+        where: { studentId: id, collegeId },
+        select: {
+          marksObtained: true,
+          assessment: { select: { id: true, name: true, pillar: true, phase: true, maxMarks: true } },
+        },
+      }),
+      loadTrainingMetrics(this.prisma, [id]),
+    ]);
+    const m = metrics.get(id);
+    return {
+      placement: {
+        applications: applications.map((a) => ({
+          id: a.id,
+          jobId: a.job.id,
+          jobTitle: a.job.title,
+          company: a.job.company?.name ?? a.job.companyName ?? 'Unknown',
+          status: a.status,
+          stage: a.stage,
+          appliedAt: a.appliedAt,
+          offerCtc: a.offerCtc != null ? Number(a.offerCtc) : null,
+          hasOfferLetter: !!a.offerLetterUrl,
+          rejectionReason: a.rejectionReason,
+          rounds: a.rounds.map((r) => ({
+            title: r.round.title,
+            seq: r.round.seq,
+            outcome: r.outcome,
+            attended: r.attended,
+          })),
+        })),
+      },
+      training: {
+        attendancePct: m?.attendancePct ?? null,
+        scorePct: m?.scorePct ?? null,
+        attendance: attendance
+          .map((a) => ({
+            sessionId: a.session.id,
+            title: a.session.title,
+            pillar: a.session.pillar,
+            startsAt: a.session.startsAt,
+            present: a.present,
+          }))
+          .sort((x, y) => y.startsAt.getTime() - x.startsAt.getTime()),
+        scores: scores.map((s) => ({
+          assessmentId: s.assessment.id,
+          name: s.assessment.name,
+          pillar: s.assessment.pillar,
+          phase: s.assessment.phase,
+          maxMarks: s.assessment.maxMarks,
+          marksObtained: Number(s.marksObtained),
+        })),
+      },
+    };
+  }
+
+  // Re-enables applications for a student who withdrew from a placement.
+  async allowPlacements(collegeId: string, id: string) {
+    const student = await this.prisma.student.findFirst({ where: { id, collegeId } });
+    if (!student) throw new NotFoundException('Student not found');
+    if (!student.placementRestricted) {
+      throw new BadRequestException('This student is not restricted');
+    }
+    const updated = await this.prisma.student.update({
+      where: { id },
+      data: { placementRestricted: false, placementRestrictedAt: null },
+      include: { user: true, resume: { select: { fileUrl: true } } },
+    });
+    await this.notifications.notify({
+      userId: updated.userId,
+      collegeId,
+      type: 'GENERAL',
+      title: 'Placements re-enabled',
+      body: 'Your placement officer has re-enabled your access. You can apply to jobs again.',
+      link: '/me/jobs',
+    });
+    return this.publicStudent(updated);
+  }
+
+  // The college's own 10th / 12th / UG / PG marks, so students can't self-report
+  // them. Columns: Roll No, 10th %, 12th %, UG %, PG %. A blank cell leaves that
+  // value unchanged; PG % is stored as the student's main "Percentage" (cgpa).
+  // Every matched student's marks are locked against self-editing afterwards.
+  async importAcademicMarks(collegeId: string, dto: ImportAcademicMarksDto) {
+    const rows = await parseTabularFile(Buffer.from(dto.fileBase64, 'base64'), dto.fileName);
+    if (rows.length === 0) throw new BadRequestException('File has no data rows');
+
+    const COLUMNS = {
+      tenthPercentage: ['10th', '10thpercentage', '10thmarks', '10thmark', 'tenth', 'tenthpercentage', 'classx'],
+      twelfthPercentage: ['12th', '12thpercentage', '12thmarks', '12thmark', 'twelfth', 'twelfthpercentage', 'classxii', 'plus2', 'hsc'],
+      ugPercentage: ['ug', 'ugpercentage', 'ugmarks', 'ugmark', 'undergraduate', 'degree'],
+      cgpa: ['pg', 'pgpercentage', 'pgmarks', 'pgmark', 'postgraduate'],
+    } as const;
+
+    const rollNumbers = rows.map((r) => pickExact(r.cells, ROLL_NUMBER_KEYS)).filter(Boolean);
+    const students = await this.prisma.student.findMany({
+      where: { collegeId, rollNumber: { in: rollNumbers } },
+    });
+    const byRoll = new Map(students.map((s) => [s.rollNumber, s]));
+
+    const errors: Array<{ row: number; message: string }> = [];
+    let updatedCount = 0;
+    for (const { row, cells } of rows) {
+      const roll = pickExact(cells, ROLL_NUMBER_KEYS);
+      if (!roll) {
+        errors.push({ row, message: 'Missing Student Roll No / ID' });
+        continue;
+      }
+      const student = byRoll.get(roll);
+      if (!student) {
+        errors.push({ row, message: `Unknown roll number: ${roll}` });
+        continue;
+      }
+      const data: Record<string, Prisma.Decimal> = {};
+      let bad: string | null = null;
+      for (const [field, keys] of Object.entries(COLUMNS)) {
+        const raw = pickExact(cells, [...keys]).replace('%', '').trim();
+        if (raw === '') continue;
+        const n = Number(raw);
+        if (Number.isNaN(n) || n < 0 || n > 100) {
+          const label = { tenthPercentage: '10th', twelfthPercentage: '12th', ugPercentage: 'UG', cgpa: 'PG' }[field];
+          bad = `Invalid ${label} %: ${raw}`;
+          break;
+        }
+        data[field] = new Prisma.Decimal(n);
+      }
+      if (bad) {
+        errors.push({ row, message: bad });
+        continue;
+      }
+      if (Object.keys(data).length === 0) {
+        errors.push({ row, message: 'No marks to import on this row' });
+        continue;
+      }
+      const next = await this.prisma.student.update({
+        where: { id: student.id },
+        data: { ...data, academicMarksVerifiedAt: new Date() },
+        include: { user: true },
+      });
+      const { overall } = computeCompletion(next);
+      if (overall !== next.profileCompletion) {
+        await this.prisma.student.update({
+          where: { id: student.id },
+          data: { profileCompletion: overall },
+        });
+      }
+      updatedCount++;
+    }
+    return { updatedCount, errorCount: errors.length, errors };
+  }
+
   // ─────────────── Student self-service (resolved from JWT) ───────────────
 
   async getOwn(userId: string) {
@@ -895,14 +1086,22 @@ export class StudentsService {
       programme: _programme,
       graduationYear: _graduationYear,
       phone,
-      cgpa,
+      cgpa: dtoCgpa,
       dateOfBirth,
-      tenthPercentage,
-      twelfthPercentage,
-      ugPercentage,
+      tenthPercentage: dtoTenth,
+      twelfthPercentage: dtoTwelfth,
+      ugPercentage: dtoUg,
       semesterMarks,
       ...academic
     } = dto;
+    // Once the college has uploaded the 10th / 12th / UG / PG marks they are
+    // locked for the student — an unchanged-form resubmit must still save, so
+    // the four values are dropped here rather than rejected.
+    const marksLocked = student.academicMarksVerifiedAt != null;
+    const cgpa = marksLocked ? undefined : dtoCgpa;
+    const tenthPercentage = marksLocked ? undefined : dtoTenth;
+    const twelfthPercentage = marksLocked ? undefined : dtoTwelfth;
+    const ugPercentage = marksLocked ? undefined : dtoUg;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       if (phone !== undefined) {
@@ -1142,6 +1341,9 @@ export class StudentsService {
     higherStudiesPlanned: boolean | null;
     entrepreneurshipInterest: boolean | null;
     registeredForPlacements: boolean;
+    placementRestricted: boolean;
+    placementRestrictedAt: Date | null;
+    academicMarksVerifiedAt: Date | null;
     verificationStatus: string;
     verifiedAt: Date | null;
     rejectionReason: string | null;
@@ -1210,6 +1412,9 @@ export class StudentsService {
       higherStudiesPlanned: s.higherStudiesPlanned,
       entrepreneurshipInterest: s.entrepreneurshipInterest,
       registeredForPlacements: s.registeredForPlacements,
+      placementRestricted: s.placementRestricted,
+      placementRestrictedAt: s.placementRestrictedAt,
+      academicMarksVerifiedAt: s.academicMarksVerifiedAt,
       verificationStatus: s.verificationStatus,
       verifiedAt: s.verifiedAt,
       rejectionReason: s.rejectionReason,

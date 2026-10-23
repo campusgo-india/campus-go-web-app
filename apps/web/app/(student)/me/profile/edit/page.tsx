@@ -21,6 +21,9 @@ import {
   type UpdateOwnProfileInput,
 } from '../../../../../lib/students';
 
+// Percentages the college uploads itself (see Students → Upload marks).
+const COLLEGE_MARK_FIELDS = new Set(['cgpa', 'tenthPercentage', 'twelfthPercentage', 'ugPercentage']);
+
 /** Minimum profile readiness needed before we send a student back to apply. */
 function isReadyToApply(student: Student, resumeUploaded: boolean | null): boolean {
   return !!resumeUploaded && (student.profileCompletion ?? 0) >= 60;
@@ -269,7 +272,12 @@ function StudentProfileEdit() {
           {currentStep.fields.map((field) => (
             <FieldInput
               key={field.key}
-              field={field}
+              // Once the college has uploaded the marks they're shown but can't be edited.
+              field={
+                student.academicMarksVerifiedAt && COLLEGE_MARK_FIELDS.has(field.key)
+                  ? { ...field, readOnly: true }
+                  : field
+              }
               value={form[field.key as keyof UpdateOwnProfileInput]}
               onChange={(v) => patch({ [field.key]: v } as Partial<UpdateOwnProfileInput>)}
               showError={

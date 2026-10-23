@@ -66,6 +66,8 @@ export class CreateJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTwelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minUgPercentage?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingAttendance?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingScore?: number;
   @IsOptional() @IsArray() @IsString({ each: true }) eligibleGenders?: string[];
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxActiveBacklogs?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxTotalBacklogs?: number;
@@ -79,7 +81,8 @@ export class CreateJobDto {
   @IsOptional() @IsString() pdfUrl?: string;
   @IsOptional() @IsString() pdfName?: string;
 
-  @IsOptional() @IsDateString() applicationDeadline?: string;
+  // Required on create: students need to know the last day to apply.
+  @IsDateString() applicationDeadline!: string;
 }
 
 export class UpdateJobDto {
@@ -109,6 +112,8 @@ export class UpdateJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTwelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minUgPercentage?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingAttendance?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingScore?: number;
   @IsOptional() @IsArray() @IsString({ each: true }) eligibleGenders?: string[];
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxActiveBacklogs?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxTotalBacklogs?: number;
@@ -156,6 +161,8 @@ export class CreatePlatformJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTwelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minUgPercentage?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingAttendance?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingScore?: number;
   @IsOptional() @IsArray() @IsString({ each: true }) eligibleGenders?: string[];
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxActiveBacklogs?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxTotalBacklogs?: number;
@@ -169,7 +176,8 @@ export class CreatePlatformJobDto {
   @IsOptional() @IsString() pdfUrl?: string;
   @IsOptional() @IsString() pdfName?: string;
 
-  @IsOptional() @IsDateString() applicationDeadline?: string;
+  // Required on create: students need to know the last day to apply.
+  @IsDateString() applicationDeadline!: string;
 }
 
 export class UpdatePlatformJobDto {
@@ -201,6 +209,8 @@ export class UpdatePlatformJobDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTenthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTwelfthPercentage?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minUgPercentage?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingAttendance?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(100) minTrainingScore?: number;
   @IsOptional() @IsArray() @IsString({ each: true }) eligibleGenders?: string[];
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxActiveBacklogs?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) maxTotalBacklogs?: number;

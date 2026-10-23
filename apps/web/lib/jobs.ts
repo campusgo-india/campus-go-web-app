@@ -90,6 +90,8 @@ export interface Job {
   minTenthPercentage: number | null;
   minTwelfthPercentage: number | null;
   minUgPercentage: number | null;
+  minTrainingAttendance: number | null;
+  minTrainingScore: number | null;
   eligibleGenders: string[];
   maxActiveBacklogs: number | null;
   maxTotalBacklogs: number | null;
@@ -154,6 +156,8 @@ export interface CreateJobInput {
   minTenthPercentage?: number;
   minTwelfthPercentage?: number;
   minUgPercentage?: number;
+  minTrainingAttendance?: number;
+  minTrainingScore?: number;
   eligibleGenders?: string[];
   maxActiveBacklogs?: number;
   maxTotalBacklogs?: number;

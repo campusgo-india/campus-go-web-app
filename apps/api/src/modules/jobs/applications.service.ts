@@ -192,21 +192,36 @@ export class ApplicationsService {
       throw new BadRequestException(`Cannot withdraw from a ${app.stage} application`);
     }
 
-    return this.prisma.application.update({
-      where: { id: applicationId },
-      data: {
-        stage: 'WITHDRAWN',
-        status: 'WITHDRAWN',
-        stageHistory: {
-          create: {
-            fromStage: app.stage,
-            toStage: 'WITHDRAWN',
-            changedById: userId,
-            note: 'Withdrawn by student',
+    // Withdrawing blocks the student from further placements until a placement
+    // officer re-enables them (Students → student → Allow placements).
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.application.update({
+        where: { id: applicationId },
+        data: {
+          stage: 'WITHDRAWN',
+          status: 'WITHDRAWN',
+          stageHistory: {
+            create: {
+              fromStage: app.stage,
+              toStage: 'WITHDRAWN',
+              changedById: userId,
+              note: 'Withdrawn by student',
+            },
           },
         },
-      },
+      }),
+      this.prisma.student.update({
+        where: { id: student.id },
+        data: { placementRestricted: true, placementRestrictedAt: new Date() },
+      }),
+    ]);
+    await this.notifications.notifyOfficers(student.collegeId, {
+      type: 'GENERAL',
+      title: 'Student withdrew from a placement',
+      body: 'A student withdrew from a drive and is blocked from other placements until you allow them again.',
+      link: `/students/${student.id}`,
     });
+    return updated;
   }
 
   // ─────────────── Placement Officer: pipeline + ATS ───────────────

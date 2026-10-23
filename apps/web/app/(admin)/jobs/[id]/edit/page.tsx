@@ -56,6 +56,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
     minTwelfth: '', // min 12th %
     minUg: '', // min UG %  (undergrad)
     minPg: '', // min PG %  (current/postgrad — student's Percentage)
+    minTrainingAttendance: '', // min training attendance %
+    minTrainingScore: '', // min training score %
   });
   const setD =
     (k: keyof typeof details) =>
@@ -104,6 +106,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
           minTwelfth: numStr(j.minTwelfthPercentage),
           minUg: numStr(j.minUgPercentage),
           minPg: numStr(j.minCgpa),
+          minTrainingAttendance: numStr(j.minTrainingAttendance),
+          minTrainingScore: numStr(j.minTrainingScore),
         });
         setFormFields(j.applicationFormFields ?? []);
         setPickedSchools(j.eligibleSchools);
@@ -157,7 +161,11 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
   const eligibleProgrammes = hasCatalog ? pickedProgrammes : splitList(programmesText);
 
   const valid =
-    title.trim() && eligibleSchools.length && gradYears.length > 0 && details.ctc.trim() !== '';
+    title.trim() &&
+    eligibleSchools.length &&
+    gradYears.length > 0 &&
+    details.ctc.trim() !== '' &&
+    deadline !== '';
 
   async function submit() {
     setSaving(true);
@@ -191,6 +199,8 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
         minCgpa: num(details.minPg), // PG/current % → student.cgpa (their Percentage)
         minUgPercentage: num(details.minUg), // UG % → student.ugPercentage
         minTenthPercentage: num(details.minTenth),
+        minTrainingAttendance: num(details.minTrainingAttendance),
+        minTrainingScore: num(details.minTrainingScore),
         minTwelfthPercentage: num(details.minTwelfth),
         applicationFormFields: cleanFields(formFields),
         applicationDeadline: deadline
@@ -366,7 +376,7 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                 onToggle={toggleGradYear}
               />
             </Field>
-            <Field label="Last date to apply">
+            <Field label="Last date to apply *">
               <div className="flex gap-2">
                 <input
                   className={inputCls}
@@ -464,6 +474,36 @@ export default function EditJobPage({ params }: { params: Promise<{ id: string }
                   min="0"
                 />
               </Field>
+            </div>
+            <div>
+              <p className="mb-1 text-xs font-semibold text-strong">Training eligibility (optional)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Min training attendance %">
+                  <input
+                    className={inputCls}
+                    type="number"
+                    value={details.minTrainingAttendance}
+                    onChange={setD('minTrainingAttendance')}
+                    placeholder="75"
+                    min="0"
+                    max="100"
+                  />
+                </Field>
+                <Field label="Min training score %">
+                  <input
+                    className={inputCls}
+                    type="number"
+                    value={details.minTrainingScore}
+                    onChange={setD('minTrainingScore')}
+                    placeholder="60"
+                    min="0"
+                    max="100"
+                  />
+                </Field>
+              </div>
+              <span className="text-xs text-subtle">
+                Checked against the student&apos;s recorded training sessions and assessment scores.
+              </span>
             </div>
           </div>
         </div>

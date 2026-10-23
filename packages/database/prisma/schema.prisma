@@ -308,6 +308,13 @@ model Student {
   // Set when the student's batch is graduated to Alumni. Graduated students are
   // hidden from the Students list (they live in the Alumni directory now).
   graduatedAt        DateTime?          @map("graduated_at")
+  // Set when the student withdraws from a placement; blocks further applications
+  // until a placement officer authorizes them again.
+  placementRestricted   Boolean         @default(false) @map("placement_restricted")
+  placementRestrictedAt DateTime?       @map("placement_restricted_at")
+  // Set when the college uploads the 10th / 12th / UG / PG marks. From then on
+  // the student can no longer edit those four fields themselves.
+  academicMarksVerifiedAt DateTime?     @map("academic_marks_verified_at")
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
@@ -571,6 +578,10 @@ model Job {
   minTwelfthPercentage Decimal? @db.Decimal(5, 2) @map("min_twelfth_percentage")
   // Minimum undergraduate degree % (checked against Student.ugPercentage).
   minUgPercentage     Decimal?  @db.Decimal(5, 2) @map("min_ug_percentage")
+  // Training criteria (checked against the student's recorded training data):
+  // minimum attendance % across marked sessions, and average assessment score %.
+  minTrainingAttendance Decimal? @db.Decimal(5, 2) @map("min_training_attendance")
+  minTrainingScore      Decimal? @db.Decimal(5, 2) @map("min_training_score")
   // Empty = any gender. Otherwise only these genders are eligible.
   eligibleGenders     String[]  @map("eligible_genders")
   maxActiveBacklogs   Int?      @map("max_active_backlogs")

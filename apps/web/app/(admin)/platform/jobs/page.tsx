@@ -273,7 +273,8 @@ function NewPlatformJobForm({
     targets.length &&
     splitList(form.eligibleSchools).length &&
     splitList(form.eligibleProgrammes).length &&
-    numList(form.graduationYears).length;
+    numList(form.graduationYears).length &&
+    form.applicationDeadline;
 
   return (
     <Card className="space-y-4 p-5">
@@ -483,7 +484,7 @@ function NewPlatformJobForm({
               />
             </Field>
           </div>
-          <Field label="Application deadline">
+          <Field label="Application deadline *">
             <input
               className={inputCls}
               type="datetime-local"

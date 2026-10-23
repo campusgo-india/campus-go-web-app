@@ -53,7 +53,8 @@ export function middleware(req: NextRequest) {
     // app (which only ever opens /me) — an authenticated non-student is
     // routed to their own shell below, not blocked from signing in.
     const url = new URL('/login', req.url);
-    url.searchParams.set('next', pathname);
+    // Keep the query string so a scanned link (e.g. the attendance QR) survives login.
+    url.searchParams.set('next', pathname + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
 
